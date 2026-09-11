@@ -39,7 +39,7 @@ SQLPlan
         |
         | dialect rendering
         v
-compiler.SQLQuery
+compiler.SQLRenderResult
 ```
 
 The four main objects have deliberately different responsibilities:
@@ -311,7 +311,7 @@ SQLPlan
 Dialect Renderer
       |
       v
-compiler.SQLQuery
+compiler.SQLRenderResult
 ```
 
 ### Metric-free query path

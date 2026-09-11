@@ -101,7 +101,7 @@ func TestSemiAdditiveQueriedTimeWindowUsesRawOrderingKey(t *testing.T) {
 	}
 }
 
-func compileSemiAdditiveTieBreak(t *testing.T, query query.SemanticQuery, dialect, aggregation string) (*semanticplan.SemanticPlan, sql.SQLQuery) {
+func compileSemiAdditiveTieBreak(t *testing.T, query query.SemanticQuery, dialect, aggregation string) (*semanticplan.SemanticPlan, sql.SQLRenderResult) {
 	t.Helper()
 	doc, err := ossie.NewLoader().Load(fixtures.CommerceModelYAML)
 	if err != nil {
@@ -160,7 +160,7 @@ func compileSemiAdditiveTieBreak(t *testing.T, query query.SemanticQuery, dialec
 	return plan, sqlQuery
 }
 
-func compileSemiAdditiveWindowGrouping(t *testing.T, query query.SemanticQuery, dialect string) (*semanticplan.SemanticPlan, sql.SQLQuery) {
+func compileSemiAdditiveWindowGrouping(t *testing.T, query query.SemanticQuery, dialect string) (*semanticplan.SemanticPlan, sql.SQLRenderResult) {
 	t.Helper()
 	doc, err := ossie.NewLoader().Load(fixtures.CommerceModelYAML)
 	if err != nil {

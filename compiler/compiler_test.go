@@ -36,13 +36,13 @@ func (*fakeRenderer) ExpressionDialect() string  { return "DORIS" }
 func (*fakeRenderer) Capabilities() renderer.Capabilities {
 	return renderer.Capabilities{}
 }
-func (r *fakeRenderer) Render(plan *sqlplan.Plan) (sql.SQLQuery, error) {
+func (r *fakeRenderer) Render(plan *sqlplan.Plan) (sql.SQLRenderResult, error) {
 	for _, block := range plan.Blocks {
 		if block.ID == plan.Root && len(block.Projections) > 0 {
 			r.dimensions = append(r.dimensions, block.Projections[0].Alias)
 		}
 	}
-	return sql.SQLQuery{Dialect: r.SQLDialect(), SQL: "SELECT 1", Parameters: r.parameters}, nil
+	return sql.SQLRenderResult{Dialect: r.SQLDialect(), SQL: "SELECT 1", Parameters: r.parameters}, nil
 }
 
 func TestCompilerReturnsPhysicalQueryWithoutEmbeddingRoutingState(t *testing.T) {

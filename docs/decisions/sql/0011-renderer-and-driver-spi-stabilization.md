@@ -28,7 +28,7 @@ The following are stable public extension contracts:
 
 The stable SPI also includes its transitive public type closure:
 
-- `renderer.Capabilities`, `sql.SQLDialect`, `sql.SQLQuery`, and
+- `renderer.Capabilities`, `sql.SQLDialect`, `sql.SQLRenderResult`, and
   `sql.QueryParameter` exposed by `renderer.Renderer`;
 - `compiler/artifact.CompiledQuery`, `OutputSchema`, `OutputColumn`, and
   `OutputColumnKind`, plus the reachable `renderer/sql` values exposed to Drivers;

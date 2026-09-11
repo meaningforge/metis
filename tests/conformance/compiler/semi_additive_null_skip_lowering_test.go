@@ -36,7 +36,7 @@ func TestSemiAdditiveNullSkipDialectLowering(t *testing.T) {
 	}
 }
 
-func compileSemiAdditiveNullSkip(t *testing.T, query query.SemanticQuery, dialect, aggregation string, withTieBreak bool) sql.SQLQuery {
+func compileSemiAdditiveNullSkip(t *testing.T, query query.SemanticQuery, dialect, aggregation string, withTieBreak bool) sql.SQLRenderResult {
 	t.Helper()
 	doc, err := ossie.NewLoader().Load(fixtures.CommerceModelYAML)
 	if err != nil {

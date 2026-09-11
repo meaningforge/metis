@@ -23,7 +23,7 @@ type Renderer interface {
 	SQLDialect() sql.SQLDialect
 	ExpressionDialect() string
 	Capabilities() Capabilities
-	Render(plan *sqlplan.Plan) (sql.SQLQuery, error)
+	Render(plan *sqlplan.Plan) (sql.SQLRenderResult, error)
 }
 
 // Registry resolves physical SQL Renderers by SQLDialect. It is assembled

@@ -11,7 +11,7 @@ import (
 func TestPhysicalQueryCaptureCorrelatesAndSnapshotsByQueryID(t *testing.T) {
 	captures := newPhysicalQueryCapture()
 	compiled := &artifact.CompiledQuery{
-		PhysicalQuery: sql.SQLQuery{Dialect: "DUCKDB", SQL: "SELECT ?", Parameters: []sql.QueryParameter{{Value: int64(7)}}},
+		PhysicalQuery: sql.SQLRenderResult{Dialect: "DUCKDB", SQL: "SELECT ?", Parameters: []sql.QueryParameter{{Value: int64(7)}}},
 		OutputSchema:  artifact.OutputSchema{Columns: []artifact.OutputColumn{{Name: "value"}}},
 	}
 	if err := captures.record("query-7", compiled); err != nil {

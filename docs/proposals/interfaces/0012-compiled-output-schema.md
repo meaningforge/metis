@@ -75,7 +75,7 @@ not yet have a complete target-neutral nullability analysis.
 
 ## Alternatives
 
-### Attach schema only to `compiler.SQLQuery`
+### Attach schema only to `compiler.SQLRenderResult`
 
 Rejected because output semantics are not SQL-specific and should survive
 future SemanticEngine implementations that produce another physical query

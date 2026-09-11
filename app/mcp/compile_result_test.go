@@ -12,7 +12,7 @@ import (
 
 func TestCompileToolResultExposesCompletePhysicalQueryWithoutDroppingStructuredOutput(t *testing.T) {
 	compiled := &artifact.CompiledQuery{
-		PhysicalQuery: sql.SQLQuery{Dialect: "DUCKDB", SQL: "SELECT ?", Parameters: []sql.QueryParameter{{Value: 7}}},
+		PhysicalQuery: sql.SQLRenderResult{Dialect: "DUCKDB", SQL: "SELECT ?", Parameters: []sql.QueryParameter{{Value: 7}}},
 		OutputSchema:  artifact.OutputSchema{Columns: []artifact.OutputColumn{{Name: "answer", Kind: artifact.OutputMetric, Datatype: ossie.DataTypeInteger}}},
 	}
 	result, err := compileToolResult(compiled)

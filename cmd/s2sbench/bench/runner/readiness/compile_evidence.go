@@ -108,20 +108,20 @@ func lastSuccessfulCompileResponse(trace []s2sbench.ToolCallEvidence) string {
 	return lastSuccessfulToolResponse(trace, "compile_sql")
 }
 
-func decodeCompileToolResponse(raw string) (sql.SQLQuery, error) {
+func decodeCompileToolResponse(raw string) (sql.SQLRenderResult, error) {
 	var value any
 	if err := decodeJSONNumbers([]byte(raw), &value); err != nil {
-		return sql.SQLQuery{}, fmt.Errorf("decode compile tool response: %w", err)
+		return sql.SQLRenderResult{}, fmt.Errorf("decode compile tool response: %w", err)
 	}
 	if query, ok := physicalQueryFromValue(value, 0); ok {
 		return query, nil
 	}
-	return sql.SQLQuery{}, fmt.Errorf("compile tool response contains no physical_query")
+	return sql.SQLRenderResult{}, fmt.Errorf("compile tool response contains no physical_query")
 }
 
-func physicalQueryFromValue(value any, depth int) (sql.SQLQuery, bool) {
+func physicalQueryFromValue(value any, depth int) (sql.SQLRenderResult, bool) {
 	if depth > 8 {
-		return sql.SQLQuery{}, false
+		return sql.SQLRenderResult{}, false
 	}
 	switch current := value.(type) {
 	case map[string]any:
@@ -152,17 +152,17 @@ func physicalQueryFromValue(value any, depth int) (sql.SQLQuery, bool) {
 			return physicalQueryFromValue(nested, depth+1)
 		}
 	}
-	return sql.SQLQuery{}, false
+	return sql.SQLRenderResult{}, false
 }
 
-func decodePhysicalQuery(value any) (sql.SQLQuery, bool) {
+func decodePhysicalQuery(value any) (sql.SQLRenderResult, bool) {
 	body, err := json.Marshal(value)
 	if err != nil {
-		return sql.SQLQuery{}, false
+		return sql.SQLRenderResult{}, false
 	}
-	var query sql.SQLQuery
+	var query sql.SQLRenderResult
 	if decodeJSONNumbers(body, &query) != nil || strings.TrimSpace(string(query.Dialect)) == "" || strings.TrimSpace(query.SQL) == "" {
-		return sql.SQLQuery{}, false
+		return sql.SQLRenderResult{}, false
 	}
 	return query, true
 }

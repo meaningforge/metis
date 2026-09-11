@@ -120,7 +120,7 @@ func (e *ProductionExecution) RunCompiled(t *testing.T, name string, compiled *a
 // projection over attribution evidence. Callers must provide an explicit
 // OutputSchema; execution, normalization, limits, and cleanup still belong to
 // production Runner and Driver implementations.
-func (e *ProductionExecution) RunRawQuery(t *testing.T, name string, query sql.SQLQuery, schema artifact.OutputSchema) scenarios.ResultSet {
+func (e *ProductionExecution) RunRawQuery(t *testing.T, name string, query sql.SQLRenderResult, schema artifact.OutputSchema) scenarios.ResultSet {
 	t.Helper()
 	if e == nil || e.runtime == nil || e.route.Backend.Renderer == nil {
 		t.Fatal("production conformance execution is not configured")
