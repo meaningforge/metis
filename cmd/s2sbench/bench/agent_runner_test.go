@@ -92,7 +92,7 @@ func TestNormalizeAgentOutputMetisExplainsMalformedTrailingContent(t *testing.T)
 		t.Fatal("expected malformed trailing content to fail")
 	}
 	for _, want := range []string{
-		"one valid Metis physical_query JSON object",
+		"one valid Metis render_result JSON object",
 		"return only the first complete object",
 		`trailing prefix="{\"dialect\""`,
 	} {

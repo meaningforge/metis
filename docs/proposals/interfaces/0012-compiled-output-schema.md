@@ -65,7 +65,7 @@ database driver will expose an identically named physical wire type. Physical
 result normalization remains the execution tool's responsibility.
 
 `execution.CompiledQuery` exposes the schema as top-level `output_schema`
-beside `execution` and `physical_query`. REST and MCP serialize the same shared
+beside `execution` and `render_result`. REST and MCP serialize the same shared
 service value. The offline `s2s` compiler retains the same schema in its Go
 result even though its default CLI presentation remains SQL text.
 
@@ -100,7 +100,7 @@ the shape of the compiled artifact, not database connectivity or fetched data.
 
 ## Rollout and migration
 
-The JSON change is additive: existing `execution` and `physical_query` fields
+The JSON change is additive: existing `execution` and `render_result` fields
 are unchanged, while successful responses gain `output_schema`. Consumers may
 adopt the field without changing query execution. A rollback removes only the
 additive field and schema construction; SQL output remains unchanged.

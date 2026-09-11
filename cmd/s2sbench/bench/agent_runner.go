@@ -151,21 +151,21 @@ func normalizeAgentOutput(path Path, output string) (sql.SQLRenderResult, error)
 	decoder.UseNumber()
 	var physicalQuery sql.SQLRenderResult
 	if err := decoder.Decode(&physicalQuery); err != nil {
-		return sql.SQLRenderResult{}, fmt.Errorf("decode Metis physical_query returned by external agent: %w; output prefix=%q", err, agentOutputPrefix(output))
+		return sql.SQLRenderResult{}, fmt.Errorf("decode Metis render_result returned by external agent: %w; output prefix=%q", err, agentOutputPrefix(output))
 	}
 	var trailing any
 	if err := decoder.Decode(&trailing); err != io.EOF {
 		if err == nil {
-			return sql.SQLRenderResult{}, fmt.Errorf("external agent returned more than one JSON value for Metis physical_query")
+			return sql.SQLRenderResult{}, fmt.Errorf("external agent returned more than one JSON value for Metis render_result")
 		}
 		trailingOutput := strings.TrimSpace(output[decoder.InputOffset():])
-		return sql.SQLRenderResult{}, fmt.Errorf("external agent returned one valid Metis physical_query JSON object followed by invalid trailing content; return only the first complete object and remove everything after it: %w; trailing prefix=%q", err, agentOutputPrefix(trailingOutput))
+		return sql.SQLRenderResult{}, fmt.Errorf("external agent returned one valid Metis render_result JSON object followed by invalid trailing content; return only the first complete object and remove everything after it: %w; trailing prefix=%q", err, agentOutputPrefix(trailingOutput))
 	}
 	if physicalQuery.Dialect != "DUCKDB" {
-		return sql.SQLRenderResult{}, fmt.Errorf("Metis physical_query dialect is %q, want DUCKDB", physicalQuery.Dialect)
+		return sql.SQLRenderResult{}, fmt.Errorf("Metis render_result dialect is %q, want DUCKDB", physicalQuery.Dialect)
 	}
 	if strings.TrimSpace(physicalQuery.SQL) == "" {
-		return sql.SQLRenderResult{}, fmt.Errorf("Metis physical_query contains empty SQL")
+		return sql.SQLRenderResult{}, fmt.Errorf("Metis render_result contains empty SQL")
 	}
 	return physicalQuery, nil
 }

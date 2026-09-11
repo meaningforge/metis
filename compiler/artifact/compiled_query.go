@@ -13,8 +13,7 @@ import (
 // execution Runner. It deliberately contains no DataSource, Backend, Renderer,
 // or routing state.
 type CompiledQuery struct {
-	// SQLRenderResult retains the physical_query JSON key for wire compatibility.
-	SQLRenderResult sql.SQLRenderResult `json:"physical_query"`
+	SQLRenderResult sql.SQLRenderResult `json:"render_result"`
 	OutputSchema    OutputSchema        `json:"output_schema"`
 	Warnings        []Warning           `json:"warnings,omitempty"`
 }

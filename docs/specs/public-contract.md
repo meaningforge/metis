@@ -221,8 +221,8 @@ The standard database drivers bind them at execution time. See the
 [source contract](semantic/asset-authoring-lifecycle.md).
 
 `artifact.CompiledQuery.SQLRenderResult` holds the rendering output. Its JSON
-key remains `physical_query` for compatibility with existing REST/MCP clients
-and persisted benchmark artifacts. `output_schema` and `warnings` are unchanged.
+key is `render_result` in REST/MCP responses and persisted benchmark artifacts.
+`output_schema` and `warnings` are unchanged.
 
 ## Naming discipline
 

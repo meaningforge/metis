@@ -113,49 +113,49 @@ func decodeCompileToolResponse(raw string) (sql.SQLRenderResult, error) {
 	if err := decodeJSONNumbers([]byte(raw), &value); err != nil {
 		return sql.SQLRenderResult{}, fmt.Errorf("decode compile tool response: %w", err)
 	}
-	if query, ok := physicalQueryFromValue(value, 0); ok {
+	if query, ok := renderResultFromValue(value, 0); ok {
 		return query, nil
 	}
-	return sql.SQLRenderResult{}, fmt.Errorf("compile tool response contains no physical_query")
+	return sql.SQLRenderResult{}, fmt.Errorf("compile tool response contains no render_result")
 }
 
-func physicalQueryFromValue(value any, depth int) (sql.SQLRenderResult, bool) {
+func renderResultFromValue(value any, depth int) (sql.SQLRenderResult, bool) {
 	if depth > 8 {
 		return sql.SQLRenderResult{}, false
 	}
 	switch current := value.(type) {
 	case map[string]any:
 		for key, nested := range current {
-			if strings.EqualFold(key, "physical_query") {
-				if query, ok := decodePhysicalQuery(nested); ok {
+			if strings.EqualFold(key, "render_result") {
+				if query, ok := decodeRenderResult(nested); ok {
 					return query, true
 				}
 			}
 		}
-		if query, ok := decodePhysicalQuery(current); ok {
+		if query, ok := decodeRenderResult(current); ok {
 			return query, true
 		}
 		for _, nested := range current {
-			if query, ok := physicalQueryFromValue(nested, depth+1); ok {
+			if query, ok := renderResultFromValue(nested, depth+1); ok {
 				return query, true
 			}
 		}
 	case []any:
 		for _, nested := range current {
-			if query, ok := physicalQueryFromValue(nested, depth+1); ok {
+			if query, ok := renderResultFromValue(nested, depth+1); ok {
 				return query, true
 			}
 		}
 	case string:
 		var nested any
 		if decodeJSONNumbers([]byte(current), &nested) == nil {
-			return physicalQueryFromValue(nested, depth+1)
+			return renderResultFromValue(nested, depth+1)
 		}
 	}
 	return sql.SQLRenderResult{}, false
 }
 
-func decodePhysicalQuery(value any) (sql.SQLRenderResult, bool) {
+func decodeRenderResult(value any) (sql.SQLRenderResult, bool) {
 	body, err := json.Marshal(value)
 	if err != nil {
 		return sql.SQLRenderResult{}, false
