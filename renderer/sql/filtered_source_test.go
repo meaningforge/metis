@@ -1,4 +1,4 @@
-package sqlkit_test
+package sql_test
 
 import (
 	"reflect"

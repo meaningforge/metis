@@ -104,7 +104,7 @@ rendered as a filtered relation input before any join, including outer joins.
 Moving these constraints into the enclosing WHERE is forbidden. Values MUST
 use physical parameters; no policy lookup or reinterpretation is permitted.
 Unsupported relation forms MUST fail explicitly. The built-ins lower this
-form through `renderer/sqlkit` as a parameterized derived table.
+form through `renderer/sql` as a parameterized derived table.
 
 Target-neutral searched `CASE`, null tests, and explicit parenthesized grouping
 are typed SQLPlan expressions. Renderers MUST preserve their branch, null, and
@@ -128,7 +128,7 @@ integer range through `DECIMAL(20,12)` first.
 The target form MUST preserve SQL NULL. A target whose ordinary cast rejects a
 non-finite binary-float intermediate MAY use a null-returning exact cast; the
 built-in ClickHouse Renderer uses `accurateCastOrNull` for this reason.
-`renderer/sqlkit.CastBehavior` is the optional specialization point; engines
+`renderer/sql.CastBehavior` is the optional specialization point; engines
 whose standard `CAST` already satisfies the contract need no implementation.
 
 A renderer MUST NOT own:
@@ -188,15 +188,15 @@ semantic scenarios must not be copied into warehouse-specific test suites.
 
 Each new implementation belongs under `renderer/<warehouse>/`; optional
 executable support belongs separately under
-`execution/backend/<warehouse>/`. `renderer/sqlkit` is optional and
-experimental until separately stabilized; it is not a default or ANSI Renderer.
+`execution/backend/<warehouse>/`. The rendering helpers in `renderer/sql` are optional and
+experimental until separately stabilized. The package is not a default or ANSI Renderer.
 The required package ownership, explicit composition, Driver boundary, and
 support evidence are specified in [Renderer and Backend Extension
 Authoring](extension-authoring.md).
 
 ## Experimental SQLPlan toolkit
 
-`renderer/sqlkit` provides optional deterministic traversal of `sqlplan.Plan`.
+`renderer/sql` provides optional deterministic traversal of `sqlplan.Plan`.
 It receives an explicit `Behavior` from a concrete Renderer for every
 warehouse-specific decision: quoting, source rendering, inequality syntax,
 expression fallback, lowering, limit syntax, CTE behavior, and statement
@@ -204,6 +204,7 @@ suffixes. It owns no semantic input, registry, selected Renderer identity, or
 execution capability.
 
 The toolkit has no `Renderer` implementation and cannot be selected by dialect.
-Concrete Renderers may use it or render SQLPlan directly. Its exported API is
-experimental and is not a stable community compatibility commitment; a separate
-stabilization decision requires evidence from an additional warehouse.
+Concrete Renderers may use the helpers or render SQLPlan directly. The helper
+API is experimental; a separate stabilization decision requires evidence from
+an additional warehouse. `SQLDialect`, `QueryParameter`, and `SQLQuery` live in
+the same package and retain their existing extension compatibility contract.

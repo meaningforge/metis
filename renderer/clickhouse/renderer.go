@@ -8,7 +8,6 @@ import (
 	"github.com/meaningforge/metis/query"
 	"github.com/meaningforge/metis/renderer"
 	"github.com/meaningforge/metis/renderer/sql"
-	"github.com/meaningforge/metis/renderer/sqlkit"
 	"github.com/meaningforge/metis/sqlplan"
 )
 
@@ -25,7 +24,7 @@ type Renderer struct{ preserveJoinNulls bool }
 
 var (
 	_ renderer.Renderer = (*Renderer)(nil)
-	_ sqlkit.Behavior   = Renderer{}
+	_ sql.Behavior      = Renderer{}
 )
 
 func New() *Renderer { return &Renderer{} }
@@ -36,14 +35,14 @@ func (Renderer) Capabilities() renderer.Capabilities {
 	return renderer.Capabilities{}
 }
 func (Renderer) Render(plan *sqlplan.Plan) (sql.SQLQuery, error) {
-	if err := sqlkit.Validate(plan, string(Dialect)); err != nil {
+	if err := sql.Validate(plan, string(Dialect)); err != nil {
 		return sql.SQLQuery{}, err
 	}
-	text, parameters, err := sqlkit.Render(plan, Renderer{preserveJoinNulls: containsFullOuterJoin(plan)})
+	text, parameters, err := sql.Render(plan, Renderer{preserveJoinNulls: containsFullOuterJoin(plan)})
 	return sql.SQLQuery{Dialect: Dialect, SQL: text, Parameters: parameters}, err
 }
 
-// Renderer answers the sqlkit.Behavior questions the shared traversal
+// Renderer answers the sql.Behavior questions the shared traversal
 // refuses to answer for it.
 //
 // ClickHouse renders ordered-value aggregates natively with argMax and argMin,
@@ -58,7 +57,7 @@ func (d Renderer) RenderLimit(limit int) string {
 
 // A CTE body is a separate statement for the purposes of this setting: its own
 // joins are governed by whatever it contains, not by the enclosing statement.
-func (d Renderer) CTEBehavior() sqlkit.Behavior {
+func (d Renderer) CTEBehavior() sql.Behavior {
 	return Renderer{preserveJoinNulls: false}
 }
 
@@ -97,7 +96,7 @@ func containsFullOuterJoin(plan *sqlplan.Plan) bool {
 func (d Renderer) RenderExpression(expr sqlplan.Expr) (string, error) {
 	switch e := expr.(type) {
 	case sqlplan.TimeGrainExpr:
-		r, er := sqlkit.RenderExpression(d, e.Expr)
+		r, er := sql.RenderExpression(d, e.Expr)
 		if er != nil {
 			return "", er
 		}
@@ -110,7 +109,7 @@ func (d Renderer) RenderExpression(expr sqlplan.Expr) (string, error) {
 		}
 		return fn + "(" + r + ")", nil
 	case sqlplan.CalendarShiftExpr:
-		r, er := sqlkit.RenderExpression(d, e.Expr)
+		r, er := sql.RenderExpression(d, e.Expr)
 		if er != nil {
 			return "", er
 		}
@@ -123,7 +122,7 @@ func (d Renderer) RenderExpression(expr sqlplan.Expr) (string, error) {
 		}
 		return fmt.Sprintf("%s(%s, %d)", fn, r, e.Count), nil
 	case sqlplan.LatestValueExpr:
-		v, er := sqlkit.RenderExpression(d, e.Value)
+		v, er := sql.RenderExpression(d, e.Value)
 		if er != nil {
 			return "", er
 		}
@@ -133,7 +132,7 @@ func (d Renderer) RenderExpression(expr sqlplan.Expr) (string, error) {
 		}
 		return "argMax(" + v + ", " + o + ")", nil
 	case sqlplan.EarliestValueExpr:
-		v, er := sqlkit.RenderExpression(d, e.Value)
+		v, er := sql.RenderExpression(d, e.Value)
 		if er != nil {
 			return "", er
 		}
@@ -148,14 +147,14 @@ func (d Renderer) RenderExpression(expr sqlplan.Expr) (string, error) {
 }
 
 func (d Renderer) renderClickHouseOrderedKey(primary, tie sqlplan.Expr) (string, error) {
-	p, er := sqlkit.RenderExpression(d, primary)
+	p, er := sql.RenderExpression(d, primary)
 	if er != nil {
 		return "", er
 	}
 	if tie == nil {
 		return p, nil
 	}
-	t, er := sqlkit.RenderExpression(d, tie)
+	t, er := sql.RenderExpression(d, tie)
 	if er != nil {
 		return "", er
 	}

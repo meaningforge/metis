@@ -53,7 +53,7 @@ compiler/attribution/           attribution-specific compiled bundle composition
 sqlplan/                        renderer-neutral typed physical SQL IR
 
 renderer/                       public Renderer contract and sole registry
-renderer/sqlkit/                optional experimental typed SQLPlan rendering toolkit
+renderer/sql/                   rendered query types and shared SQL rendering
 renderer/duckdb/                concrete DuckDB Renderer
 renderer/doris/                 concrete Doris Renderer
 renderer/clickhouse/            concrete ClickHouse Renderer
@@ -232,8 +232,9 @@ Accepting the architecture did not itself declare its Go extension packages
 stable. The staged migration, concrete Renderer and Doris Backend/Driver
 implementations, dependency guards, and conformance evidence now support the
 separate stabilization decision in ADR-0011: `renderer.Renderer`, the
-DataSource, Driver, and Backend contracts are stable; `renderer/sqlkit` remains
-experimental pending broader independent use.
+DataSource, Driver, and Backend contracts are stable. Shared rendering helpers
+in `renderer/sql` remain experimental pending broader independent use; the
+query value types retain their existing compatibility contract.
 
 ## 5. Terminology
 
@@ -307,7 +308,7 @@ renderer/
     registry.go
     dialect.go
 
-renderer/sqlkit/
+renderer/sql/
     doc.go
     behavior.go
     render.go
@@ -328,7 +329,7 @@ Concrete Renderer packages may import:
 
 - `compiler` contracts;
 - `sqlplan`;
-- `renderer/sqlkit`;
+- `renderer/sql`;
 - domain-neutral utilities;
 - their own focused dependencies.
 
@@ -460,9 +461,9 @@ There is no independent DialectRegistry or CapabilitiesRegistry.
 
 ### 8.1 Purpose
 
-`renderer/sqlkit` extracts the mechanically shared typed SQLPlan traversal currently private to `sql/render`. It lets a warehouse implementation answer only its physical syntax decisions while reusing deterministic block traversal, parameter accounting, and validation.
+`renderer/sql` extracts the mechanically shared typed SQLPlan traversal currently private to `sql/render`. It lets a warehouse implementation answer only its physical syntax decisions while reusing deterministic block traversal, parameter accounting, and validation.
 
-The toolkit is optional. A Renderer may implement the public Renderer interface directly. `renderer.Renderer` is the surface intended to become the stable public rendering SPI after the evidence gates in section 4.7; `renderer/sqlkit` begins as an explicitly experimental public helper API.
+The toolkit is optional. A Renderer may implement the public Renderer interface directly. `renderer.Renderer` is the surface intended to become the stable public rendering SPI after the evidence gates in section 4.7; the rendering helpers in `renderer/sql` begin as explicitly experimental public APIs.
 
 ### 8.2 Required dialect decisions
 
@@ -488,7 +489,7 @@ func Render(
 
 The exact API may be refined during implementation, but it must preserve these properties:
 
-- no selectable `sqlkit.Renderer` exists;
+- no selectable `sql.Renderer` exists;
 - missing warehouse decisions fail at build time or explicit validation;
 - known divergent behavior has no silent default;
 - SQLPlan remains the only shared physical IR;
@@ -498,9 +499,9 @@ The exact API may be refined during implementation, but it must preserve these p
 
 ### 8.3 Public versus internal helpers
 
-Only helpers required by external Renderer authors are public. Test fixtures, formatting internals, private traversal state, and implementation-only aliases remain under `renderer/sqlkit/internal` or inside the toolkit package.
+Only helpers required by external Renderer authors are public. Test fixtures, formatting internals, private traversal state, and implementation-only aliases remain unexported inside `renderer/sql`.
 
-Its first implementation SHOULD expose the smallest useful API and avoid exporting the current file structure mechanically, but its exported surface is not yet a stable compatibility commitment. Package documentation MUST label it experimental. The `Behavior` shape shown above is conceptual and may change while qualifying real warehouse needs such as BigQuery `QUALIFY`, Snowflake `VARIANT`, and Databricks lateral/explode lowering. Metis may freeze `renderer/sqlkit` only after at least one additional warehouse implementation outside the current three Renderers has validated the abstraction. Stabilizing the toolkit requires an explicit review; accepting this RFC does not stabilize it.
+Its first implementation SHOULD expose the smallest useful API and avoid exporting the current file structure mechanically, but its exported surface is not yet a stable compatibility commitment. Package documentation MUST label it experimental. The `Behavior` shape shown above is conceptual and may change while qualifying real warehouse needs such as BigQuery `QUALIFY`, Snowflake `VARIANT`, and Databricks lateral/explode lowering. Metis may stabilize the shared rendering helpers only after at least one additional warehouse implementation outside the current three Renderers has validated the abstraction. Stabilizing the toolkit requires an explicit review; accepting this RFC does not stabilize it.
 
 ## 9. Driver SPI
 
@@ -678,7 +679,7 @@ It imports only public Metis packages:
 compiler
 sqlplan
 renderer
-renderer/sqlkit                 optional, experimental
+renderer/sql rendering helpers  optional, experimental
 execution/datasource
 execution/driver
 execution/backend
@@ -893,7 +894,7 @@ No production behavior changes.
 
 ### PR 4: SQL toolkit extraction
 
-- extract the shared typed SQLPlan traversal into `renderer/sqlkit`;
+- extract the shared typed SQLPlan traversal into `renderer/sql`;
 - define the minimal experimental public Behavior helper contract;
 - migrate current Renderers without SQL output changes;
 - add toolkit and Renderer contract tests;
@@ -942,7 +943,7 @@ No production behavior changes.
 - use built-in Renderer and Doris Backend/Driver evidence, package dependency
   guards, runtime tests, and real-engine conformance for the stabilization
   decision;
-- retain `renderer/sqlkit` as experimental pending broader independent use.
+- retain the rendering helpers in `renderer/sql` as experimental pending broader independent use.
 
 No phase may introduce temporary duplicate Renderer or Backend authorities. Moves are direct migrations, not long-lived aliases or compatibility registries.
 
@@ -1057,7 +1058,7 @@ RFC-0060 may move from Draft to Accepted when maintainers agree on:
 1. renaming the physical extension root from `sql` to `renderer`;
 2. retaining `sqlplan` as the typed physical SQL IR;
 3. separate Renderer and execution Backend packages per warehouse;
-4. the experimental public versus internal boundary of `renderer/sqlkit`, without declaring its helper API stable;
+4. the experimental public versus internal boundary of `renderer/sql`, without declaring its helper API stable;
 5. the narrowed Driver `OpenRequest` that excludes runtime policy and preserves SecretRefs while exposing resolved values only through reference lookup;
 6. explicit compile-time composition rather than dynamic plugins or `init()`;
 7. the staged direct-migration sequence without duplicate authorities;

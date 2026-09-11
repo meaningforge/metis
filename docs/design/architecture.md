@@ -23,9 +23,10 @@ The diagram summarizes ownership rather than every function call. The
 the semantic stages and their validation rules.
 
 `query` holds requested metrics, dimensions, filters, ordering, and limits.
-`sqlplan` is the structured SQL plan consumed by Renderers. `renderer/sql` is an
-independent value package containing completed SQL and parameter bindings;
-it does not import Renderer implementations or execution services. A
+`sqlplan` is the structured SQL plan consumed by Renderers. `renderer/sql`
+contains shared plan traversal, physical lowering helpers, and the completed
+SQL and parameter types. Concrete Renderers supply dialect-specific behavior;
+the shared package does not select Renderers or execute queries. A
 `compiler/artifact.CompiledQuery` combines that query with its output schema.
 
 SQL values remain parameterized. Both API responses and `s2s gen-sql` export

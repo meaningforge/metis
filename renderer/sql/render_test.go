@@ -1,4 +1,4 @@
-package sqlkit_test
+package sql_test
 
 import (
 	"fmt"
@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/meaningforge/metis/query"
-	"github.com/meaningforge/metis/renderer/sqlkit"
+	"github.com/meaningforge/metis/renderer/sql"
 	"github.com/meaningforge/metis/sqlplan"
 )
 
@@ -24,7 +24,7 @@ func (testBehavior) LowerPlan(plan *sqlplan.Plan) (*sqlplan.Plan, error) {
 	return sqlplan.Clone(plan), nil
 }
 func (testBehavior) RenderLimit(limit int) string { return fmt.Sprintf("LIMIT %d\n", limit) }
-func (testBehavior) CTEBehavior() sqlkit.Behavior { return testBehavior{} }
+func (testBehavior) CTEBehavior() sql.Behavior    { return testBehavior{} }
 func (testBehavior) StatementSuffix() string      { return "" }
 
 type unsupportedExpression struct{ expr sqlplan.Expr }
@@ -42,11 +42,11 @@ func TestRenderIsDeterministicAndDoesNotMutateInput(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	first, firstParams, err := sqlkit.Render(plan, testBehavior{})
+	first, firstParams, err := sql.Render(plan, testBehavior{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	second, secondParams, err := sqlkit.Render(plan, testBehavior{})
+	second, secondParams, err := sql.Render(plan, testBehavior{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -118,7 +118,7 @@ func TestRenderExpressionOwnsTargetNeutralConditionalAndWindowSyntax(t *testing.
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			got, err := sqlkit.RenderExpression(testBehavior{}, tc.expr)
+			got, err := sql.RenderExpression(testBehavior{}, tc.expr)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -134,7 +134,7 @@ func TestRenderExpressionRejectsWindowFunctionsWithoutOrder(t *testing.T) {
 		sqlplan.WindowExpr{Function: sqlplan.FunctionCallExpr{Name: "SUM", Args: []sqlplan.Expr{sqlplan.ColumnRef{Name: "value"}}}, Frame: sqlplan.WindowRowsUnboundedPrecedingToCurrent},
 		sqlplan.RowNumberExpr{PartitionBy: []sqlplan.Expr{sqlplan.ColumnRef{Name: "conversion_id"}}},
 	} {
-		if _, err := sqlkit.RenderExpression(testBehavior{}, expr); err == nil {
+		if _, err := sql.RenderExpression(testBehavior{}, expr); err == nil {
 			t.Fatalf("RenderExpression(%T) accepted missing order", expr)
 		}
 	}

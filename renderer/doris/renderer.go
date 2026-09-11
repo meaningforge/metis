@@ -8,7 +8,6 @@ import (
 	"github.com/meaningforge/metis/query"
 	"github.com/meaningforge/metis/renderer"
 	"github.com/meaningforge/metis/renderer/sql"
-	"github.com/meaningforge/metis/renderer/sqlkit"
 	"github.com/meaningforge/metis/sqlplan"
 )
 
@@ -18,7 +17,7 @@ type Renderer struct{}
 
 var (
 	_ renderer.Renderer = (*Renderer)(nil)
-	_ sqlkit.Behavior   = Renderer{}
+	_ sql.Behavior      = Renderer{}
 )
 
 func New() *Renderer { return &Renderer{} }
@@ -29,21 +28,21 @@ func (Renderer) Capabilities() renderer.Capabilities {
 	return renderer.Capabilities{}
 }
 func (Renderer) Render(plan *sqlplan.Plan) (sql.SQLQuery, error) {
-	if err := sqlkit.Validate(plan, string(Dialect)); err != nil {
+	if err := sql.Validate(plan, string(Dialect)); err != nil {
 		return sql.SQLQuery{}, err
 	}
-	text, parameters, err := sqlkit.Render(plan, Renderer{})
+	text, parameters, err := sql.Render(plan, Renderer{})
 	return sql.SQLQuery{Dialect: Dialect, SQL: text, Parameters: parameters}, err
 }
 
-// Renderer answers the sqlkit.Behavior questions the shared traversal
+// Renderer answers the sql.Behavior questions the shared traversal
 // refuses to answer for it.
 //
 // Doris renders ordered-value aggregates natively, so it lowers only the
 // deterministic tie-break rewrite and not the join rewrite the DuckDB renderer
 // needs.
 func (d Renderer) LowerPlan(plan *sqlplan.Plan) (*sqlplan.Plan, error) {
-	return sqlkit.LowerDeterministicOrderedValuePlan(plan)
+	return sql.LowerDeterministicOrderedValuePlan(plan)
 }
 
 func (d Renderer) RenderLimit(limit int) string {
@@ -53,7 +52,7 @@ func (d Renderer) RenderLimit(limit int) string {
 // This dialect carries no statement-scoped state, so a CTE body renders with
 // the same behavior as its enclosing statement, and no statement setting
 // follows the row limit.
-func (d Renderer) CTEBehavior() sqlkit.Behavior { return d }
+func (d Renderer) CTEBehavior() sql.Behavior { return d }
 
 func (d Renderer) StatementSuffix() string { return "" }
 
@@ -63,13 +62,13 @@ func (d Renderer) StatementSuffix() string { return "" }
 func (d Renderer) RenderExpression(expr sqlplan.Expr) (string, error) {
 	switch e := expr.(type) {
 	case sqlplan.TimeGrainExpr:
-		r, er := sqlkit.RenderExpression(d, e.Expr)
+		r, er := sql.RenderExpression(d, e.Expr)
 		if er != nil {
 			return "", er
 		}
 		return fmt.Sprintf("DATE_TRUNC(%q, %s)", string(e.Grain), r), nil
 	case sqlplan.CalendarShiftExpr:
-		r, er := sqlkit.RenderExpression(d, e.Expr)
+		r, er := sql.RenderExpression(d, e.Expr)
 		if er != nil {
 			return "", er
 		}
@@ -89,11 +88,11 @@ func (d Renderer) RenderExpression(expr sqlplan.Expr) (string, error) {
 		if e.TieBreak != nil {
 			return "", fmt.Errorf("deterministic latest-value expression must be structurally lowered before Doris rendering")
 		}
-		v, er := sqlkit.RenderExpression(d, e.Value)
+		v, er := sql.RenderExpression(d, e.Value)
 		if er != nil {
 			return "", er
 		}
-		o, er := sqlkit.RenderExpression(d, e.OrderBy)
+		o, er := sql.RenderExpression(d, e.OrderBy)
 		if er != nil {
 			return "", er
 		}
@@ -102,11 +101,11 @@ func (d Renderer) RenderExpression(expr sqlplan.Expr) (string, error) {
 		if e.TieBreak != nil {
 			return "", fmt.Errorf("deterministic earliest-value expression must be structurally lowered before Doris rendering")
 		}
-		v, er := sqlkit.RenderExpression(d, e.Value)
+		v, er := sql.RenderExpression(d, e.Value)
 		if er != nil {
 			return "", er
 		}
-		o, er := sqlkit.RenderExpression(d, e.OrderBy)
+		o, er := sql.RenderExpression(d, e.OrderBy)
 		if er != nil {
 			return "", er
 		}

@@ -59,10 +59,10 @@ one selected Renderer instance, DataSource type-to-Backend binding, exact
 SecretRef lookup, Driver isolation from policy/routing, bounded Runtime close,
 and Runner-owned complete-result atomicity.
 
-`renderer/sqlkit` remains experimental. It is used by built-in Renderers, but
-that evidence is insufficient to freeze its `Behavior` shape for independent
-warehouse implementations. It remains optional and carries no compatibility
-promise.
+The rendering helpers in `renderer/sql` remain experimental. They are used by built-in Renderers, but
+that evidence is insufficient to freeze the `Behavior` shape for independent
+warehouse implementations. Helper use remains optional and carries no compatibility
+promise. The query value types retain their existing SPI compatibility contract.
 
 Metis publishes no shared Renderer or Driver test-fixture package. Generic
 assertions are kept as local tests at each implementation boundary; this avoids

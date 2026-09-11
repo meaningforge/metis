@@ -6,8 +6,8 @@ optionally, an executable Backend. Read it with
 [runtime bootstrap contract](../operations/runtime-bootstrap.md).
 
 `renderer`, `execution/datasource`, `execution/driver`, and
-`execution/backend` are stable extension contracts. `renderer/sqlkit` is
-explicitly experimental; it is optional and not a compatibility commitment.
+`execution/backend` are stable extension contracts. The rendering helpers in `renderer/sql` are
+explicitly experimental; they are optional and not a compatibility commitment.
 The stabilization decision is recorded in
 [ADR-0011](../../decisions/sql/0011-renderer-and-driver-spi-stabilization.md),
 with the Config representation refined by
@@ -66,7 +66,7 @@ compatibility, capabilities, and rendering. A Renderer MUST NOT look itself up
 again by name, infer a target, consult deployment configuration, or own query
 execution.
 
-`renderer/sqlkit` is an optional experimental helper for typed `sqlplan.Plan`
+`renderer/sql.Render` is an optional experimental helper for typed `sqlplan.Plan`
 traversal. It has no default behavior and no selectable dialect. An extension
 may implement `Renderer.Render` directly instead. Its exported API is not a
 stable compatibility promise.

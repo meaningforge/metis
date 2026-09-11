@@ -67,7 +67,7 @@ output representation required by the runtime contract. The narrower
 `DECIMAL(20,12)` cast remains limited to ratio intermediates.
 Metis-owned undefined divisions use the typed `NullOnZeroDivideExpr`; authored
 opaque expressions keep their explicit SQL semantics. Dialects may specialize
-the closed cast through `sqlkit.CastBehavior` without adding target switches to
+the closed cast through `sql.CastBehavior` without adding target switches to
 the compiler.
 
 The registered metric-scale contract is part of the shared harness and uses a

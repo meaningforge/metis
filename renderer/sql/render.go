@@ -1,11 +1,10 @@
-package sqlkit
+package sql
 
 import (
 	"fmt"
 	"strings"
 
 	"github.com/meaningforge/metis/query"
-	"github.com/meaningforge/metis/renderer/sql"
 	"github.com/meaningforge/metis/sqlplan"
 )
 
@@ -42,7 +41,7 @@ func Validate(plan *sqlplan.Plan, dialect string) error {
 
 // Render deterministically renders a validated SQLPlan with behavior. It does
 // not mutate plan; target-specific lowering must return an owned clone.
-func Render(plan *sqlplan.Plan, behavior Behavior) (string, []sql.QueryParameter, error) {
+func Render(plan *sqlplan.Plan, behavior Behavior) (string, []QueryParameter, error) {
 	if behavior == nil {
 		return "", nil, fmt.Errorf("SQL rendering behavior is required")
 	}
@@ -67,7 +66,7 @@ type renderState struct {
 	blocks map[sqlplan.QueryBlockID]sqlplan.QueryBlock
 }
 
-func (state renderState) renderBlock(behavior Behavior, block sqlplan.QueryBlock, outer map[sqlplan.QueryBlockID]string) (string, []sql.QueryParameter, error) {
+func (state renderState) renderBlock(behavior Behavior, block sqlplan.QueryBlock, outer map[sqlplan.QueryBlockID]string) (string, []QueryParameter, error) {
 	inputs := make(map[string]sqlplan.QueryInput, len(block.Inputs))
 	visible := make(map[sqlplan.QueryBlockID]string, len(outer)+len(block.Inputs))
 	for id, alias := range outer {
@@ -82,7 +81,7 @@ func (state renderState) renderBlock(behavior Behavior, block sqlplan.QueryBlock
 		}
 	}
 
-	params := make([]sql.QueryParameter, 0)
+	params := make([]QueryParameter, 0)
 	ctes := make([]sqlplan.QueryInput, 0, len(block.Inputs))
 	for _, input := range block.Inputs {
 		if input.Mode != sqlplan.QueryInputCTE {
@@ -122,8 +121,8 @@ func (state renderState) renderBlock(behavior Behavior, block sqlplan.QueryBlock
 	return strings.TrimSpace(b.String()), params, nil
 }
 
-func (state renderState) renderBlockBody(behavior Behavior, block sqlplan.QueryBlock, inputs map[string]sqlplan.QueryInput, visible map[sqlplan.QueryBlockID]string) (string, []sql.QueryParameter, error) {
-	params := make([]sql.QueryParameter, 0)
+func (state renderState) renderBlockBody(behavior Behavior, block sqlplan.QueryBlock, inputs map[string]sqlplan.QueryInput, visible map[sqlplan.QueryBlockID]string) (string, []QueryParameter, error) {
+	params := make([]QueryParameter, 0)
 	var b strings.Builder
 	b.WriteString("SELECT\n")
 	for i, item := range block.Projections {
@@ -188,7 +187,7 @@ func (state renderState) renderBlockBody(behavior Behavior, block sqlplan.QueryB
 			}
 			b.WriteString(left + fragment)
 			for _, value := range values {
-				params = append(params, sql.QueryParameter{Value: value})
+				params = append(params, QueryParameter{Value: value})
 			}
 		}
 		b.WriteString("\n")
@@ -231,14 +230,14 @@ func (state renderState) renderBlockBody(behavior Behavior, block sqlplan.QueryB
 	return strings.TrimSpace(b.String()), params, nil
 }
 
-func (state renderState) renderRelation(behavior Behavior, relation sqlplan.RelationRef, inputs map[string]sqlplan.QueryInput, visible map[sqlplan.QueryBlockID]string) (string, []sql.QueryParameter, error) {
+func (state renderState) renderRelation(behavior Behavior, relation sqlplan.RelationRef, inputs map[string]sqlplan.QueryInput, visible map[sqlplan.QueryBlockID]string) (string, []QueryParameter, error) {
 	if source := relation.FilteredSource; source != nil {
 		name, err := behavior.QuoteSource(source.Name)
 		if err != nil {
 			return "", nil, err
 		}
 		parts := make([]string, 0, len(source.Predicates))
-		var params []sql.QueryParameter
+		var params []QueryParameter
 		for _, predicate := range source.Predicates {
 			column, err := RenderExpression(behavior, predicate.Left)
 			if err != nil {
@@ -250,7 +249,7 @@ func (state renderState) renderRelation(behavior Behavior, relation sqlplan.Rela
 			}
 			parts = append(parts, "("+column+fragment+")")
 			for _, value := range values {
-				params = append(params, sql.QueryParameter{Value: value})
+				params = append(params, QueryParameter{Value: value})
 			}
 		}
 		return "(SELECT * FROM " + name + " WHERE " + strings.Join(parts, " AND ") + ")", params, nil
