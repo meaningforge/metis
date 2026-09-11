@@ -233,3 +233,18 @@ Core cross-package terms such as `SemanticPlan`, `SemanticPlanNode`,
 `OutputSchema` remain explicit even when a shorter package-local spelling is
 possible. Metis does not perform broad renames solely to shorten identifiers;
 clarity of semantic layer and ownership takes precedence over character count.
+
+## Explain result
+
+`CompileService.Explain` returns `SQLExplainResult`. Its embedded
+`QueryExplanation` preserves the existing JSON evidence fields (`project`,
+`model`, `steps`, `semantic_plan`, `output_schema`, and optional metric,
+dimension, relationship, and data-constraint evidence). `sql_render_result`
+contains the same dialect, SQL, and ordered parameters as Compile; `warnings`
+contains the same optional compilation warnings.
+
+Explain plans once, evaluates data policy once, and renders using the selected
+Renderer. It does not connect to a database or run SQL `EXPLAIN`. Semantic
+evidence stays redacted; the SQL result includes policy predicates and bound
+parameter values just as Compile does, under the same compile authorization.
+Clients must treat it with the same access and storage rules as compiled SQL.

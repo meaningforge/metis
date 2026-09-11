@@ -143,7 +143,8 @@ This prevents a second query language from emerging for explanation.
 
 Explain MUST run the same execution-target resolution, semantic resolution/validation, and semantic planning contracts used by `Compile`. Implementations share orchestration rather than independently reproducing those stages.
 
-The response is a structured semantic explanation, conceptually:
+The current response is `SQLExplainResult`, embedding the structured semantic
+explanation below and adding `sql_render_result` and optional `warnings`:
 
 ```text
 QueryExplanation
@@ -182,7 +183,13 @@ Each step MUST identify its semantic subject and the relevant structured inputs/
 
 Explain Query is not SQL `EXPLAIN` and does not describe database cost, scan statistics, indexes, partitions, or execution operators.
 
-The existing compile API remains authoritative for the physical query. Explain MAY include target resolution and the existing target-neutral output schema because they are stable Agent-facing compile contracts, but it MUST NOT expose raw SQL AST nodes or renderer-private structures.
+Explain reuses the compile pipeline to include the same rendered SQL, dialect,
+and bound parameters in `sql_render_result`, plus output schema and compilation
+warnings. The semantic evidence and SQL come from one prepared plan and one
+data-policy evaluation. Semantic evidence remains redacted; the SQL result
+contains the same policy filters and parameter values as Compile under the same
+authorization. Explain MUST NOT expose raw SQL AST nodes or renderer-private
+structures, and MUST fail if rendering fails.
 
 ### Failure behavior
 

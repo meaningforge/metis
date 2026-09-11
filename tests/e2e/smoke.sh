@@ -132,10 +132,9 @@ grep -q '"kind":"source"' <<<"${explain_response}"
 grep -q '"kind":"aggregation"' <<<"${explain_response}"
 grep -q '"kind":"grouping"' <<<"${explain_response}"
 grep -q '"output_schema":{"columns":' <<<"${explain_response}"
-if grep -q 'sql_render_result' <<<"${explain_response}"; then
-  echo "Explain response must not expose a physical query" >&2
-  exit 1
-fi
+grep -q '"sql_render_result":{' <<<"${explain_response}"
+grep -q '"dialect":"DUCKDB"' <<<"${explain_response}"
+grep -q 'SUM(orders.amount)' <<<"${explain_response}"
 if grep -q 'duckdb-local\|"execution"\|"binding"' <<<"${compile_response}${explain_response}"; then
   echo "Compile and Explain responses must not expose transitional routing state" >&2
   exit 1

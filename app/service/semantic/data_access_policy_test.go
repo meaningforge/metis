@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -70,7 +71,11 @@ func TestCompileValidateExplainShareDataPolicy(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	data, err := json.Marshal(explanation)
+	assertPolicyQuery(t, explanation.SqlRenderResult)
+	if !reflect.DeepEqual(explanation.SqlRenderResult, compiled.SqlRenderResult) {
+		t.Fatal("Explain and Compile policy SQL differ")
+	}
+	data, err := json.Marshal(explanation.QueryExplanation)
 	if err != nil {
 		t.Fatal(err)
 	}
