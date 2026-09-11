@@ -28,8 +28,8 @@ func TestRatioAttributionExecutionEvidence(t *testing.T) {
 		t.Fatalf("ratio attribution bundle order = %#v", queries)
 	}
 	for _, compiled := range queries {
-		if scans := strings.Count(compiled.SqlStatement.SQL, `FROM "analytics"."ratio_attribution_events"`); scans != 2 {
-			t.Fatalf("ratio attribution dimension %q source scans = %d, want one per period\nSQL:\n%s", compiled.Dimension, scans, compiled.SqlStatement.SQL)
+		if scans := strings.Count(compiled.SqlRenderResult.SQL, `FROM "analytics"."ratio_attribution_events"`); scans != 2 {
+			t.Fatalf("ratio attribution dimension %q source scans = %d, want one per period\nSQL:\n%s", compiled.Dimension, scans, compiled.SqlRenderResult.SQL)
 		}
 	}
 	harness.RunDefinedRatioAttributionBundleEvidence(t, execution, queries)

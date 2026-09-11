@@ -102,7 +102,7 @@ data_sources:
 			t.Fatalf("query_metrics: %v; diagnostic compile: %v", err, compileErr)
 		}
 		_, executionErr := runtime.Execution.Execute(ctx, "warehouse", compiled, runner.ExecutionOptions{})
-		t.Fatalf("query_metrics: %v; runtime execution: %v; schema=%#v; SQL:\n%s", err, executionErr, compiled.OutputSchema, compiled.SqlStatement.SQL)
+		t.Fatalf("query_metrics: %v; runtime execution: %v; schema=%#v; SQL:\n%s", err, executionErr, compiled.OutputSchema, compiled.SqlRenderResult.SQL)
 	}
 	if result.Count != int64(len(result.Rows)) || len(result.Schema.Columns) != len(scenario.ExpectedResult.Columns) {
 		t.Fatalf("query_metrics result contract = %#v", result)

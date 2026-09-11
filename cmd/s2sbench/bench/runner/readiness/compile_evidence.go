@@ -108,61 +108,61 @@ func lastSuccessfulCompileResponse(trace []s2sbench.ToolCallEvidence) string {
 	return lastSuccessfulToolResponse(trace, "compile_sql")
 }
 
-func decodeCompileToolResponse(raw string) (sql.SqlStatement, error) {
+func decodeCompileToolResponse(raw string) (sql.SqlRenderResult, error) {
 	var value any
 	if err := decodeJSONNumbers([]byte(raw), &value); err != nil {
-		return sql.SqlStatement{}, fmt.Errorf("decode compile tool response: %w", err)
+		return sql.SqlRenderResult{}, fmt.Errorf("decode compile tool response: %w", err)
 	}
-	if query, ok := sqlStatementFromValue(value, 0); ok {
+	if query, ok := sqlRenderResultFromValue(value, 0); ok {
 		return query, nil
 	}
-	return sql.SqlStatement{}, fmt.Errorf("compile tool response contains no sql_statement")
+	return sql.SqlRenderResult{}, fmt.Errorf("compile tool response contains no sql_render_result")
 }
 
-func sqlStatementFromValue(value any, depth int) (sql.SqlStatement, bool) {
+func sqlRenderResultFromValue(value any, depth int) (sql.SqlRenderResult, bool) {
 	if depth > 8 {
-		return sql.SqlStatement{}, false
+		return sql.SqlRenderResult{}, false
 	}
 	switch current := value.(type) {
 	case map[string]any:
 		for key, nested := range current {
-			if strings.EqualFold(key, "sql_statement") {
-				if query, ok := decodeSqlStatement(nested); ok {
+			if strings.EqualFold(key, "sql_render_result") {
+				if query, ok := decodeSqlRenderResult(nested); ok {
 					return query, true
 				}
 			}
 		}
-		if query, ok := decodeSqlStatement(current); ok {
+		if query, ok := decodeSqlRenderResult(current); ok {
 			return query, true
 		}
 		for _, nested := range current {
-			if query, ok := sqlStatementFromValue(nested, depth+1); ok {
+			if query, ok := sqlRenderResultFromValue(nested, depth+1); ok {
 				return query, true
 			}
 		}
 	case []any:
 		for _, nested := range current {
-			if query, ok := sqlStatementFromValue(nested, depth+1); ok {
+			if query, ok := sqlRenderResultFromValue(nested, depth+1); ok {
 				return query, true
 			}
 		}
 	case string:
 		var nested any
 		if decodeJSONNumbers([]byte(current), &nested) == nil {
-			return sqlStatementFromValue(nested, depth+1)
+			return sqlRenderResultFromValue(nested, depth+1)
 		}
 	}
-	return sql.SqlStatement{}, false
+	return sql.SqlRenderResult{}, false
 }
 
-func decodeSqlStatement(value any) (sql.SqlStatement, bool) {
+func decodeSqlRenderResult(value any) (sql.SqlRenderResult, bool) {
 	body, err := json.Marshal(value)
 	if err != nil {
-		return sql.SqlStatement{}, false
+		return sql.SqlRenderResult{}, false
 	}
-	var query sql.SqlStatement
+	var query sql.SqlRenderResult
 	if decodeJSONNumbers(body, &query) != nil || strings.TrimSpace(string(query.Dialect)) == "" || strings.TrimSpace(query.SQL) == "" {
-		return sql.SqlStatement{}, false
+		return sql.SqlRenderResult{}, false
 	}
 	return query, true
 }

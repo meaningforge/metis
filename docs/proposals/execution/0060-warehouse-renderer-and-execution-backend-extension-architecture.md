@@ -283,7 +283,7 @@ compiler/runtime handoff:
 
 ```go
 type CompiledQuery struct {
-    SqlStatement sql.SqlStatement
+    SqlRenderResult sql.SqlRenderResult
     OutputSchema OutputSchema
 }
 ```
@@ -419,7 +419,7 @@ type Renderer interface {
     SQLDialect() sql.SQLDialect
     ExpressionDialect() string
     Capabilities() renderer.Capabilities
-    Render(*sqlplan.Plan) (sql.SqlStatement, error)
+    Render(*sqlplan.Plan) (sql.SqlRenderResult, error)
 }
 ```
 

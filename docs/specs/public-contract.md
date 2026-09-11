@@ -13,7 +13,7 @@ The following are user-facing contracts and changes to them require an explicit 
 - REST and MCP request/response fields;
 - stable Metis error-code strings;
 - documented CLI commands, flags, and emitted machine-readable formats;
-- `SqlStatement`, `OutputSchema`, explicit compile-only SQLDialect values, and
+- `SqlRenderResult`, `OutputSchema`, explicit compile-only SQLDialect values, and
   Project/DataSource references exposed through user-facing service contracts.
 
 `CompileTarget` and semantic Engine have been removed. Transitional
@@ -220,8 +220,8 @@ The standard database drivers bind them at execution time. See the
 [CLI overview](../../README.md) and
 [source contract](semantic/asset-authoring-lifecycle.md).
 
-`artifact.CompiledQuery.SqlStatement` holds the rendering output. Its JSON
-key is `sql_statement` in REST/MCP responses and persisted benchmark artifacts.
+`artifact.CompiledQuery.SqlRenderResult` holds the rendering output. Its JSON
+key is `sql_render_result` in REST/MCP responses and persisted benchmark artifacts.
 `output_schema` and `warnings` are unchanged.
 
 ## Naming discipline
@@ -229,7 +229,7 @@ key is `sql_statement` in REST/MCP responses and persisted benchmark artifacts.
 Phase, milestone, and migration labels belong in issues, pull requests, and commits. They must not be embedded in durable file names, public types, test names, error codes, or semantic concepts.
 
 Core cross-package terms such as `SemanticPlan`, `SemanticPlanNode`,
-`SQLDialect`, `Renderer`, `Backend`, `DataSource`, `SqlStatement`, and
+`SQLDialect`, `Renderer`, `Backend`, `DataSource`, `SqlRenderResult`, and
 `OutputSchema` remain explicit even when a shorter package-local spelling is
 possible. Metis does not perform broad renames solely to shorten identifiers;
 clarity of semantic layer and ownership takes precedence over character count.

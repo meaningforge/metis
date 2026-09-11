@@ -12,7 +12,7 @@
 ADR-0010 supersedes this decision's `ExecutionBinding` routing, user-selected
 Driver, and independent compile/runtime target authority. The four-layer split,
 optional Execution Runtime, orchestration boundary, and canonical
-`SqlStatement` handoff remain durable context.
+`SqlRenderResult` handoff remain durable context.
 
 Metis currently compiles governed semantic requests into physical queries and
 leaves database connectivity, execution, result fetching, and analytical
@@ -52,10 +52,10 @@ Metis adopts four explicit runtime layers:
 
 Semantic Core remains deterministic and database-independent. It reads one
 immutable `SemanticManifest`, resolves governed semantics, plans, and compiles a
-canonical `SqlStatement`. It does not open database connections or depend on
+canonical `SqlRenderResult`. It does not open database connections or depend on
 live result rows.
 
-Execution Runtime is optional. It consumes already-compiled `SqlStatement`
+Execution Runtime is optional. It consumes already-compiled `SqlRenderResult`
 artifacts and exposes one engine-neutral `Executor` contract.
 
 The execution vocabulary is:
@@ -73,7 +73,7 @@ DriverFactory
     validates driver-owned configuration and opens an Executor
 
 Executor
-    engine-neutral contract that executes canonical SqlStatement artifacts
+    engine-neutral contract that executes canonical SqlRenderResult artifacts
 ```
 
 A deployment-scoped `DataSource` selects exactly one `driver`. The registered
@@ -130,7 +130,7 @@ current contract and add tests at that boundary.
   semantic or orchestration branches.
 - Runtime-enabled deployments require explicit root-manifest DataSources and
   project/binding routes, including single-project deployments.
-- Semantic compilation and runtime execution share the same `SqlStatement`
+- Semantic compilation and runtime execution share the same `SqlRenderResult`
   artifact; there is no second SQL-building path.
 - Credential resolution, live connections, result normalization, limits, and
   execution telemetry stay outside Semantic Core.

@@ -19,7 +19,7 @@ import (
 // cumulativeOverBase rewrites the commerce fixture so cumulative_revenue
 // accumulates a base metric with the given aggregation expression, and compiles
 // it at a monthly grain.
-func cumulativeOverBase(t *testing.T, baseExpression string) (sql.SqlStatement, error) {
+func cumulativeOverBase(t *testing.T, baseExpression string) (sql.SqlRenderResult, error) {
 	t.Helper()
 	const originalBase = `      - name: cumulative_revenue
         datatype: Decimal
@@ -67,11 +67,11 @@ func cumulativeOverBase(t *testing.T, baseExpression string) (sql.SqlStatement, 
 	}
 	plan, err := planner.New().Plan(context.Background(), resolved, renderer)
 	if err != nil {
-		return sql.SqlStatement{}, err
+		return sql.SqlRenderResult{}, err
 	}
 	sqlQuery, err := compilePlan(context.Background(), plan, renderer)
 	if err != nil {
-		return sql.SqlStatement{}, err
+		return sql.SqlRenderResult{}, err
 	}
 	return sqlQuery, nil
 }

@@ -94,7 +94,7 @@ func (r *identityRenderer) Capabilities() renderer.Capabilities {
 	r.capabilitiesCalls++
 	return r.delegate.Capabilities()
 }
-func (r *identityRenderer) Render(plan *sqlplan.Plan) (sql.SqlStatement, error) {
+func (r *identityRenderer) Render(plan *sqlplan.Plan) (sql.SqlRenderResult, error) {
 	r.renderCalls++
 	return r.delegate.Render(plan)
 }
@@ -140,8 +140,8 @@ semantic_model:
 	if err != nil {
 		t.Fatal(err)
 	}
-	if compiled.SqlStatement.SQL == "" {
-		t.Fatalf("physical query = %#v", compiled.SqlStatement)
+	if compiled.SqlRenderResult.SQL == "" {
+		t.Fatalf("physical query = %#v", compiled.SqlRenderResult)
 	}
 	if lookup.calls != 1 {
 		t.Fatalf("Renderer registry lookups = %d, want exactly one", lookup.calls)

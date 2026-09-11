@@ -47,7 +47,7 @@ func TestTemporalRelationshipSemanticsSurviveReverseJoinTraversal(t *testing.T) 
 	}
 }
 
-func compileTemporalRelationship(t *testing.T, query query.SemanticQuery, dialect string) (*semanticplan.SemanticPlan, sql.SqlStatement) {
+func compileTemporalRelationship(t *testing.T, query query.SemanticQuery, dialect string) (*semanticplan.SemanticPlan, sql.SqlRenderResult) {
 	t.Helper()
 	doc, err := ossie.NewLoader().Load(fixtures.CommerceModelYAML)
 	if err != nil {

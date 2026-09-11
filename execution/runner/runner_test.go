@@ -230,9 +230,9 @@ func TestExecutionRuntimeResolvesSecretsBeforeOpeningAndClosesResources(t *testi
 	observer := &recordingObserver{}
 	runtime := newExecutionRuntime(t, factory, testSecretResolver{value: "secret-value"}, observer, policy(10*time.Second, 10, 1024))
 
-	query := sqlquery.SqlStatement{Dialect: "DORIS", SQL: "SELECT region"}
+	query := sqlquery.SqlRenderResult{Dialect: "DORIS", SQL: "SELECT region"}
 	schema := artifact.OutputSchema{Columns: []artifact.OutputColumn{{Name: "region"}}}
-	compiled := &artifact.CompiledQuery{SqlStatement: query, OutputSchema: schema}
+	compiled := &artifact.CompiledQuery{SqlRenderResult: query, OutputSchema: schema}
 	result, err := runtime.Execute(execution.WithQueryID(context.Background(), "query-123"), "doris-prod", compiled, execution.ExecutionOptions{MaxRows: 5})
 	if err != nil {
 		t.Fatal(err)
@@ -240,7 +240,7 @@ func TestExecutionRuntimeResolvesSecretsBeforeOpeningAndClosesResources(t *testi
 	if !factory.opened || factory.openedWithToken != "secret-value" || !factory.openedHostRef || factory.openedHostValue != "secret-value" {
 		t.Fatalf("factory opened=%t token=%q host_ref=%t host_value=%q", factory.opened, factory.openedWithToken, factory.openedHostRef, factory.openedHostValue)
 	}
-	seenQuery := executor.seenCompiled.SqlStatement
+	seenQuery := executor.seenCompiled.SqlRenderResult
 	if !executor.executed || executor.seenCompiled == compiled || seenQuery.SQL != query.SQL || executor.seenCompiled.OutputSchema.Columns[0].Name != "region" {
 		t.Fatalf("executor invocation = %#v", executor)
 	}
@@ -511,9 +511,9 @@ func TestExecutionRuntimePartialStreamFailureIsAtomicAndRedacted(t *testing.T) {
 	executor := &runtimeExecutor{stream: stream}
 	runtime := newExecutionRuntime(t, &runtimeDriverFactory{executor: executor}, testSecretResolver{value: "secret"}, nil, policy(time.Second, 10, 1024))
 	compiled := compiledSQL("SELECT ?")
-	query := compiled.SqlStatement
+	query := compiled.SqlRenderResult
 	query.Parameters = []sqlquery.QueryParameter{{Value: parameterValue}}
-	compiled.SqlStatement = query
+	compiled.SqlRenderResult = query
 
 	result, err := runtime.Execute(context.Background(), "doris-prod", compiled, execution.ExecutionOptions{})
 	assertExecutionCode(t, err, execution.ExecutionDriver)
@@ -566,9 +566,9 @@ func TestExecutionRuntimeCopiesMutableResultValues(t *testing.T) {
 
 func TestExecutionRuntimeRejectsUnsupportedParameterBeforeOpening(t *testing.T) {
 	compiled := compiledSQL("SELECT ?")
-	query := compiled.SqlStatement
+	query := compiled.SqlRenderResult
 	query.Parameters = []sqlquery.QueryParameter{{Value: &struct{ Value string }{Value: "mutable"}}}
-	compiled.SqlStatement = query
+	compiled.SqlRenderResult = query
 	factory := &runtimeDriverFactory{executor: &runtimeExecutor{stream: &runtimeStream{}}}
 	runtime := newExecutionRuntime(t, factory, testSecretResolver{value: "secret"}, nil, policy(time.Second, 1, 1024))
 
@@ -602,8 +602,8 @@ func TestExecutionRuntimeNormalizesValuesUsingOutputSchema(t *testing.T) {
 		{Name: "event_date", Datatype: ossie.DataTypeDate},
 	}}
 	compiled := &artifact.CompiledQuery{
-		SqlStatement: sqlquery.SqlStatement{Dialect: "DORIS", SQL: "SELECT result"},
-		OutputSchema: schema,
+		SqlRenderResult: sqlquery.SqlRenderResult{Dialect: "DORIS", SQL: "SELECT result"},
+		OutputSchema:    schema,
 	}
 	stream := &runtimeStream{rows: [][]any{{
 		[]byte("APAC"),
@@ -634,7 +634,7 @@ func TestExecutionRuntimeNormalizesValuesUsingOutputSchema(t *testing.T) {
 
 func TestExecutionRuntimeRejectsNonBooleanIntegerResult(t *testing.T) {
 	compiled := &artifact.CompiledQuery{
-		SqlStatement: sqlquery.SqlStatement{Dialect: "DORIS", SQL: "SELECT active"},
+		SqlRenderResult: sqlquery.SqlRenderResult{Dialect: "DORIS", SQL: "SELECT active"},
 		OutputSchema: artifact.OutputSchema{Columns: []artifact.OutputColumn{{
 			Name: "active", Datatype: ossie.DataTypeBoolean,
 		}}},
@@ -651,7 +651,7 @@ func TestExecutionRuntimeRejectsNonBooleanIntegerResult(t *testing.T) {
 
 func TestExecutionRuntimeRejectsLossyDecimalResult(t *testing.T) {
 	compiled := &artifact.CompiledQuery{
-		SqlStatement: sqlquery.SqlStatement{Dialect: "DORIS", SQL: "SELECT revenue"},
+		SqlRenderResult: sqlquery.SqlRenderResult{Dialect: "DORIS", SQL: "SELECT revenue"},
 		OutputSchema: artifact.OutputSchema{Columns: []artifact.OutputColumn{{
 			Name: "revenue", Datatype: ossie.DataTypeDecimal,
 		}}},
@@ -673,7 +673,7 @@ func TestExecutionRuntimeRejectsLossyDecimalResult(t *testing.T) {
 func TestExecutionRuntimeSnapshotsCompiledQueryOwnership(t *testing.T) {
 	parameterValue := []byte("a")
 	compiled := &artifact.CompiledQuery{
-		SqlStatement: sqlquery.SqlStatement{
+		SqlRenderResult: sqlquery.SqlRenderResult{
 			Dialect:    "DORIS",
 			SQL:        "SELECT value",
 			Parameters: []sqlquery.QueryParameter{{Value: parameterValue}},
@@ -682,10 +682,10 @@ func TestExecutionRuntimeSnapshotsCompiledQueryOwnership(t *testing.T) {
 	}
 	stream := &runtimeStream{rows: [][]any{{"north"}}}
 	executor := &runtimeExecutor{stream: stream, mutate: func(received *artifact.CompiledQuery) {
-		query := received.SqlStatement
+		query := received.SqlRenderResult
 		query.Dialect = "CLICKHOUSE"
 		query.Parameters[0].Value.([]byte)[0] = 'x'
-		received.SqlStatement = query
+		received.SqlRenderResult = query
 		received.OutputSchema.Columns[0].Name = "mutated"
 	}}
 	runtime := newExecutionRuntime(t, &runtimeDriverFactory{executor: executor}, testSecretResolver{value: "secret"}, nil, policy(time.Second, 1, 1024))
@@ -694,7 +694,7 @@ func TestExecutionRuntimeSnapshotsCompiledQueryOwnership(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	originalQuery := compiled.SqlStatement
+	originalQuery := compiled.SqlRenderResult
 	if executor.seenCompiled == compiled || originalQuery.Dialect != "DORIS" || string(originalQuery.Parameters[0].Value.([]byte)) != "a" {
 		t.Fatalf("compiled query ownership leaked: original=%#v seen=%#v", compiled, executor.seenCompiled)
 	}
@@ -1190,7 +1190,7 @@ func oneColumnSchema() artifact.OutputSchema {
 }
 
 func compiledSQL(sql string) *artifact.CompiledQuery {
-	return &artifact.CompiledQuery{SqlStatement: sqlquery.SqlStatement{Dialect: "DORIS", SQL: sql}, OutputSchema: oneColumnSchema()}
+	return &artifact.CompiledQuery{SqlRenderResult: sqlquery.SqlRenderResult{Dialect: "DORIS", SQL: sql}, OutputSchema: oneColumnSchema()}
 }
 
 func equalResultRow(left, right []any) bool {

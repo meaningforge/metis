@@ -39,7 +39,7 @@ func TestSemiAdditiveFirstDialectLowering(t *testing.T) {
 	}
 }
 
-func compileSemiAdditiveFirst(t *testing.T, query query.SemanticQuery, dialect string) (*semanticplan.SemanticPlan, sql.SqlStatement) {
+func compileSemiAdditiveFirst(t *testing.T, query query.SemanticQuery, dialect string) (*semanticplan.SemanticPlan, sql.SqlRenderResult) {
 	t.Helper()
 	doc, err := ossie.NewLoader().Load(fixtures.CommerceModelYAML)
 	if err != nil {

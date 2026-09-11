@@ -135,7 +135,7 @@ semantic_model:
 	}
 }
 
-func compileModel(t *testing.T, modelYAML []byte, model string, query query.SemanticQuery, dialect string) (sql.SqlStatement, error) {
+func compileModel(t *testing.T, modelYAML []byte, model string, query query.SemanticQuery, dialect string) (sql.SqlRenderResult, error) {
 	t.Helper()
 	doc, err := ossie.NewLoader().Load(modelYAML)
 	if err != nil {
@@ -150,15 +150,15 @@ func compileModel(t *testing.T, modelYAML []byte, model string, query query.Sema
 	renderer := mustRenderer(t, dialect)
 	resolved, err := resolver.New(manifest.NewStore(snapshot)).ResolveForRenderer(context.Background(), query, renderer)
 	if err != nil {
-		return sql.SqlStatement{}, err
+		return sql.SqlRenderResult{}, err
 	}
 	plan, err := planner.New().Plan(context.Background(), resolved, renderer)
 	if err != nil {
-		return sql.SqlStatement{}, err
+		return sql.SqlRenderResult{}, err
 	}
 	sqlQuery, err := compilePlan(context.Background(), plan, renderer)
 	if err != nil {
-		return sql.SqlStatement{}, err
+		return sql.SqlRenderResult{}, err
 	}
 	return sqlQuery, nil
 }

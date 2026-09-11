@@ -280,7 +280,7 @@ func selectModel(doc *ossie.Document, requested string) (string, *ossie.Semantic
 }
 
 func renderOutput(result *Result) (string, error) {
-	data, err := json.MarshalIndent(sql.SqlStatement{Dialect: sql.SQLDialect(result.Dialect), SQL: result.SQL, Parameters: result.Parameters}, "", "  ")
+	data, err := json.MarshalIndent(sql.SqlRenderResult{Dialect: sql.SQLDialect(result.Dialect), SQL: result.SQL, Parameters: result.Parameters}, "", "  ")
 	if err != nil {
 		return "", err
 	}

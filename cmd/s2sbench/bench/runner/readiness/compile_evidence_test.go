@@ -25,7 +25,7 @@ func TestCompileEvidenceUsesStructuredResultWithoutAgentCopy(t *testing.T) {
 		Columns: []scenarios.ResultColumn{{Name: "value", ValueKind: scenarios.ResultInteger}},
 		Rows:    []scenarios.ResultRow{{{ValueKind: scenarios.ResultInteger, Canonical: "1"}}},
 	}, Comparison: scenarios.ResultUnordered}}
-	response := `{"content":[{"type":"text","text":"{\"sql_statement\":{\"dialect\":\"DUCKDB\",\"sql\":\"SELECT ? AS value\",\"parameters\":[{\"value\":1}]}}"}]}`
+	response := `{"content":[{"type":"text","text":"{\"sql_render_result\":{\"dialect\":\"DUCKDB\",\"sql\":\"SELECT ? AS value\",\"parameters\":[{\"value\":1}]}}"}]}`
 	records := finalizeCompileEvidence(context.Background(), compileEvidenceExecution{}, scenario, "DUCKDB", []AttemptRecord{{
 		Output:    "compiled successfully\n{\"status\":\"ready\",\"dialect\":\"DUCKDB\",\"sql\":\"SELECT 1 AS value\"}",
 		ToolTrace: []s2sbench.ToolCallEvidence{{Name: "compile_sql", Status: "success", Response: response}},

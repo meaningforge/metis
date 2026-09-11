@@ -32,7 +32,7 @@ Normative flow:
         -> planner/conversion.BuildSQLPlan
         -> sqlplan.Plan
         -> same Renderer.Render(SQLPlan)
-        -> artifact.CompiledQuery{SqlStatement + OutputSchema}
+        -> artifact.CompiledQuery{SqlRenderResult + OutputSchema}
 
 `artifact.CompiledQuery` is the atomic compiler/runtime handoff. It contains no
 DataSource, Backend, Renderer, Project, or routing state. Package `compiler`
@@ -274,7 +274,7 @@ Normative shared flow:
       -> configured semantic optimization
       -> invariant validation
       +-> Explain -> QueryExplanation
-      +-> Compile -> SQLPlan -> SqlStatement + OutputSchema
+      +-> Compile -> SQLPlan -> SqlRenderResult + OutputSchema
 
 `QueryExplanation` is an Agent-facing semantic read model. It MAY expose stable
 Renderer/dialect selection and output-schema facts, but it MUST translate planning state

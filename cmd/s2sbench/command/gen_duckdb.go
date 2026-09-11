@@ -756,7 +756,7 @@ func freezeTPCDSOracles(ctx context.Context, runtimeRoot, bundleRoot, database s
 		if err != nil {
 			return nil, fmt.Errorf("compile generated case %q: %w", definition.name, err)
 		}
-		metisResult, err := backend.RunSQL(ctx, compiled.SqlStatement.SQL, compiled.SqlStatement.Parameters...)
+		metisResult, err := backend.RunSQL(ctx, compiled.SqlRenderResult.SQL, compiled.SqlRenderResult.Parameters...)
 		if err != nil {
 			return nil, fmt.Errorf("cross-validate Metis SQL for %q: %w", definition.name, err)
 		}

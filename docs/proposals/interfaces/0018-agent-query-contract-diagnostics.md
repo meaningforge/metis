@@ -27,7 +27,7 @@ Discovery / Semantic Context
           -> structured diagnostics / suggestions
           -> Explain
           -> Compile
-          -> SqlStatement + OutputSchema
+          -> SqlRenderResult + OutputSchema
 ```
 
 ## Implemented boundaries

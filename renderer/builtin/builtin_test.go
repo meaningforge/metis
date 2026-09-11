@@ -81,7 +81,7 @@ func assertRendererContract(t *testing.T, target renderer.Renderer) {
 
 	var group sync.WaitGroup
 	errors := make(chan error, 8)
-	queries := make(chan sql.SqlStatement, 8)
+	queries := make(chan sql.SqlRenderResult, 8)
 	for range 8 {
 		group.Add(1)
 		go func() {

@@ -76,7 +76,7 @@ reconciling every period/dimension query.
 
 RFC-0056 has since supplied the missing production substrate: Project to
 DataSource to Backend resolution, one selected Renderer, atomic
-`CompiledQuery { SqlStatement + OutputSchema }`, bounded normalized execution,
+`CompiledQuery { SqlRenderResult + OutputSchema }`, bounded normalized execution,
 shared authentication, and REST/MCP service parity.
 
 The remaining gap is a production vertical that connects those two proven

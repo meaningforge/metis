@@ -114,7 +114,7 @@ compile_response="$(curl -fsS -X POST \
   -H 'Content-Type: application/json' \
   "${BASE}/v1/compile-sql" \
   -d "${compile_request}")"
-grep -q '"sql_statement":{' <<<"${compile_response}"
+grep -q '"sql_render_result":{' <<<"${compile_response}"
 grep -q '"dialect":"DUCKDB"' <<<"${compile_response}"
 grep -q 'SUM(orders.amount)' <<<"${compile_response}"
 grep -q '"output_schema":{"columns":' <<<"${compile_response}"
@@ -132,7 +132,7 @@ grep -q '"kind":"source"' <<<"${explain_response}"
 grep -q '"kind":"aggregation"' <<<"${explain_response}"
 grep -q '"kind":"grouping"' <<<"${explain_response}"
 grep -q '"output_schema":{"columns":' <<<"${explain_response}"
-if grep -q 'sql_statement' <<<"${explain_response}"; then
+if grep -q 'sql_render_result' <<<"${explain_response}"; then
   echo "Explain response must not expose a physical query" >&2
   exit 1
 fi
@@ -235,7 +235,7 @@ mcp_compile="$(curl -fsS -X POST \
   -H 'Accept: application/json, text/event-stream' \
   "${BASE}/mcp" \
   -d '{"jsonrpc":"2.0","id":6,"method":"tools/call","params":{"name":"compile_sql","arguments":{"dialect":"DUCKDB","output_metrics":["metric:sales.total_revenue"],"group_by":[{"name":"dimension:sales.orders.region","type":"dimension"}]}}}')"
-grep -q '"sql_statement":{' <<<"${mcp_compile}"
+grep -q '"sql_render_result":{' <<<"${mcp_compile}"
 grep -q '"output_schema"' <<<"${mcp_compile}"
 grep -q '"name":"orders.region"' <<<"${mcp_compile}"
 grep -q '"kind":"dimension"' <<<"${mcp_compile}"

@@ -36,13 +36,13 @@ func (*fakeRenderer) ExpressionDialect() string  { return "DORIS" }
 func (*fakeRenderer) Capabilities() renderer.Capabilities {
 	return renderer.Capabilities{}
 }
-func (r *fakeRenderer) Render(plan *sqlplan.Plan) (sql.SqlStatement, error) {
+func (r *fakeRenderer) Render(plan *sqlplan.Plan) (sql.SqlRenderResult, error) {
 	for _, block := range plan.Blocks {
 		if block.ID == plan.Root && len(block.Projections) > 0 {
 			r.dimensions = append(r.dimensions, block.Projections[0].Alias)
 		}
 	}
-	return sql.SqlStatement{Dialect: r.SQLDialect(), SQL: "SELECT 1", Parameters: r.parameters}, nil
+	return sql.SqlRenderResult{Dialect: r.SQLDialect(), SQL: "SELECT 1", Parameters: r.parameters}, nil
 }
 
 func TestCompilerReturnsPhysicalQueryWithoutEmbeddingRoutingState(t *testing.T) {
@@ -57,7 +57,7 @@ func TestCompilerReturnsPhysicalQueryWithoutEmbeddingRoutingState(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	query := got.SqlStatement
+	query := got.SqlRenderResult
 	if query.SQL != "SELECT 1" || query.Dialect != "DORIS" {
 		t.Fatalf("unexpected physical query: %#v", query)
 	}
@@ -100,7 +100,7 @@ func TestCompilerTakesOwnershipOfRendererParameterContainers(t *testing.T) {
 	}
 	buffer[0] = 'b'
 	renderer.parameters[0].Name = "mutated"
-	query := compiled.SqlStatement
+	query := compiled.SqlRenderResult
 	if query.Parameters[0].Name != "value" || string(query.Parameters[0].Value.([]byte)) != "a" {
 		t.Fatalf("compiled artifact retained Renderer aliases: %#v", query.Parameters)
 	}

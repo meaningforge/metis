@@ -191,7 +191,7 @@ evidence Metis applies during planning, not instructions for an Agent to
 reconstruct physical SQL.
 
 `compile_sql` retains the complete `CompiledQuery` as structured MCP output.
-For text-only clients, its text content presents the complete `sql_statement`
+For text-only clients, its text content presents the complete `sql_render_result`
 JSON object followed by the output schema. This transport representation does
 not alter the compiler artifact or relax client-side JSON validation.
 
