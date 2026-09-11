@@ -140,8 +140,8 @@ semantic_model:
 	if err != nil {
 		t.Fatal(err)
 	}
-	if compiled.PhysicalQuery.SQL == "" {
-		t.Fatalf("physical query = %#v", compiled.PhysicalQuery)
+	if compiled.SQLRenderResult.SQL == "" {
+		t.Fatalf("physical query = %#v", compiled.SQLRenderResult)
 	}
 	if lookup.calls != 1 {
 		t.Fatalf("Renderer registry lookups = %d, want exactly one", lookup.calls)

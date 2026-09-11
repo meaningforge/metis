@@ -50,7 +50,7 @@ func TestAttributeMetricNormalizesExactPeriodsAndBuildsProductionBundle(t *testi
 		t.Fatalf("compiled bundle = %#v strategy=%q refs=%#v", compiled, strategy, refs)
 	}
 	for _, query := range compiled.Queries {
-		if query.PhysicalQuery.SQL == "" || len(query.OutputSchema.Columns) != 6 {
+		if query.SQLRenderResult.SQL == "" || len(query.OutputSchema.Columns) != 6 {
 			t.Fatalf("compiled query = %#v", query)
 		}
 	}

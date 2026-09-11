@@ -61,7 +61,7 @@ DataSourceRegistry[name]
 
 BackendRegistry is established before DataSourceRegistry so type-level
 implementation authority cannot be confused with instance-level configuration.
-Execution begins strictly after `PhysicalQuery + OutputSchema`; Executor cannot
+Execution begins strictly after `SQLRenderResult + OutputSchema`; Executor cannot
 consult semantic or rendering state.
 
 Secrets, limits, and cancellation fail closed. Public execution is not exposed

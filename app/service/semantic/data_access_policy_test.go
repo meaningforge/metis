@@ -57,7 +57,7 @@ func TestCompileValidateExplainShareDataPolicy(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	assertPolicyQuery(t, compiled.PhysicalQuery)
+	assertPolicyQuery(t, compiled.SQLRenderResult)
 	for _, column := range compiled.OutputSchema.Columns {
 		if strings.Contains(column.Name, "channel") {
 			t.Fatal("policy-only field leaked into output")
@@ -98,8 +98,8 @@ func TestComparisonAndAttributionEvaluateOneSnapshot(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		assertPolicyQuery(t, baseline.PhysicalQuery)
-		assertPolicyQuery(t, current.PhysicalQuery)
+		assertPolicyQuery(t, baseline.SQLRenderResult)
+		assertPolicyQuery(t, current.SQLRenderResult)
 		if calls != 1 {
 			t.Fatalf("evaluations=%d", calls)
 		}
@@ -123,7 +123,7 @@ func TestComparisonAndAttributionEvaluateOneSnapshot(t *testing.T) {
 			t.Fatal("missing attribution dimensions")
 		}
 		for _, compiled := range bundle.Queries {
-			assertPolicyQuery(t, compiled.PhysicalQuery)
+			assertPolicyQuery(t, compiled.SQLRenderResult)
 		}
 		if calls != 1 {
 			t.Fatalf("evaluations=%d", calls)

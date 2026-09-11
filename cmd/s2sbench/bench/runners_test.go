@@ -99,7 +99,7 @@ func (c *deterministicSemanticCompiler) Compile(_ context.Context, req service.C
 		return nil, fmt.Errorf("test compiler expected one marker metric, got %d", len(req.Query.Metrics))
 	}
 	return &artifact.CompiledQuery{
-		PhysicalQuery: sql.SQLRenderResult{SQL: "scenario:" + req.Query.Metrics[0].Name},
+		SQLRenderResult: sql.SQLRenderResult{SQL: "scenario:" + req.Query.Metrics[0].Name},
 	}, nil
 }
 

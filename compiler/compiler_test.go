@@ -57,7 +57,7 @@ func TestCompilerReturnsPhysicalQueryWithoutEmbeddingRoutingState(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	query := got.PhysicalQuery
+	query := got.SQLRenderResult
 	if query.SQL != "SELECT 1" || query.Dialect != "DORIS" {
 		t.Fatalf("unexpected physical query: %#v", query)
 	}
@@ -100,7 +100,7 @@ func TestCompilerTakesOwnershipOfRendererParameterContainers(t *testing.T) {
 	}
 	buffer[0] = 'b'
 	renderer.parameters[0].Name = "mutated"
-	query := compiled.PhysicalQuery
+	query := compiled.SQLRenderResult
 	if query.Parameters[0].Name != "value" || string(query.Parameters[0].Value.([]byte)) != "a" {
 		t.Fatalf("compiled artifact retained Renderer aliases: %#v", query.Parameters)
 	}

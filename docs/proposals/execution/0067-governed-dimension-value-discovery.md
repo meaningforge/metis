@@ -93,7 +93,7 @@ encourage inconsistent limit, ordering, null, and result normalization behavior.
 Before Execution Runtime existed, a value tool would have violated Semantic
 Core ownership by requiring database connectivity inside discovery. That
 constraint has changed: Metis now has a governed execution boundary that
-accepts only completed `CompiledQuery { PhysicalQuery + OutputSchema }`
+accepts only completed `CompiledQuery { SQLRenderResult + OutputSchema }`
 artifacts and already enforces placement, credentials, limits, cancellation,
 normalization, and redaction.
 

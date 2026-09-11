@@ -286,7 +286,7 @@ type OutputSchema struct {
 }
 
 type CompiledQuery struct {
-    PhysicalQuery sql.SQLRenderResult
+    SQLRenderResult sql.SQLRenderResult
     OutputSchema  OutputSchema
 }
 ```
@@ -306,7 +306,7 @@ Artifact ownership is intentionally split from semantic schema derivation:
   or infer schema from rendered SQL.
 
 Moving these types must not weaken the existing atomic
-`CompiledQuery { PhysicalQuery + OutputSchema }` contract.
+`CompiledQuery { SQLRenderResult + OutputSchema }` contract.
 
 ### Root `compiler`: orchestration owner
 

@@ -183,11 +183,11 @@ func (e *ProductionExecution) RunProjection(t *testing.T, name string, source *a
 		}
 	}
 	statement := "SELECT " + strings.Join(names, ", ") + " FROM (" +
-		strings.TrimSuffix(strings.TrimSpace(source.PhysicalQuery.SQL), ";") + ") evidence"
+		strings.TrimSuffix(strings.TrimSpace(source.SQLRenderResult.SQL), ";") + ") evidence"
 	if strings.TrimSpace(predicate) != "" {
 		statement += " WHERE " + predicate
 	}
-	query := source.PhysicalQuery
+	query := source.SQLRenderResult
 	query.SQL = statement
 	return e.RunRawQuery(t, name, query, SelectOutputSchema(t, source.OutputSchema, names...))
 }
@@ -200,9 +200,9 @@ func (e *ProductionExecution) executeCompiled(t *testing.T, name string, compile
 		if errors.As(err, &executionErr) && executionErr.ResultContract != nil {
 			failure := executionErr.ResultContract
 			t.Fatalf("execute %s through production runtime: %v (column=%s expected=%s observed=%s)\nSQL:\n%s",
-				name, err, failure.Column, failure.ExpectedDatatype, failure.ObservedFamily, compiled.PhysicalQuery.SQL)
+				name, err, failure.Column, failure.ExpectedDatatype, failure.ObservedFamily, compiled.SQLRenderResult.SQL)
 		}
-		t.Fatalf("execute %s through production runtime: %v\nSQL:\n%s", name, err, compiled.PhysicalQuery.SQL)
+		t.Fatalf("execute %s through production runtime: %v\nSQL:\n%s", name, err, compiled.SQLRenderResult.SQL)
 	}
 	return conformanceResult(t, result)
 }

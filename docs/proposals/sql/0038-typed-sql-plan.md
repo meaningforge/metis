@@ -183,7 +183,7 @@ complete, renderable SQL physical plan for one compile target. Naming that
 layer `SQLPlan` makes the long-term phase sequence legible:
 
 ```text
-SemanticEvaluation -> SemanticPlan -> SQLPlan -> PhysicalQuery
+SemanticEvaluation -> SemanticPlan -> SQLPlan -> SQLRenderResult
 ```
 
 The name is justified only if the implementation gains the plan contract in
@@ -232,7 +232,7 @@ This RFC does not introduce:
 - DDL, DML, CTAS, federation, or multi-statement plans;
 - an Agent-facing raw SQLPlan API;
 - a permanent AST compatibility layer;
-- a change to `compiler.PhysicalQuery` or `compiler.OutputSchema` contracts.
+- a change to `compiler.SQLRenderResult` or `compiler.OutputSchema` contracts.
 
 ## Design
 
@@ -270,7 +270,7 @@ sqlplan/       plan types, validation, cloning, projection, internal explain
 sql/           dialect registry and renderer interface
 sql/render/    concrete target rendering and target-owned physical lowering
 engine/native/ orchestration only
-compiler/      final PhysicalQuery and OutputSchema contracts
+compiler/      final SQLRenderResult and OutputSchema contracts
 ```
 
 Dependencies flow downward:
@@ -664,7 +664,7 @@ RFC-0038 may become `Implemented` only when all of the following are true:
     compatibility fields no longer exist.
 17. Repository source scans prove there are no production or test imports of
     `github.com/meaningforge/metis/sqlast`.
-18. `compiler.PhysicalQuery`, `compiler.SQLRenderResult`, `compiler.OutputSchema`,
+18. `compiler.SQLRenderResult`, `compiler.SQLRenderResult`, `compiler.OutputSchema`,
     execution binding behavior, REST, and MCP contracts remain unchanged.
 19. Adding a concrete dialect still follows the registry and renderer workflow
     without modifying semantic resolution or creating a new SQLPlan builder.
@@ -682,7 +682,7 @@ Implementation must update:
 - `docs/specs/sql/dialect-rendering.md` with `Render(*sqlplan.Plan)` and renderer
   immutability;
 - `docs/specs/glossary.md` with `SemanticEvaluation`, `SemanticPlan`, SQLPlan,
-  and PhysicalQuery distinctions;
+  and SQLRenderResult distinctions;
 - `docs/specs/testing/architecture.md` and
   `tests/benchmarks/CONFORMANCE.md` with structural and byte-stability gates;
 - `sqlplan/doc.go` with the package contract;

@@ -16,7 +16,7 @@ func TestSnapshotCompiledQueryOwnsMutableArtifactContainers(t *testing.T) {
 		t.Fatal(err)
 	}
 	parameter[0] = 'b'
-	query := compiled.PhysicalQuery
+	query := compiled.SQLRenderResult
 	if string(query.Parameters[0].Value.([]byte)) != "a" {
 		t.Fatalf("parameter value = %#v, want owned copy", query.Parameters[0].Value)
 	}

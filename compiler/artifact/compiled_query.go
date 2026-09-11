@@ -13,9 +13,10 @@ import (
 // execution Runner. It deliberately contains no DataSource, Backend, Renderer,
 // or routing state.
 type CompiledQuery struct {
-	PhysicalQuery sql.SQLRenderResult `json:"physical_query"`
-	OutputSchema  OutputSchema        `json:"output_schema"`
-	Warnings      []Warning           `json:"warnings,omitempty"`
+	// SQLRenderResult retains the physical_query JSON key for wire compatibility.
+	SQLRenderResult sql.SQLRenderResult `json:"physical_query"`
+	OutputSchema    OutputSchema        `json:"output_schema"`
+	Warnings        []Warning           `json:"warnings,omitempty"`
 }
 
 type Warning struct {
@@ -29,7 +30,7 @@ type Warning struct {
 // construction boundary. Its nested containers do not alias Renderer-owned
 // storage.
 func NewCompiledQuery(query sql.SQLRenderResult, schema OutputSchema) (*CompiledQuery, error) {
-	return SnapshotCompiledQuery(&CompiledQuery{PhysicalQuery: query, OutputSchema: schema})
+	return SnapshotCompiledQuery(&CompiledQuery{SQLRenderResult: query, OutputSchema: schema})
 }
 
 // SnapshotCompiledQuery copies known containers and rejects values outside the
@@ -39,20 +40,20 @@ func SnapshotCompiledQuery(compiled *CompiledQuery) (*CompiledQuery, error) {
 	if compiled == nil {
 		return nil, nil
 	}
-	if compiled.PhysicalQuery.Dialect == "" {
+	if compiled.SQLRenderResult.Dialect == "" {
 		return nil, fmt.Errorf("physical SQL query dialect is required")
 	}
-	if strings.TrimSpace(compiled.PhysicalQuery.SQL) == "" {
+	if strings.TrimSpace(compiled.SQLRenderResult.SQL) == "" {
 		return nil, fmt.Errorf("physical SQL query text is required")
 	}
-	query, err := snapshotSQLRenderResult(compiled.PhysicalQuery)
+	query, err := snapshotSQLRenderResult(compiled.SQLRenderResult)
 	if err != nil {
 		return nil, err
 	}
 	return &CompiledQuery{
-		PhysicalQuery: query,
-		OutputSchema:  copyOutputSchema(compiled.OutputSchema),
-		Warnings:      append([]Warning(nil), compiled.Warnings...),
+		SQLRenderResult: query,
+		OutputSchema:    copyOutputSchema(compiled.OutputSchema),
+		Warnings:        append([]Warning(nil), compiled.Warnings...),
 	}, nil
 }
 

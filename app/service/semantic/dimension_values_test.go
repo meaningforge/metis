@@ -209,8 +209,8 @@ func TestDimensionValuesCompilesCanonicalCustomCalendarGrain(t *testing.T) {
 	if err := validateDimensionValuesSchema(compiled.OutputSchema, normalized); err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(compiled.PhysicalQuery.SQL, "fiscal_week_start") || compiled.OutputSchema.Columns[0].Grain == nil || *compiled.OutputSchema.Columns[0].Grain != grain {
-		t.Fatalf("custom-calendar compilation = SQL:%s schema:%#v", compiled.PhysicalQuery.SQL, compiled.OutputSchema)
+	if !strings.Contains(compiled.SQLRenderResult.SQL, "fiscal_week_start") || compiled.OutputSchema.Columns[0].Grain == nil || *compiled.OutputSchema.Columns[0].Grain != grain {
+		t.Fatalf("custom-calendar compilation = SQL:%s schema:%#v", compiled.SQLRenderResult.SQL, compiled.OutputSchema)
 	}
 	_, err = service.normalizeDimensionValues(context.Background(), DimensionValuesQuery{
 		ProjectID: "analytics", Dimension: "dimension:fiscal_dense.calendar.fiscal_week_start", Grain: &grain,
@@ -251,12 +251,12 @@ func TestDimensionValuesQueryShapesCompileAcrossBuiltInRenderers(t *testing.T) {
 				t.Fatalf("dialect=%s metrics=%d: %v", dialect, len(request.Metrics), schemaErr)
 			}
 			for _, fragment := range []string{"IS NOT NULL", "ORDER BY"} {
-				if !strings.Contains(compiled.PhysicalQuery.SQL, fragment) {
-					t.Fatalf("dialect=%s metrics=%d SQL omits %q: %s", dialect, len(request.Metrics), fragment, compiled.PhysicalQuery.SQL)
+				if !strings.Contains(compiled.SQLRenderResult.SQL, fragment) {
+					t.Fatalf("dialect=%s metrics=%d SQL omits %q: %s", dialect, len(request.Metrics), fragment, compiled.SQLRenderResult.SQL)
 				}
 			}
-			if !strings.Contains(compiled.PhysicalQuery.SQL, "LIMIT") && !strings.Contains(compiled.PhysicalQuery.SQL, "FETCH FIRST") {
-				t.Fatalf("dialect=%s metrics=%d SQL omits bounded limit: %s", dialect, len(request.Metrics), compiled.PhysicalQuery.SQL)
+			if !strings.Contains(compiled.SQLRenderResult.SQL, "LIMIT") && !strings.Contains(compiled.SQLRenderResult.SQL, "FETCH FIRST") {
+				t.Fatalf("dialect=%s metrics=%d SQL omits bounded limit: %s", dialect, len(request.Metrics), compiled.SQLRenderResult.SQL)
 			}
 		}
 	}

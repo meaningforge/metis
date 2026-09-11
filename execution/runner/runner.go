@@ -331,7 +331,7 @@ func (r *Runner) ExecuteResolved(ctx context.Context, resolved ResolvedDataSourc
 	if snapshotErr != nil {
 		return ResultSet{}, executionError(ExecutionInvalidInput, "compiled query contains an unsupported value")
 	}
-	if compiledSnapshot == nil || compiledSnapshot.PhysicalQuery.SQL == "" {
+	if compiledSnapshot == nil || compiledSnapshot.SQLRenderResult.SQL == "" {
 		return ResultSet{}, executionError(ExecutionInvalidInput, "compiled query is required")
 	}
 	if len(compiledSnapshot.OutputSchema.Columns) == 0 {
@@ -350,7 +350,7 @@ func (r *Runner) ExecuteResolved(ctx context.Context, resolved ResolvedDataSourc
 	if resolved.Name == "" || sourceType == "" || backend.Type == "" {
 		return ResultSet{}, executionError(ExecutionConfig, "resolved DataSource route is incomplete")
 	}
-	if err := validateQueryDialect(compiledSnapshot.PhysicalQuery, backend); err != nil {
+	if err := validateQueryDialect(compiledSnapshot.SQLRenderResult, backend); err != nil {
 		return ResultSet{}, err
 	}
 	limits, limitErr := effectiveExecutionOptions(source.Policy, caller)

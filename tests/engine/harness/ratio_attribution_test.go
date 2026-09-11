@@ -13,11 +13,11 @@ func TestRatioAttributionBundleEvidenceIsCanonicalAndFilteredPerPeriod(t *testin
 		t.Fatalf("ratio attribution bundle = %#v", queries)
 	}
 	for _, query := range queries {
-		if scans := strings.Count(query.PhysicalQuery.SQL, `FROM "analytics"."ratio_attribution_events"`); scans != 2 {
-			t.Fatalf("dimension %q source scans = %d\nSQL:\n%s", query.Dimension, scans, query.PhysicalQuery.SQL)
+		if scans := strings.Count(query.SQLRenderResult.SQL, `FROM "analytics"."ratio_attribution_events"`); scans != 2 {
+			t.Fatalf("dimension %q source scans = %d\nSQL:\n%s", query.Dimension, scans, query.SQLRenderResult.SQL)
 		}
 		filters := 0
-		for _, parameter := range query.PhysicalQuery.Parameters {
+		for _, parameter := range query.SQLRenderResult.Parameters {
 			if parameter.Value == "included" {
 				filters++
 			}

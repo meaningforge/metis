@@ -27,7 +27,7 @@ Discovery / Semantic Context
           -> structured diagnostics / suggestions
           -> Explain
           -> Compile
-          -> PhysicalQuery + OutputSchema
+          -> SQLRenderResult + OutputSchema
 ```
 
 ## Implemented boundaries

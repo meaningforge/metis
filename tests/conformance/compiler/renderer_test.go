@@ -46,5 +46,5 @@ func compilePlan(ctx context.Context, plan *semanticplan.SemanticPlan, renderer 
 	if err != nil {
 		return sql.SQLRenderResult{}, err
 	}
-	return compiled.PhysicalQuery, nil
+	return compiled.SQLRenderResult, nil
 }

@@ -320,7 +320,7 @@ func compileScenario(scenario scenarios.Scenario, dialect string) (sql.SQLRender
 	if err != nil {
 		return sql.SQLRenderResult{}, fmt.Errorf("compile: %w", err)
 	}
-	sqlQuery := compiled.PhysicalQuery
+	sqlQuery := compiled.SQLRenderResult
 	if !strings.EqualFold(string(sqlQuery.Dialect), dialect) {
 		return sql.SQLRenderResult{}, fmt.Errorf("compiled dialect = %q, want %q: the SQL below is labeled for a target that did not render it", sqlQuery.Dialect, dialect)
 	}

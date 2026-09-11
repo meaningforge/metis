@@ -283,7 +283,7 @@ compiler/runtime handoff:
 
 ```go
 type CompiledQuery struct {
-    PhysicalQuery sql.SQLRenderResult
+    SQLRenderResult sql.SQLRenderResult
     OutputSchema OutputSchema
 }
 ```

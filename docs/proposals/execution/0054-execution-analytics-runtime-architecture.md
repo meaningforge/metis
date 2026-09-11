@@ -96,7 +96,7 @@ compare_metrics
 `compile_sql` compiles a governed semantic metric query into physical SQL without
 executing it. `query_metrics` accepts the same governed semantic query shape,
 compiles through the same canonical compiler path, executes the resulting
-`PhysicalQuery`, and returns normalized query results. `attribute_metric` owns a
+`SQLRenderResult`, and returns normalized query results. `attribute_metric` owns a
 complete metric-change attribution workflow and returns a structured analytical
 result. `compare_metrics` owns a complete two-period shared-grain comparison
 workflow and returns aligned values, delta, and percent change.
@@ -123,7 +123,7 @@ DriverFactory
     validates driver-owned configuration and opens an Executor
 
 Executor
-    Metis' small engine-neutral PhysicalQuery execution contract
+    Metis' small engine-neutral SQLRenderResult execution contract
 ```
 
 Cube remains useful prior art for named data sources and driver factories, but
@@ -164,7 +164,7 @@ and the linked current specifications now define the production contracts.
 [Core runtime contract](../../specs/operations/runtime-bootstrap.md) and ADR-0010 now supersede this RFC's detailed `ExecutionBinding`,
 Driver-selection, route-map, and `CompileTarget` design. The durable authority
 retained here is the four-layer architecture, optional execution, orchestration
-ownership, the `PhysicalQuery` handoff, and the task-oriented public capability
+ownership, the `SQLRenderResult` handoff, and the task-oriented public capability
 direction.
 
 Optional Execution Runtime now owns bounded physical execution; compile-only
@@ -271,7 +271,7 @@ deterministic analytical evaluation
 structured analytical result
 ```
 
-Stopping permanently at `PhysicalQuery` pushes orchestration and analytical
+Stopping permanently at `SQLRenderResult` pushes orchestration and analytical
 mathematics back into the Agent or every embedding application. That creates the
 same class of failure RFC-0053 demonstrated for attribution compile loops:
 repeated tool calls, duplicated orchestration, higher token cost, weaker
@@ -420,7 +420,7 @@ Ossie definitions       future Catalog adapters
                 SQLPlan
                      |
                      v
-       PhysicalQuery + OutputSchema
+       SQLRenderResult + OutputSchema
 ```
 
 Semantic Core MUST NOT:
@@ -487,7 +487,7 @@ DriverFactory implementations while the rest of the runtime depends on the
 common Executor contract.
 
 ```text
-PhysicalQuery
+SQLRenderResult
      |
      v
 Executor
@@ -523,7 +523,7 @@ type DriverFactory interface {
 type Executor interface {
     Execute(
         ctx context.Context,
-        query PhysicalQuery,
+        query SQLRenderResult,
         options ExecutionOptions,
     ) (ResultSet, error)
 }
@@ -586,7 +586,7 @@ Analytical Request
 Domain Planner
        |
        v
-Analytical query / PhysicalQuery bundle
+Analytical query / SQLRenderResult bundle
 
 normalized Result bundle
        |
@@ -625,7 +625,7 @@ Orchestration Layer
           |
           +-- dispatch Semantic Core operation
           +-- resolve ExecutionBinding -> DataSource route
-          +-- dispatch PhysicalQuery to Execution Runtime
+          +-- dispatch SQLRenderResult to Execution Runtime
           +-- coordinate bounded analytical bundle fan-out
           +-- correlate ResultSet entries with planned queries
           +-- dispatch Analytics Runtime evaluation
@@ -659,7 +659,7 @@ responsibility cohesive.
 ## 6. Dependency direction
 
 Semantic Core and Execution Runtime are siblings separated by the compiler
-artifact contract. Execution Runtime consumes `PhysicalQuery`; it does not
+artifact contract. Execution Runtime consumes `SQLRenderResult`; it does not
 depend on semantic resolution, planning, or compilation behavior.
 
 The dependency direction is:
@@ -677,11 +677,11 @@ Semantic   Execution   Analytics
     |          |          +----> Semantic Core
     v          v
 compiler artifact contracts
-PhysicalQuery / OutputSchema
+SQLRenderResult / OutputSchema
 ```
 
 Ordinary `query_metrics` follows this sibling shape: the Orchestration Layer
-invokes Semantic Core, receives one canonical `PhysicalQuery`, resolves the
+invokes Semantic Core, receives one canonical `SQLRenderResult`, resolves the
 request's explicit data-source route, and passes the artifact and selected
 data-source identity to Execution Runtime. Analytical planner code may depend on
 Semantic Core to produce governed bundles, but it MUST NOT call Execution Runtime
@@ -710,7 +710,7 @@ Orchestration Layer
 compile_sql
       |
       v
-PhysicalQuery
+SQLRenderResult
 ```
 
 No warehouse credentials or database connectivity are required.
@@ -735,7 +735,7 @@ Orchestration Layer
 query_metrics
       |
       v
-PhysicalQuery
+SQLRenderResult
       |
       v
 DataSource
@@ -772,7 +772,7 @@ attribution.
 These are capabilities, not mutually exclusive products. One server may expose
 `compile_sql`, `query_metrics`, and analytical tools together when policy permits.
 
-## 8. PhysicalQuery is the execution boundary
+## 8. SQLRenderResult is the execution boundary
 
 The compiler output is the only accepted semantic-to-execution handoff.
 
@@ -780,7 +780,7 @@ The compiler output is the only accepted semantic-to-execution handoff.
 compile_sql
    |
    v
-PhysicalQuery
+SQLRenderResult
    |
    +-----------------> external caller executes
    |
@@ -801,7 +801,7 @@ Orchestration Layer
     +-- Compile(...)
     |       |
     |       v
-    |   PhysicalQuery
+    |   SQLRenderResult
     |
     +-- resolve ExecutionBinding -> DataSource
     |
@@ -837,10 +837,10 @@ Attribution Planner
       v
 AttributionBundle
       |
-      +-- PhysicalQuery(total/evidence as required)
-      +-- PhysicalQuery(region)
-      +-- PhysicalQuery(channel)
-      +-- PhysicalQuery(product)
+      +-- SQLRenderResult(total/evidence as required)
+      +-- SQLRenderResult(region)
+      +-- SQLRenderResult(channel)
+      +-- SQLRenderResult(product)
 ```
 
 `AttributionBundle` remains useful for:
@@ -1037,7 +1037,7 @@ The vocabulary intentionally follows Cube where doing so improves familiarity:
    client/driver dependency, supported compile targets/capabilities, configuration
    schema, authentication modes, connection lifecycle, and Executor construction.
 4. **Executor** is the small engine-neutral runtime contract returned by a
-   DriverFactory and used to execute canonical `PhysicalQuery` artifacts.
+   DriverFactory and used to execute canonical `SQLRenderResult` artifacts.
 5. **SecretRef** is indirection from a driver-defined sensitive configuration
    field to an external secret provider. It is not a new credential domain model.
 6. A deployment **route** maps a project-scoped logical `ExecutionBinding` to one
@@ -1301,7 +1301,7 @@ identity or configuration authority.
 
 Secret values are resolved only inside Execution Runtime after project
 authorization, route resolution, DriverFactory/config validation, and limit
-checks. Resolved values MUST NOT enter semantic requests, plans, `PhysicalQuery`,
+checks. Resolved values MUST NOT enter semantic requests, plans, `SQLRenderResult`,
 error details, logs, metrics, traces, or cached configuration snapshots. The
 provider registry should permit sources such as:
 
@@ -1421,7 +1421,7 @@ The public capability direction is:
 ```text
 compile_sql
     SemanticQuery
-        -> PhysicalQuery
+        -> SQLRenderResult
 
 query_metrics
     SemanticQuery
@@ -1451,7 +1451,7 @@ SQL. It replaces the proposed `run_query` name, which could be interpreted as an
 arbitrary SQL execution primitive.
 
 `query_metrics` MUST compile through the same canonical compiler path used by
-`compile_sql` before executing the resulting `PhysicalQuery`.
+`compile_sql` before executing the resulting `SQLRenderResult`.
 
 ### 18.3 `attribute_metric`
 
@@ -1622,7 +1622,7 @@ Owns:
 
 ```text
 query_metrics
-Compile -> PhysicalQuery -> Execute
+Compile -> SQLRenderResult -> Execute
 Orchestration Layer capability dispatch
 ExecutionBinding -> DataSource routing
 shared service boundary
@@ -1685,7 +1685,7 @@ the following:
 
 1. Semantic Core reads one immutable `SemanticManifest` and has no live database,
    external Catalog, or credential dependency during request processing.
-2. Runtime execution consumes canonical `PhysicalQuery` output rather than
+2. Runtime execution consumes canonical `SQLRenderResult` output rather than
    rebuilding SQL independently.
 3. Root Project Registration optionally selects one deployment-scoped
    DataSource directly; no `ExecutionBinding` or parallel route map remains.
