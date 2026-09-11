@@ -34,7 +34,7 @@ compile_sql
     governed SemanticQuery + explicit SQL dialect
         -> canonical semantic compilation
         -> CompiledQuery {
-             PhysicalQuery
+             SqlRenderResult
              OutputSchema
            }
 
@@ -57,7 +57,7 @@ attribute_metric                  # RFC-0057, future
         -> AttributionResult
 ```
 
-`CompiledQuery` is not a replacement for `PhysicalQuery` as the physical query
+`CompiledQuery` is not a replacement for `SqlRenderResult` as the physical query
 IR. It is the atomic execution handoff that binds the physical query to the
 `OutputSchema` required to interpret its result.
 
@@ -70,7 +70,7 @@ The key decisions are:
 5. The DataSource type resolves one Backend; that Backend's exact Renderer instance is passed into the canonical compiler and its DriverFactory remains the execution implementation authority.
 6. `compile_sql` and `query_metrics` share one semantic resolution/planning/rendering implementation. A second runtime compiler path is forbidden.
 7. Runtime execution begins only from the completed atomic `CompiledQuery` compiler artifact.
-8. `CompiledQuery.Query` remains the canonical `PhysicalQuery`; `CompiledQuery.OutputSchema` travels with it across the execution boundary and governs result normalization.
+8. `CompiledQuery.Query` remains the canonical `SqlRenderResult`; `CompiledQuery.OutputSchema` travels with it across the execution boundary and governs result normalization.
 9. Deployment DataSource timeout, row, and byte ceilings remain mandatory execution safety policy. Public Agent requests do not bypass or relax them.
 10. A limit breach, timeout, cancellation, driver failure, schema mismatch, normalization failure, or cleanup failure returns an error and never a partial successful result.
 11. REST and MCP are projections over the same transport-neutral service operation.
@@ -109,7 +109,7 @@ PR #513 established the runtime substrate that this RFC composes:
 
 ```text
 Semantic Core
-    -> PhysicalQuery + OutputSchema
+    -> SqlRenderResult + OutputSchema
     -> CompiledQuery
     -> ExecutionRuntime
     -> Executor
@@ -181,10 +181,10 @@ SemanticManifest
     -> Optimizer
     -> SQLPlan
     -> Renderer
-    -> PhysicalQuery
+    -> SqlRenderResult
 ```
 
-The compiler packages the resulting `PhysicalQuery` together with its
+The compiler packages the resulting `SqlRenderResult` together with its
 `OutputSchema` as `CompiledQuery` for execution handoff. RFC-0056 composes these
 authorities without adding another one.
 
@@ -278,7 +278,7 @@ SemanticQuery + explicit dialect
     -> resolve Renderer by requested SQL dialect
     -> canonical semantic compilation
     -> CompiledQuery {
-         PhysicalQuery
+         SqlRenderResult
          OutputSchema
        }
 ```
@@ -484,7 +484,7 @@ QueryMetrics(ctx, request)
     |
     +-- canonical compileWithRenderer(...)
     |       -> CompiledQuery
-    |            +-- PhysicalQuery
+    |            +-- SqlRenderResult
     |            `-- OutputSchema
     |
     +-- ExecutionRuntime.Execute(
@@ -837,13 +837,13 @@ Conceptually:
 ```text
 compile_sql(query, dialect=Backend.Dialect)
     -> CompiledQuery A
-         Query        = PhysicalQuery A
+         Query        = SqlRenderResult A
          OutputSchema = OutputSchema A
 
 query_metrics(query)
     -> Project -> DataSource -> Backend.Renderer
     -> CompiledQuery B
-         Query        = PhysicalQuery B
+         Query        = SqlRenderResult B
          OutputSchema = OutputSchema B
 
 required:
@@ -889,7 +889,7 @@ Before any public `query_metrics` route/tool is enabled, tests MUST prove the
 - Backend.Renderer is passed directly into canonical compilation;
 - no second Renderer registry lookup occurs in the runtime path;
 - the exact canonical `CompiledQuery` is passed atomically to `ExecutionRuntime`;
-- application orchestration does not reconstruct or independently mutate `PhysicalQuery` or `OutputSchema`.
+- application orchestration does not reconstruct or independently mutate `SqlRenderResult` or `OutputSchema`.
 
 ### 21.3 Request surface
 
@@ -987,7 +987,7 @@ model and complicate authorization.
 Rejected. A dialect-name handoff followed by RendererRegistry lookup violates
 the one-Renderer invariant even when both objects report the same dialect.
 
-### 23.5 Pass `PhysicalQuery` and `OutputSchema` separately to Runtime
+### 23.5 Pass `SqlRenderResult` and `OutputSchema` separately to Runtime
 
 Rejected for the RFC-0056 target architecture. The query and the schema that
 defines its logical result form one compiler artifact. Splitting them creates
@@ -1055,7 +1055,7 @@ application, transport, and conformance test suites:
 2. no arbitrary SQL / `run_query` surface;
 3. Project -> DataSource -> Backend as the sole runtime placement chain;
 4. Backend.Renderer passed directly into the shared canonical compiler path;
-5. `CompiledQuery { PhysicalQuery + OutputSchema }` as the atomic compiler/execution handoff;
+5. `CompiledQuery { SqlRenderResult + OutputSchema }` as the atomic compiler/execution handoff;
 6. the #513 ownership and schema-governed normalization boundary as a prerequisite rather than an unmerged baseline claim;
 7. mandatory bounded ExecutionRuntime behavior and no partial success;
 8. `semantic:execute` as a distinct authorization scope;

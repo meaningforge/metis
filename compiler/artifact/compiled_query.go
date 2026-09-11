@@ -13,9 +13,9 @@ import (
 // execution Runner. It deliberately contains no DataSource, Backend, Renderer,
 // or routing state.
 type CompiledQuery struct {
-	PhysicalQuery sql.SQLRenderResult `json:"physical_query"`
-	OutputSchema  OutputSchema        `json:"output_schema"`
-	Warnings      []Warning           `json:"warnings,omitempty"`
+	SqlRenderResult sql.SqlRenderResult `json:"sql_render_result"`
+	OutputSchema    OutputSchema        `json:"output_schema"`
+	Warnings        []Warning           `json:"warnings,omitempty"`
 }
 
 type Warning struct {
@@ -28,8 +28,8 @@ type Warning struct {
 // NewCompiledQuery establishes ownership of a compiler artifact at its
 // construction boundary. Its nested containers do not alias Renderer-owned
 // storage.
-func NewCompiledQuery(query sql.SQLRenderResult, schema OutputSchema) (*CompiledQuery, error) {
-	return SnapshotCompiledQuery(&CompiledQuery{PhysicalQuery: query, OutputSchema: schema})
+func NewCompiledQuery(query sql.SqlRenderResult, schema OutputSchema) (*CompiledQuery, error) {
+	return SnapshotCompiledQuery(&CompiledQuery{SqlRenderResult: query, OutputSchema: schema})
 }
 
 // SnapshotCompiledQuery copies known containers and rejects values outside the
@@ -39,30 +39,30 @@ func SnapshotCompiledQuery(compiled *CompiledQuery) (*CompiledQuery, error) {
 	if compiled == nil {
 		return nil, nil
 	}
-	if compiled.PhysicalQuery.Dialect == "" {
+	if compiled.SqlRenderResult.Dialect == "" {
 		return nil, fmt.Errorf("physical SQL query dialect is required")
 	}
-	if strings.TrimSpace(compiled.PhysicalQuery.SQL) == "" {
+	if strings.TrimSpace(compiled.SqlRenderResult.SQL) == "" {
 		return nil, fmt.Errorf("physical SQL query text is required")
 	}
-	query, err := snapshotSQLRenderResult(compiled.PhysicalQuery)
+	query, err := snapshotSqlRenderResult(compiled.SqlRenderResult)
 	if err != nil {
 		return nil, err
 	}
 	return &CompiledQuery{
-		PhysicalQuery: query,
-		OutputSchema:  copyOutputSchema(compiled.OutputSchema),
-		Warnings:      append([]Warning(nil), compiled.Warnings...),
+		SqlRenderResult: query,
+		OutputSchema:    copyOutputSchema(compiled.OutputSchema),
+		Warnings:        append([]Warning(nil), compiled.Warnings...),
 	}, nil
 }
 
-func snapshotSQLRenderResult(query sql.SQLRenderResult) (sql.SQLRenderResult, error) {
+func snapshotSqlRenderResult(query sql.SqlRenderResult) (sql.SqlRenderResult, error) {
 	snapshot := query
 	snapshot.Parameters = make([]sql.QueryParameter, len(query.Parameters))
 	for index, parameter := range query.Parameters {
 		value, err := snapshotQueryParameterValue(parameter.Value)
 		if err != nil {
-			return sql.SQLRenderResult{}, fmt.Errorf("parameter %d: %w", index, err)
+			return sql.SqlRenderResult{}, fmt.Errorf("parameter %d: %w", index, err)
 		}
 		snapshot.Parameters[index] = sql.QueryParameter{Name: parameter.Name, Value: value}
 	}

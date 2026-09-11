@@ -311,18 +311,18 @@ func compiledParameterEvidence(scenario scenarios.Scenario, dialect string) (str
 	return string(payload), nil
 }
 
-func compileScenario(scenario scenarios.Scenario, dialect string) (sql.SQLRenderResult, error) {
+func compileScenario(scenario scenarios.Scenario, dialect string) (sql.SqlRenderResult, error) {
 	plan, renderer, err := PlanScenario(scenario, dialect)
 	if err != nil {
-		return sql.SQLRenderResult{}, err
+		return sql.SqlRenderResult{}, err
 	}
 	compiled, err := compiler.CompileWithRenderer(context.Background(), plan, renderer)
 	if err != nil {
-		return sql.SQLRenderResult{}, fmt.Errorf("compile: %w", err)
+		return sql.SqlRenderResult{}, fmt.Errorf("compile: %w", err)
 	}
-	sqlQuery := compiled.PhysicalQuery
+	sqlQuery := compiled.SqlRenderResult
 	if !strings.EqualFold(string(sqlQuery.Dialect), dialect) {
-		return sql.SQLRenderResult{}, fmt.Errorf("compiled dialect = %q, want %q: the SQL below is labeled for a target that did not render it", sqlQuery.Dialect, dialect)
+		return sql.SqlRenderResult{}, fmt.Errorf("compiled dialect = %q, want %q: the SQL below is labeled for a target that did not render it", sqlQuery.Dialect, dialect)
 	}
 	return sqlQuery, nil
 }

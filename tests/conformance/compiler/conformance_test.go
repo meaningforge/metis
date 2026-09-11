@@ -270,17 +270,17 @@ func TestCompilationIsDeterministicAcrossRegisteredTargets(t *testing.T) {
 		}
 	}
 }
-func compile(t *testing.T, query query.SemanticQuery, dialect string) (*semanticplan.SemanticPlan, sql.SQLRenderResult, error) {
+func compile(t *testing.T, query query.SemanticQuery, dialect string) (*semanticplan.SemanticPlan, sql.SqlRenderResult, error) {
 	t.Helper()
 	return compileWithFixture(t, query, fixtures.Commerce, dialect)
 }
 
-func compileScenario(t *testing.T, scenario scenarios.Scenario, dialect string) (*semanticplan.SemanticPlan, sql.SQLRenderResult, error) {
+func compileScenario(t *testing.T, scenario scenarios.Scenario, dialect string) (*semanticplan.SemanticPlan, sql.SqlRenderResult, error) {
 	t.Helper()
 	return compileWithFixture(t, scenario.Query, scenario.Fixture, dialect)
 }
 
-func compileWithFixture(t *testing.T, query query.SemanticQuery, fixture fixtures.ID, dialect string) (*semanticplan.SemanticPlan, sql.SQLRenderResult, error) {
+func compileWithFixture(t *testing.T, query query.SemanticQuery, fixture fixtures.ID, dialect string) (*semanticplan.SemanticPlan, sql.SqlRenderResult, error) {
 	t.Helper()
 	definition, ok := fixtures.Lookup(fixture)
 	if !ok {
@@ -299,15 +299,15 @@ func compileWithFixture(t *testing.T, query query.SemanticQuery, fixture fixture
 	renderer := mustRenderer(t, dialect)
 	resolved, err := resolver.New(manifest.NewStore(snapshot)).ResolveForRenderer(context.Background(), query, renderer)
 	if err != nil {
-		return nil, sql.SQLRenderResult{}, err
+		return nil, sql.SqlRenderResult{}, err
 	}
 	plan, err := planner.New().Plan(context.Background(), resolved, renderer)
 	if err != nil {
-		return nil, sql.SQLRenderResult{}, err
+		return nil, sql.SqlRenderResult{}, err
 	}
 	sqlQuery, err := compilePlan(context.Background(), plan, renderer)
 	if err != nil {
-		return nil, sql.SQLRenderResult{}, err
+		return nil, sql.SqlRenderResult{}, err
 	}
 	return plan, sqlQuery, nil
 }

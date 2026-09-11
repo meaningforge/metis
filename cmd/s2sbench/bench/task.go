@@ -40,7 +40,7 @@ import (
 // complete request construction and point-in-time relationship discovery.
 // v0.37 makes malformed trailing-output repair actionable without accepting or
 // silently rewriting an invalid Agent answer. v0.38 makes the Pi bridge honor
-// the MCP server's complete Agent-facing physical_query text representation;
+// the MCP server's complete Agent-facing sql_render_result text representation;
 // strict answer validation remains unchanged.
 // v0.39 makes list_metrics explain the general semantic-selection rule for
 // similarly named metrics with different typed constraints. v0.40 makes
@@ -109,7 +109,7 @@ const (
 	PathRawAssets Path = "raw_assets"
 
 	// PathMetis: the agent receives no raw semantic model and gets Metis MCP as
-	// its semantic interface. It returns the compile result's physical_query
+	// its semantic interface. It returns the compile result's sql_render_result
 	// object; S2SBench passes SQL and parameters separately to the driver.
 	PathMetis Path = "metis"
 )

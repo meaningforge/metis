@@ -34,7 +34,7 @@ func TestMetisRepairPromptReusesSuccessfulCompileAndStopsAfterJSON(t *testing.T)
 	prompt := MetisAgentTurnPrompt("question", "", "trailing content", false)
 	for _, want := range []string{
 		"reuse that result without calling compile_sql again",
-		"exactly one complete physical_query JSON object",
+		"exactly one complete sql_render_result JSON object",
 		"stop immediately after its closing brace",
 	} {
 		if !strings.Contains(prompt, want) {

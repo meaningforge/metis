@@ -106,7 +106,7 @@ semantic_sources:
 	if err != nil {
 		t.Fatal(err)
 	}
-	physicalQuery := result.PhysicalQuery
+	physicalQuery := result.SqlRenderResult
 	if physicalQuery.Dialect != "DORIS" {
 		t.Fatalf("physical query dialect=%q want DORIS", physicalQuery.Dialect)
 	}

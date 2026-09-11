@@ -192,7 +192,10 @@ A bounded, structured subset of semantic facts returned for Agent reasoning. Sem
 
 ## Explain
 
-A stable semantic explanation of resolution and planning decisions. Metis Explain is not database SQL `EXPLAIN` and does not expose planner-internal graphs, SQLPlan, or renderer-private state as its public contract.
+A compile-only result (`SQLExplainResult`) combining stable semantic evidence
+(`QueryExplanation`) with rendered SQL (`sql_render_result`), output schema, and
+optional compilation warnings. Metis Explain is not database SQL `EXPLAIN` and
+does not expose raw planner graphs, SQLPlan, or renderer-private state.
 
 ## s2s
 

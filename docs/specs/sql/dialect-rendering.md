@@ -22,7 +22,7 @@ SQLDialect
     -> planner/conversion.BuildSQLPlan
     -> sqlplan.Plan
     -> same Renderer.Render
-    -> sql.SQLRenderResult
+    -> sql.SqlRenderResult
 ```
 
 A SQL dialect identifies the requested physical SQL language. Its selected
@@ -44,7 +44,7 @@ type Renderer interface {
     SQLDialect() sql.SQLDialect
     ExpressionDialect() string
     Capabilities() renderer.Capabilities
-    Render(*sqlplan.Plan) (sql.SQLRenderResult, error)
+    Render(*sqlplan.Plan) (sql.SqlRenderResult, error)
 }
 ```
 
@@ -206,5 +206,5 @@ execution capability.
 The toolkit has no `Renderer` implementation and cannot be selected by dialect.
 Concrete Renderers may use the helpers or render SQLPlan directly. The helper
 API is experimental; a separate stabilization decision requires evidence from
-an additional warehouse. `SQLDialect`, `QueryParameter`, and `SQLRenderResult` live in
+an additional warehouse. `SQLDialect`, `QueryParameter`, and `SqlRenderResult` live in
 the same package and retain their existing extension compatibility contract.

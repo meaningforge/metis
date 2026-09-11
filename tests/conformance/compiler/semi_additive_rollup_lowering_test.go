@@ -39,7 +39,7 @@ func TestSemiAdditiveTypedOuterRollupDialectLowering(t *testing.T) {
 	}
 }
 
-func compileSemiAdditiveTypedRollup(t *testing.T, query query.SemanticQuery, dialect, rollup string) sql.SQLRenderResult {
+func compileSemiAdditiveTypedRollup(t *testing.T, query query.SemanticQuery, dialect, rollup string) sql.SqlRenderResult {
 	t.Helper()
 	doc, err := ossie.NewLoader().Load(fixtures.CommerceModelYAML)
 	if err != nil {

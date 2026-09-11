@@ -16,14 +16,14 @@ func TestCompileScenarioForRendererPreservesDecimalOutputContract(t *testing.T) 
 	}
 	selected := duckdbrenderer.New()
 	compiled := CompileScenarioForRenderer(t, scenario, selected)
-	if compiled.PhysicalQuery.Dialect != selected.SQLDialect() {
-		t.Fatalf("compiled dialect = %q, want %q", compiled.PhysicalQuery.Dialect, selected.SQLDialect())
+	if compiled.SqlRenderResult.Dialect != selected.SQLDialect() {
+		t.Fatalf("compiled dialect = %q, want %q", compiled.SqlRenderResult.Dialect, selected.SQLDialect())
 	}
 	if len(compiled.OutputSchema.Columns) != 1 || compiled.OutputSchema.Columns[0].Datatype != ossie.DataTypeDecimal {
 		t.Fatalf("output schema = %#v", compiled.OutputSchema)
 	}
-	if !strings.Contains(compiled.PhysicalQuery.SQL, "AS DECIMAL(38,18))") ||
-		strings.Contains(compiled.PhysicalQuery.SQL, "AS DECIMAL(20,12)) AS DECIMAL(38,18))") {
-		t.Fatalf("Decimal output boundary is missing:\n%s", compiled.PhysicalQuery.SQL)
+	if !strings.Contains(compiled.SqlRenderResult.SQL, "AS DECIMAL(38,18))") ||
+		strings.Contains(compiled.SqlRenderResult.SQL, "AS DECIMAL(20,12)) AS DECIMAL(38,18))") {
+		t.Fatalf("Decimal output boundary is missing:\n%s", compiled.SqlRenderResult.SQL)
 	}
 }

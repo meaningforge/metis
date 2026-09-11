@@ -122,6 +122,6 @@ func renderSQL(t *testing.T, plan *semanticplan.SemanticPlan, renderer renderer.
 	if err != nil {
 		t.Fatalf("compile plan: %v", err)
 	}
-	sqlQuery := compiled.PhysicalQuery
+	sqlQuery := compiled.SqlRenderResult
 	return sqlQuery.SQL
 }

@@ -48,8 +48,8 @@ func TestCompareMetricsNormalizesAndCompilesTwoOrdinaryQueries(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if baseline.PhysicalQuery.SQL == "" || current.PhysicalQuery.SQL == "" || baseline.PhysicalQuery.SQL == current.PhysicalQuery.SQL && reflect.DeepEqual(baseline.PhysicalQuery.Parameters, current.PhysicalQuery.Parameters) {
-		t.Fatalf("compiled periods = %#v %#v", baseline.PhysicalQuery, current.PhysicalQuery)
+	if baseline.SqlRenderResult.SQL == "" || current.SqlRenderResult.SQL == "" || baseline.SqlRenderResult.SQL == current.SqlRenderResult.SQL && reflect.DeepEqual(baseline.SqlRenderResult.Parameters, current.SqlRenderResult.Parameters) {
+		t.Fatalf("compiled periods = %#v %#v", baseline.SqlRenderResult, current.SqlRenderResult)
 	}
 	if !sameComparisonSchema(baseline.OutputSchema, current.OutputSchema) || len(descriptor.Metrics) != 2 || descriptor.Metrics[0].Public != "metric:sales.conversion_rate" {
 		t.Fatalf("descriptor = %#v schemas=%#v/%#v", descriptor, baseline.OutputSchema, current.OutputSchema)

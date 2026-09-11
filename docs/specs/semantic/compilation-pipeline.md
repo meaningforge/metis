@@ -32,7 +32,7 @@ Normative flow:
         -> planner/conversion.BuildSQLPlan
         -> sqlplan.Plan
         -> same Renderer.Render(SQLPlan)
-        -> artifact.CompiledQuery{PhysicalQuery + OutputSchema}
+        -> artifact.CompiledQuery{SqlRenderResult + OutputSchema}
 
 `artifact.CompiledQuery` is the atomic compiler/runtime handoff. It contains no
 DataSource, Backend, Renderer, Project, or routing state. Package `compiler`
@@ -273,14 +273,20 @@ Normative shared flow:
       -> invariant validation
       -> configured semantic optimization
       -> invariant validation
-      +-> Explain -> QueryExplanation
-      +-> Compile -> SQLPlan -> PhysicalQuery + OutputSchema
+      +-> Explain -> SQLPlan -> SQLExplainResult { QueryExplanation + SqlRenderResult }
+      +-> Compile -> SQLPlan -> SqlRenderResult + OutputSchema
 
 `QueryExplanation` is an Agent-facing semantic read model. It MAY expose stable
 Renderer/dialect selection and output-schema facts, but it MUST translate planning state
 into stable semantic evidence and MUST NOT expose raw `SemanticPlan`, optimizer
 trace, SQLPlan, renderer-private structures, or physical database execution
 details.
+
+`SQLExplainResult` embeds that evidence and adds `sql_render_result` and optional
+`warnings`. Explain lowers and renders the same prepared semantic plan through
+the selected Renderer, evaluates data policy once, and does not execute SQL.
+The rendering result, output schema, and warnings match Compile for the same
+request and runtime snapshot. Rendering failures also fail Explain.
 
 A semantic failure encountered before or during planning MUST have the same
 stable semantic error class for Explain and Compile. Explain MUST fail closed

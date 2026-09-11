@@ -34,12 +34,12 @@ func (Renderer) ExpressionDialect() string  { return string(Dialect) }
 func (Renderer) Capabilities() renderer.Capabilities {
 	return renderer.Capabilities{}
 }
-func (Renderer) Render(plan *sqlplan.Plan) (sql.SQLRenderResult, error) {
+func (Renderer) Render(plan *sqlplan.Plan) (sql.SqlRenderResult, error) {
 	if err := sql.Validate(plan, string(Dialect)); err != nil {
-		return sql.SQLRenderResult{}, err
+		return sql.SqlRenderResult{}, err
 	}
 	text, parameters, err := sql.Render(plan, Renderer{preserveJoinNulls: containsFullOuterJoin(plan)})
-	return sql.SQLRenderResult{Dialect: Dialect, SQL: text, Parameters: parameters}, err
+	return sql.SqlRenderResult{Dialect: Dialect, SQL: text, Parameters: parameters}, err
 }
 
 // Renderer answers the sql.Behavior questions the shared traversal

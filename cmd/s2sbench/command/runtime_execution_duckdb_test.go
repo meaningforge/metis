@@ -164,7 +164,7 @@ func TestExecutableSemanticProjectRuntimeExposesAllToolsAndCapturesExecutedQuery
 	if err != nil {
 		t.Fatal(err)
 	}
-	if record.ExecutedQuery == nil || record.ExecutedQuery.PhysicalQuery.SQL == "" || len(record.ExecutedQuery.OutputSchema.Columns) != 3 {
+	if record.ExecutedQuery == nil || record.ExecutedQuery.SqlRenderResult.SQL == "" || len(record.ExecutedQuery.OutputSchema.Columns) != 3 {
 		t.Fatalf("executed query evidence = %#v", record.ExecutedQuery)
 	}
 }

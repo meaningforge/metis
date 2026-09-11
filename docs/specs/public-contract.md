@@ -13,7 +13,7 @@ The following are user-facing contracts and changes to them require an explicit 
 - REST and MCP request/response fields;
 - stable Metis error-code strings;
 - documented CLI commands, flags, and emitted machine-readable formats;
-- `PhysicalQuery`, `OutputSchema`, explicit compile-only SQLDialect values, and
+- `SqlRenderResult`, `OutputSchema`, explicit compile-only SQLDialect values, and
   Project/DataSource references exposed through user-facing service contracts.
 
 `CompileTarget` and semantic Engine have been removed. Transitional
@@ -220,12 +220,31 @@ The standard database drivers bind them at execution time. See the
 [CLI overview](../../README.md) and
 [source contract](semantic/asset-authoring-lifecycle.md).
 
+`artifact.CompiledQuery.SqlRenderResult` holds the rendering output. Its JSON
+key is `sql_render_result` in REST/MCP responses and persisted benchmark artifacts.
+`output_schema` and `warnings` are unchanged.
+
 ## Naming discipline
 
 Phase, milestone, and migration labels belong in issues, pull requests, and commits. They must not be embedded in durable file names, public types, test names, error codes, or semantic concepts.
 
 Core cross-package terms such as `SemanticPlan`, `SemanticPlanNode`,
-`SQLDialect`, `Renderer`, `Backend`, `DataSource`, `PhysicalQuery`, and
+`SQLDialect`, `Renderer`, `Backend`, `DataSource`, `SqlRenderResult`, and
 `OutputSchema` remain explicit even when a shorter package-local spelling is
 possible. Metis does not perform broad renames solely to shorten identifiers;
 clarity of semantic layer and ownership takes precedence over character count.
+
+## Explain result
+
+`CompileService.Explain` returns `SQLExplainResult`. Its embedded
+`QueryExplanation` preserves the existing JSON evidence fields (`project`,
+`model`, `steps`, `semantic_plan`, `output_schema`, and optional metric,
+dimension, relationship, and data-constraint evidence). `sql_render_result`
+contains the same dialect, SQL, and ordered parameters as Compile; `warnings`
+contains the same optional compilation warnings.
+
+Explain plans once, evaluates data policy once, and renders using the selected
+Renderer. It does not connect to a database or run SQL `EXPLAIN`. Semantic
+evidence stays redacted; the SQL result includes policy predicates and bound
+parameter values just as Compile does, under the same compile authorization.
+Clients must treat it with the same access and storage rules as compiled SQL.

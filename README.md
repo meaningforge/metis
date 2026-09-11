@@ -134,9 +134,11 @@ curl -fsS http://127.0.0.1:8080/v1/compile-sql \
   }'
 ```
 
-The response includes `physical_query` and `output_schema`. This endpoint
+The response includes `sql_render_result` and `output_schema`. This endpoint
 compiles the query without executing it. `/v1/explain` accepts the same request
-shape and returns semantic planning evidence.
+shape and returns `SQLExplainResult`: semantic planning evidence, the same
+`sql_render_result` and `output_schema` as Compile, and any compilation warnings.
+Explain generates SQL without executing it.
 
 ## `s2s`: Semantic-to-SQL
 

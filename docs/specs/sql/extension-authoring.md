@@ -31,8 +31,8 @@ compatibility commitment:
 
 | Boundary | Stable transitive types |
 | --- | --- |
-| `renderer.Renderer` | `renderer.Capabilities`, `sql.SQLDialect`, `sql.SQLRenderResult`, `sql.QueryParameter`, and `sqlplan.Plan` |
-| `driver.Executor` | `artifact.CompiledQuery`, `artifact.OutputSchema`, `artifact.OutputColumn`, `artifact.OutputColumnKind`, `sql.SQLRenderResult`, `sql.SQLDialect`, and `sql.QueryParameter` |
+| `renderer.Renderer` | `renderer.Capabilities`, `sql.SQLDialect`, `sql.SqlRenderResult`, `sql.QueryParameter`, and `sqlplan.Plan` |
+| `driver.Executor` | `artifact.CompiledQuery`, `artifact.OutputSchema`, `artifact.OutputColumn`, `artifact.OutputColumnKind`, `sql.SqlRenderResult`, `sql.SQLDialect`, and `sql.QueryParameter` |
 | `sqlplan.Plan` consumed by a Renderer | `QueryBlockID`, `QueryBlock`, `QueryInput`, `QueryInputMode`, `RelationRef`, `TableSource`, `FilteredTableSource`, `InputRef`, `Projection`, `Join`, `JoinKind`, `Predicate`, `Order`, `Expr`, `OpaqueExpr`, `ColumnRef`, `BinaryExpr`, `LogicalExpr`, `FunctionCallExpr`, `NullTestExpr`, `CaseWhen`, `CaseExpr`, `ParenthesizedExpr`, `TimeGrainExpr`, `CalendarShiftExpr`, `LatestValueExpr`, `EarliestValueExpr`, `WindowFrame`, `WindowExpr`, and `RowNumberExpr` |
 | SQLPlan field types | `query.FilterOperator`, `query.SortDirection`, `query.TimeGrain`, and `ossie.DataType` where they appear in the listed contracts |
 
@@ -58,7 +58,7 @@ type Renderer struct{}
 func (Renderer) SQLDialect() sql.SQLDialect
 func (Renderer) ExpressionDialect() string
 func (Renderer) Capabilities() renderer.Capabilities
-func (Renderer) Render(*sqlplan.Plan) (sql.SQLRenderResult, error)
+func (Renderer) Render(*sqlplan.Plan) (sql.SqlRenderResult, error)
 ```
 
 The same Renderer instance selected by `renderer.Registry` supplies expression

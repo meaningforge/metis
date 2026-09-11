@@ -61,7 +61,7 @@ func TestParameterFingerprintsIncludeValues(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	b, err := decodeCompileToolResponse(`{"physical_query":{"dialect":"DUCKDB","sql":"SELECT ?","parameters":[{"value":9007199254740993}]}}`)
+	b, err := decodeCompileToolResponse(`{"sql_render_result":{"dialect":"DUCKDB","sql":"SELECT ?","parameters":[{"value":9007199254740993}]}}`)
 	if err != nil {
 		t.Fatal(err)
 	}

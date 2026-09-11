@@ -1,6 +1,12 @@
 package semantic
 
 import (
+	"context"
+	"errors"
+	"github.com/meaningforge/metis/compiler"
+	"github.com/meaningforge/metis/renderer"
+	"github.com/meaningforge/metis/renderer/sql"
+	"github.com/meaningforge/metis/sqlplan"
 	"reflect"
 	"testing"
 
@@ -121,4 +127,57 @@ func explanationStepKinds(steps []ExplanationStep) []ExplanationStepKind {
 		out = append(out, step.Kind)
 	}
 	return out
+}
+
+func TestSQLExplainResultMatchesCompile(t *testing.T) {
+	for _, dialect := range []sql.SQLDialect{"DORIS", "DUCKDB", "CLICKHOUSE"} {
+		t.Run(string(dialect), func(t *testing.T) {
+			svc := attributionServiceForTest(t).compile
+			selected := &identityRenderer{delegate: mustRenderer(t, string(dialect))}
+			lookup := &countingRendererResolver{renderer: selected}
+			svc.compiler = compiler.NewCompiler(lookup)
+			req := CompileRequest{Dialect: dialect, Query: query.SemanticQuery{
+				Project: "analytics", Model: "sales",
+				Metrics:    []query.MetricRef{{Name: "revenue"}},
+				Dimensions: []query.DimensionRef{{Name: "orders.region"}},
+				Filters:    []query.Filter{{Field: "orders.region", Operator: query.FilterEQ, Value: "west"}},
+			}}
+			got, err := svc.Explain(context.Background(), req)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if lookup.calls != 1 || selected.renderCalls != 1 {
+				t.Fatalf("Explain selected %d renderers and rendered %d times", lookup.calls, selected.renderCalls)
+			}
+			compiled, err := svc.Compile(context.Background(), req)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !reflect.DeepEqual(got.SqlRenderResult, compiled.SqlRenderResult) ||
+				!reflect.DeepEqual(got.OutputSchema, compiled.OutputSchema) ||
+				!reflect.DeepEqual(got.Warnings, compiled.Warnings) {
+				t.Fatalf("Explain/Compile mismatch: explain=%#v compile=%#v", got, compiled)
+			}
+			if len(got.SqlRenderResult.Parameters) == 0 || len(got.SemanticPlan.Nodes) == 0 || len(got.Steps) == 0 {
+				t.Fatalf("Explain missing parameters or semantic evidence: %#v", got)
+			}
+		})
+	}
+}
+
+type explainFailingRenderer struct{ renderer.Renderer }
+
+func (explainFailingRenderer) Render(*sqlplan.Plan) (sql.SqlRenderResult, error) {
+	return sql.SqlRenderResult{}, errors.New("render failure")
+}
+
+func TestSQLExplainResultFailsWhenRenderingFails(t *testing.T) {
+	svc := attributionServiceForTest(t).compile
+	svc.compiler = compiler.NewCompiler(&countingRendererResolver{renderer: explainFailingRenderer{mustRenderer(t, "DORIS")}})
+	req := CompileRequest{Dialect: "DORIS", Query: query.SemanticQuery{
+		Project: "analytics", Model: "sales", Metrics: []query.MetricRef{{Name: "revenue"}},
+	}}
+	if result, err := svc.Explain(context.Background(), req); err == nil || result != nil {
+		t.Fatalf("Explain returned partial success after rendering failure: result=%#v err=%v", result, err)
+	}
 }

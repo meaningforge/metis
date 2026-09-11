@@ -181,7 +181,7 @@ func seedDuckDB(t *testing.T, path string) {
 
 func compiledDuckDBQuery(sql string) *artifact.CompiledQuery {
 	return &artifact.CompiledQuery{
-		PhysicalQuery: sqlquery.SQLRenderResult{Dialect: "DUCKDB", SQL: sql},
+		SqlRenderResult: sqlquery.SqlRenderResult{Dialect: "DUCKDB", SQL: sql},
 		OutputSchema: artifact.OutputSchema{Columns: []artifact.OutputColumn{{
 			Name: "total_revenue", Kind: artifact.OutputMetric, Datatype: ossie.DataTypeDecimal,
 		}}},

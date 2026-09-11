@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -29,7 +30,7 @@ func channelDataPolicy(req policy.Request) policy.Decision {
 	}
 	return out
 }
-func assertPolicyQuery(t *testing.T, q sql.SQLRenderResult) {
+func assertPolicyQuery(t *testing.T, q sql.SqlRenderResult) {
 	t.Helper()
 	if !strings.Contains(q.SQL, "(SELECT * FROM") || strings.Contains(q.SQL, "private-policy-value") {
 		t.Fatalf("policy not safely parameterized: %s", q.SQL)
@@ -57,7 +58,7 @@ func TestCompileValidateExplainShareDataPolicy(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	assertPolicyQuery(t, compiled.PhysicalQuery)
+	assertPolicyQuery(t, compiled.SqlRenderResult)
 	for _, column := range compiled.OutputSchema.Columns {
 		if strings.Contains(column.Name, "channel") {
 			t.Fatal("policy-only field leaked into output")
@@ -70,7 +71,11 @@ func TestCompileValidateExplainShareDataPolicy(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	data, err := json.Marshal(explanation)
+	assertPolicyQuery(t, explanation.SqlRenderResult)
+	if !reflect.DeepEqual(explanation.SqlRenderResult, compiled.SqlRenderResult) {
+		t.Fatal("Explain and Compile policy SQL differ")
+	}
+	data, err := json.Marshal(explanation.QueryExplanation)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -98,8 +103,8 @@ func TestComparisonAndAttributionEvaluateOneSnapshot(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		assertPolicyQuery(t, baseline.PhysicalQuery)
-		assertPolicyQuery(t, current.PhysicalQuery)
+		assertPolicyQuery(t, baseline.SqlRenderResult)
+		assertPolicyQuery(t, current.SqlRenderResult)
 		if calls != 1 {
 			t.Fatalf("evaluations=%d", calls)
 		}
@@ -123,7 +128,7 @@ func TestComparisonAndAttributionEvaluateOneSnapshot(t *testing.T) {
 			t.Fatal("missing attribution dimensions")
 		}
 		for _, compiled := range bundle.Queries {
-			assertPolicyQuery(t, compiled.PhysicalQuery)
+			assertPolicyQuery(t, compiled.SqlRenderResult)
 		}
 		if calls != 1 {
 			t.Fatalf("evaluations=%d", calls)

@@ -82,7 +82,7 @@ SemanticQuery -------+
                      |
                      | Renderer.Render(SQLPlan)
                      v
-               PhysicalQuery
+               SqlRenderResult
 ```
 
 The central distinction is:
@@ -100,7 +100,7 @@ MetricEvaluationPlan    = metric-domain planning IR
 SemanticPlan            = source-aware logical query IR
 SQLPlan                 = database-neutral physical SQL-structure IR
 Renderer                = dialect-specific SQL lowering/rendering boundary
-PhysicalQuery           = rendered execution artifact
+SqlRenderResult           = rendered execution artifact
 ```
 
 Metis has one semantic compiler architecture. The former `CompileTarget{Engine, Dialect}` abstraction is not part of the long-term Semantic Core contract.
@@ -270,7 +270,7 @@ authority, or document-level semantic namespaces.
 | `Optimizer` | request scoped process | semantics-preserving rewrites over `SemanticPlan` | semantic identity resolution, graph/path selection |
 | `SQLPlan` | request scoped physical IR | database-neutral SQL blocks/CTEs/subqueries and physical reuse | semantic identity, target selection, rendered SQL strings |
 | `Renderer` | process-registered implementation | SQL-dialect-specific lowering/serialization plus expression dialect/capability evidence | semantic truth, DataSource routing, connections, execution |
-| `PhysicalQuery` | request scoped compiler artifact | rendered physical query plus canonical output schema | semantic discovery, runtime execution state |
+| `SqlRenderResult` | request scoped compiler artifact | rendered physical query plus canonical output schema | semantic discovery, runtime execution state |
 
 ## 5. SemanticManifest and SemanticGraph
 
@@ -340,7 +340,7 @@ type Renderer interface {
     Dialect() SQLDialect
     ExpressionDialect() ossie.Dialect
     Capabilities() RendererCapabilities
-    Render(ctx context.Context, plan *SQLPlan) (compiler.PhysicalQuery, error)
+    Render(ctx context.Context, plan *SQLPlan) (compiler.SqlRenderResult, error)
 }
 ```
 
@@ -423,7 +423,7 @@ SemanticQuerySpec
     -> optimized SemanticPlan
     -> SQLPlan
     -> Renderer
-    -> PhysicalQuery
+    -> SqlRenderResult
 ```
 
 The optimizer MAY prune/fuse/rewrite already-proven work, but MUST NOT resolve ambiguous refs, change metric identity/kind/dependency meaning, invent relationships, or select a different Renderer/dialect.
@@ -433,7 +433,7 @@ The optimizer MAY prune/fuse/rewrite already-proven work, but MUST NOT resolve a
 Renderer owns target-native lowering and serialization:
 
 ```text
-renderer.Render(SQLPlan) -> PhysicalQuery
+renderer.Render(SQLPlan) -> SqlRenderResult
 ```
 
 The dependency direction MUST NOT be inverted into `SQLPlan.Convert(renderer.Dialect())` or equivalent target-aware behavior on `SQLPlan`.
@@ -455,7 +455,7 @@ The intended structural mapping remains:
 | `DataflowPlan` | `SemanticPlan` |
 | SQL Plan | `SQLPlan` |
 | dialect-specific lowering/rendering | `Renderer` |
-| SQL | `PhysicalQuery` |
+| SQL | `SqlRenderResult` |
 
 Metis intentionally keeps `SemanticPlan` instead of renaming it to `DataflowPlan`.
 
@@ -599,5 +599,5 @@ SemanticManifest
  -> Optimizer
  -> SQLPlan
  -> Renderer
- -> PhysicalQuery
+ -> SqlRenderResult
 ```

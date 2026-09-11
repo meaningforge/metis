@@ -261,7 +261,7 @@ func (r *MetisRunner) produce(ctx context.Context, question string, scenario sce
 		return attempt, fmt.Errorf("Metis compile returned no physical query")
 	}
 
-	sqlQuery := compiled.PhysicalQuery
+	sqlQuery := compiled.SqlRenderResult
 	if strings.TrimSpace(sqlQuery.SQL) == "" {
 		return attempt, fmt.Errorf("Metis compile returned empty SQL")
 	}

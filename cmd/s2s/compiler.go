@@ -147,7 +147,7 @@ func Compile(ctx context.Context, doc *ossie.Document, dialect string, req Query
 	if err != nil {
 		return nil, err
 	}
-	sqlQuery := compiled.PhysicalQuery
+	sqlQuery := compiled.SqlRenderResult
 	dimensionNames := make([]string, 0, len(req.Dimensions))
 	for _, dimension := range req.Dimensions {
 		dimensionNames = append(dimensionNames, dimension.Name)

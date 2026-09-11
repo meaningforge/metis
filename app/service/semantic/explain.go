@@ -6,6 +6,7 @@ import (
 	"github.com/meaningforge/metis/compiler/artifact"
 	"github.com/meaningforge/metis/planner/conversion"
 	"github.com/meaningforge/metis/planner/semanticplan"
+	"github.com/meaningforge/metis/renderer/sql"
 	"github.com/meaningforge/metis/serrors"
 )
 
@@ -27,6 +28,16 @@ const (
 	ExplanationLimit                 ExplanationStepKind = "limit"
 )
 
+// SQLExplainResult combines semantic planning evidence with the SQL that Compile
+// would produce. It does not execute SQL or return a database execution plan.
+// QueryExplanation is embedded to retain the existing JSON evidence fields.
+type SQLExplainResult struct {
+	QueryExplanation
+	SqlRenderResult sql.SqlRenderResult `json:"sql_render_result"`
+	Warnings        []artifact.Warning  `json:"warnings,omitempty"`
+}
+
+// QueryExplanation is the semantic evidence portion of an SQLExplainResult.
 type QueryExplanation struct {
 	DataConstraintsApplied bool                                 `json:"data_constraints_applied,omitempty"`
 	Project                string                               `json:"project"`
@@ -54,16 +65,29 @@ type ExplanationStep struct {
 	Details    map[string]any      `json:"details,omitempty"`
 }
 
-// Explain runs the same Renderer selection, semantic resolution, validation, and
-// planning path as Compile. Agent-facing semantic evidence is derived from the
-// canonical SemanticPlan; node lineage and placement evidence come from its
-// node DAG rather than transitional metric-evaluation nodes.
-func (s *CompileService) Explain(ctx context.Context, req CompileRequest) (*QueryExplanation, error) {
-	plan, _, err := s.prepareSemanticQuery(ctx, req)
+// Explain plans and renders using the same selected Renderer and prepared plan
+// as Compile. Semantic evidence and SQL therefore describe one policy evaluation
+// and one plan. No database connection or query execution is involved.
+func (s *CompileService) Explain(ctx context.Context, req CompileRequest) (*SQLExplainResult, error) {
+	plan, selected, err := s.prepareSemanticQuery(ctx, req)
+	if err != nil {
+		return nil, s.enrichCompileError(ctx, req, err)
+	}
+	explanation, err := buildQueryExplanation(plan)
 	if err != nil {
 		return nil, err
 	}
-	return buildQueryExplanation(plan)
+	req.Query.Project = plan.Model.Project
+	compiled, err := s.compilePreparedPlan(ctx, req.Query, plan, selected)
+	if err != nil {
+		return nil, err
+	}
+	explanation.OutputSchema = compiled.OutputSchema
+	return &SQLExplainResult{
+		QueryExplanation: *explanation,
+		SqlRenderResult:  compiled.SqlRenderResult,
+		Warnings:         compiled.Warnings,
+	}, nil
 }
 
 func buildQueryExplanation(plan *semanticplan.SemanticPlan) (*QueryExplanation, error) {

@@ -69,7 +69,7 @@ SQLPlan
 Dialect Renderer
       |
       v
-compiler.SQLRenderResult
+compiler.SqlRenderResult
 ```
 
 `SemanticEvaluation` is the proposed future query-scoped metric-evaluation DAG
@@ -183,7 +183,7 @@ complete, renderable SQL physical plan for one compile target. Naming that
 layer `SQLPlan` makes the long-term phase sequence legible:
 
 ```text
-SemanticEvaluation -> SemanticPlan -> SQLPlan -> PhysicalQuery
+SemanticEvaluation -> SemanticPlan -> SQLPlan -> SqlRenderResult
 ```
 
 The name is justified only if the implementation gains the plan contract in
@@ -232,7 +232,7 @@ This RFC does not introduce:
 - DDL, DML, CTAS, federation, or multi-statement plans;
 - an Agent-facing raw SQLPlan API;
 - a permanent AST compatibility layer;
-- a change to `compiler.PhysicalQuery` or `compiler.OutputSchema` contracts.
+- a change to `compiler.SqlRenderResult` or `compiler.OutputSchema` contracts.
 
 ## Design
 
@@ -259,7 +259,7 @@ sql.DialectRegistry
 sql.Dialect.Render
         |
         v
-compiler.SQLRenderResult
+compiler.SqlRenderResult
 ```
 
 Package responsibilities are:
@@ -270,7 +270,7 @@ sqlplan/       plan types, validation, cloning, projection, internal explain
 sql/           dialect registry and renderer interface
 sql/render/    concrete target rendering and target-owned physical lowering
 engine/native/ orchestration only
-compiler/      final PhysicalQuery and OutputSchema contracts
+compiler/      final SqlRenderResult and OutputSchema contracts
 ```
 
 Dependencies flow downward:
@@ -410,7 +410,7 @@ affecting field has a documented projection disposition and a per-field
 movement gate.
 
 `FingerprintSQLPlan` is regression identity for the complete physical plan,
-including parameter values that change the returned `compiler.SQLRenderResult`. It is
+including parameter values that change the returned `compiler.SqlRenderResult`. It is
 not a cache key or semantic identity. Sensitive values must never be printed as
 part of fingerprint diagnostics.
 
@@ -449,7 +449,7 @@ The renderer interface becomes conceptually:
 ```go
 type Dialect interface {
     Name() string
-    Render(*sqlplan.Plan) (compiler.SQLRenderResult, error)
+    Render(*sqlplan.Plan) (compiler.SqlRenderResult, error)
 }
 ```
 
@@ -478,7 +478,7 @@ same SQL and parameters.
 ### Parameters and output schema
 
 Typed predicate values remain owned by SQLPlan until rendering. The renderer
-chooses placeholder syntax and returns `compiler.SQLRenderResult.Parameters` in exact
+chooses placeholder syntax and returns `compiler.SqlRenderResult.Parameters` in exact
 placeholder order. SQLPlan fingerprinting observes value changes, while
 explanation redacts values.
 
@@ -664,7 +664,7 @@ RFC-0038 may become `Implemented` only when all of the following are true:
     compatibility fields no longer exist.
 17. Repository source scans prove there are no production or test imports of
     `github.com/meaningforge/metis/sqlast`.
-18. `compiler.PhysicalQuery`, `compiler.SQLRenderResult`, `compiler.OutputSchema`,
+18. `compiler.SqlRenderResult`, `compiler.SqlRenderResult`, `compiler.OutputSchema`,
     execution binding behavior, REST, and MCP contracts remain unchanged.
 19. Adding a concrete dialect still follows the registry and renderer workflow
     without modifying semantic resolution or creating a new SQLPlan builder.
@@ -682,7 +682,7 @@ Implementation must update:
 - `docs/specs/sql/dialect-rendering.md` with `Render(*sqlplan.Plan)` and renderer
   immutability;
 - `docs/specs/glossary.md` with `SemanticEvaluation`, `SemanticPlan`, SQLPlan,
-  and PhysicalQuery distinctions;
+  and SqlRenderResult distinctions;
 - `docs/specs/testing/architecture.md` and
   `tests/benchmarks/CONFORMANCE.md` with structural and byte-stability gates;
 - `sqlplan/doc.go` with the package contract;

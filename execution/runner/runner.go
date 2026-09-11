@@ -331,7 +331,7 @@ func (r *Runner) ExecuteResolved(ctx context.Context, resolved ResolvedDataSourc
 	if snapshotErr != nil {
 		return ResultSet{}, executionError(ExecutionInvalidInput, "compiled query contains an unsupported value")
 	}
-	if compiledSnapshot == nil || compiledSnapshot.PhysicalQuery.SQL == "" {
+	if compiledSnapshot == nil || compiledSnapshot.SqlRenderResult.SQL == "" {
 		return ResultSet{}, executionError(ExecutionInvalidInput, "compiled query is required")
 	}
 	if len(compiledSnapshot.OutputSchema.Columns) == 0 {
@@ -350,7 +350,7 @@ func (r *Runner) ExecuteResolved(ctx context.Context, resolved ResolvedDataSourc
 	if resolved.Name == "" || sourceType == "" || backend.Type == "" {
 		return ResultSet{}, executionError(ExecutionConfig, "resolved DataSource route is incomplete")
 	}
-	if err := validateQueryDialect(compiledSnapshot.PhysicalQuery, backend); err != nil {
+	if err := validateQueryDialect(compiledSnapshot.SqlRenderResult, backend); err != nil {
 		return ResultSet{}, err
 	}
 	limits, limitErr := effectiveExecutionOptions(source.Policy, caller)
@@ -517,7 +517,7 @@ func stricterLimit(deployment, caller int64) int64 {
 	return deployment
 }
 
-func validateQueryDialect(query sql.SQLRenderResult, backend backend.Backend) error {
+func validateQueryDialect(query sql.SqlRenderResult, backend backend.Backend) error {
 	if query.SQL == "" || query.Dialect != backend.SQLDialect() {
 		return executionError(ExecutionInvalidInput, "physical query dialect does not match the DataSource Backend")
 	}
