@@ -15,6 +15,9 @@ func TestPackageDependencyBoundary(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, file := range files {
+		if strings.HasSuffix(file, "_test.go") {
+			continue
+		}
 		parsed, err := parser.ParseFile(token.NewFileSet(), file, nil, parser.ImportsOnly)
 		if err != nil {
 			t.Fatalf("parse %s: %v", file, err)
@@ -24,8 +27,10 @@ func TestPackageDependencyBoundary(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if strings.HasPrefix(path, "github.com/meaningforge/metis/") {
-				t.Fatalf("%s imports Metis package %s", file, path)
+			if strings.HasPrefix(path, "github.com/meaningforge/metis/") &&
+				path != "github.com/meaningforge/metis/query" &&
+				path != "github.com/meaningforge/metis/sqlplan" {
+				t.Fatalf("%s imports forbidden Metis package %s", file, path)
 			}
 		}
 	}

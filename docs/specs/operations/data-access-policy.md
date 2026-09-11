@@ -110,7 +110,7 @@ Metis cannot enforce external use of a handed-off compiled query.
 ## Evidence
 
 Tests in `app/service/policy`, `app/service/semantic`,
-`planner/semanticplan`, `tests/conformance/compiler` and `renderer/sqlkit`
+`planner/semanticplan`, `tests/conformance/compiler` and `renderer/sql`
 cover copying, failure paths, shared snapshots, closure and scan preservation.
 The shared engine harness executes the same service-enforced row policy through
 the production DuckDB, ClickHouse and Doris drivers.

@@ -41,13 +41,13 @@ forbid_import \
   "root Renderer registry imports a concrete Renderer" \
   "${module_path}/renderer/sql"
 forbid_import \
-  ./renderer/sqlkit \
+  ./renderer/sql \
   "^${module_path}/renderer$" \
-  "SQL toolkit imports the Renderer contract or registry"
+  "shared SQL rendering imports the Renderer contract or registry"
 forbid_import \
-  ./renderer/sqlkit \
+  ./renderer/sql \
   "^${module_path}/(manifest|planner|resolver|execution)(/|$)" \
-  "SQL toolkit imports semantic or execution state"
+  "shared SQL rendering imports semantic or execution state"
 forbid_import \
   ./execution/backend \
   "^${module_path}/execution/backend/" \

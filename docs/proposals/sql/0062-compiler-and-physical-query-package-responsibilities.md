@@ -135,7 +135,7 @@ This RFC does not:
 - make `compiler` responsible for execution, DataSource routing, secrets, or
   connection lifecycle;
 - add dynamic plugins, shared-object loading, or process-global registration;
-- stabilize `renderer/sqlkit`; or
+- stabilize `renderer/sql`; or
 - stabilize the final Renderer/Driver SPI before RFC-0061 and this RFC have
   established the final package ownership and signatures.
 
@@ -146,9 +146,6 @@ This RFC does not:
 The target layout is:
 
 ```text
-physical/
-    sql.go                     SQLDialect, QueryParameter, SQLQuery
-
 sqlplan/
     ...                        renderer-neutral typed physical SQL planning IR
 
@@ -156,7 +153,7 @@ renderer/
     renderer.go                Renderer, Capabilities
     registry.go                Registry
     <warehouse>/               concrete SQL Renderers
-    sqlkit/                    optional experimental rendering helper
+    sql/                       shared rendering and SQLQuery values
 
 compiler/
     compiler.go                generic compilation orchestration
@@ -174,7 +171,7 @@ The role of each package is normative.
 
 | Package | Owns | Must not own |
 | --- | --- | --- |
-| `renderer/sql` | rendered SQL query values: `SQLDialect`, query parameters, `SQLQuery` | semantic meaning, SQLPlan nodes, Renderer registry, compilation orchestration, execution |
+| `renderer/sql` | shared SQLPlan rendering and query values: `SQLDialect`, parameters, `SQLQuery` | semantic meaning, SQLPlan nodes, Renderer registry, compilation orchestration, execution |
 | `sqlplan` | renderer-neutral typed physical SQL IR, validation, cloning, explanation, fingerprints | semantic plan authority, Renderer lookup, rendered SQL artifacts, execution |
 | `renderer` | SQL Renderer contract, Renderer capabilities, registry, and dialect-specific `sqlplan.Plan -> sql.SQLQuery` rendering | semantic resolution, planner orchestration, final `CompiledQuery`, DataSource routing, execution |
 | `compiler/artifact` | immutable completed compilation output: `CompiledQuery`, `OutputSchema`, output columns, structural validation and clone rules | semantic schema derivation, planner orchestration, Renderer selection, execution policy |
@@ -185,12 +182,13 @@ The role of each package is normative.
 ### `renderer/sql`: rendered SQL query values
 
 `renderer/sql` is deliberately below `renderer` and `compiler` in the import graph.
-It contains only the values needed to describe an already-rendered SQL query.
+It contains shared SQLPlan traversal and physical lowering helpers alongside
+rendered query values. Concrete Renderers provide dialect-specific behavior.
 
 The target shape is conceptually:
 
 ```go
-package physical
+package sql
 
 type SQLDialect string
 
@@ -206,8 +204,8 @@ type SQLQuery struct {
 }
 ```
 
-`renderer/sql` must not import `planner`, `sqlplan`, `renderer`, `compiler`, or any
-execution package.
+`renderer/sql` may import `query` and `sqlplan`. It must not import `planner`,
+the root `renderer` registry, concrete Renderers, `compiler`, or execution packages.
 
 This RFC deliberately uses `SQLDialect`, not a generic `Dialect`. The value
 identifies one SQL language and must not become an accidental authority for a
@@ -265,7 +263,7 @@ compatibility, capabilities, and final rendering. No compiler or planner stage
 may reconstruct Renderer evidence from copied strings or perform a second
 registry lookup.
 
-`renderer/sqlkit` remains optional and experimental. This RFC neither
+The rendering helpers in `renderer/sql` remain optional and experimental. This RFC neither
 stabilizes it nor makes it part of the required Renderer implementation path.
 
 ### `compiler/artifact`: completed compilation result
@@ -452,7 +450,7 @@ Execute(
 ```
 
 Execution packages may import `compiler/artifact` and `renderer/sql`. They must not
-import root `compiler`, planner packages, or Renderer packages to execute an
+import root `compiler`, planner packages, or concrete Renderer packages to execute an
 already-compiled query.
 
 This keeps the long-term layering explicit:
@@ -469,38 +467,23 @@ Execution Runtime
 
 ### Dependency direction
 
-The required authority and import direction is:
+The arrows below indicate package imports:
 
 ```text
-                         +----------------+
-                         |    sqlplan     |
-                         +-------^--------+
-                                 |
-                                 |
-+----------+             +-------+--------+
-| physical |<------------|    renderer    |
-+----^-----+             +-------^--------+
-     |                           |
-     |                           |
-     |                   +-------+--------+
-     +-------------------|    compiler    |
-     |                   +-------^--------+
-     |                           |
-+----+----------------+          |
-| compiler/artifact  |<----------+
-+----^----------------+
-     ^
-     |
-     +------ planner/conversion
-     |
-     +------ execution/driver
+renderer/<warehouse> -> renderer/sql -> sqlplan -> query
+renderer             -> renderer/sql, sqlplan
+compiler             -> renderer, compiler/artifact, planner/conversion
+planner/conversion   -> compiler/artifact, sqlplan, renderer
+compiler/artifact    -> renderer/sql
+execution/driver     -> compiler/artifact, renderer/sql
 ```
 
 The diagram is simplified; root `compiler` also invokes planner conversion.
 The following rules are normative:
 
-- `renderer/sql` imports none of `sqlplan`, `renderer`, `compiler`, planner, or
-  execution.
+- `renderer/sql` may import `query` and `sqlplan` for rendering. It must not
+  import the root `renderer` registry, concrete Renderers, `compiler`, planner,
+  or execution packages.
 - `compiler/artifact` may import `renderer/sql` but must not import root `compiler`,
   planner, renderer, or execution.
 - `sqlplan` must not import renderer, compiler, or planner packages.

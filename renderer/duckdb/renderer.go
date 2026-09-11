@@ -8,7 +8,6 @@ import (
 	"github.com/meaningforge/metis/query"
 	"github.com/meaningforge/metis/renderer"
 	"github.com/meaningforge/metis/renderer/sql"
-	"github.com/meaningforge/metis/renderer/sqlkit"
 	"github.com/meaningforge/metis/sqlplan"
 )
 
@@ -18,7 +17,7 @@ type Renderer struct{}
 
 var (
 	_ renderer.Renderer = (*Renderer)(nil)
-	_ sqlkit.Behavior   = Renderer{}
+	_ sql.Behavior      = Renderer{}
 )
 
 func New() *Renderer { return &Renderer{} }
@@ -29,17 +28,17 @@ func (Renderer) Capabilities() renderer.Capabilities {
 	return renderer.Capabilities{}
 }
 func (Renderer) Render(plan *sqlplan.Plan) (sql.SQLQuery, error) {
-	if err := sqlkit.Validate(plan, string(Dialect)); err != nil {
+	if err := sql.Validate(plan, string(Dialect)); err != nil {
 		return sql.SQLQuery{}, err
 	}
-	text, parameters, err := sqlkit.Render(plan, Renderer{})
+	text, parameters, err := sql.Render(plan, Renderer{})
 	return sql.SQLQuery{Dialect: Dialect, SQL: text, Parameters: parameters}, err
 }
 
-// Renderer answers the sqlkit.Behavior questions the shared traversal
+// Renderer answers the sql.Behavior questions the shared traversal
 // refuses to answer for it.
 func (d Renderer) LowerPlan(plan *sqlplan.Plan) (*sqlplan.Plan, error) {
-	lowered, err := sqlkit.LowerDeterministicOrderedValuePlan(plan)
+	lowered, err := sql.LowerDeterministicOrderedValuePlan(plan)
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +52,7 @@ func (d Renderer) RenderLimit(limit int) string {
 // This dialect carries no statement-scoped state, so a CTE body renders with
 // the same behavior as its enclosing statement, and no statement setting
 // follows the row limit.
-func (d Renderer) CTEBehavior() sqlkit.Behavior { return d }
+func (d Renderer) CTEBehavior() sql.Behavior { return d }
 
 func (d Renderer) StatementSuffix() string { return "" }
 
@@ -63,7 +62,7 @@ func (d Renderer) StatementSuffix() string { return "" }
 func (d Renderer) RenderExpression(expr sqlplan.Expr) (string, error) {
 	switch e := expr.(type) {
 	case sqlplan.TimeGrainExpr:
-		inner, err := sqlkit.RenderExpression(d, e.Expr)
+		inner, err := sql.RenderExpression(d, e.Expr)
 		if err != nil {
 			return "", err
 		}
@@ -79,7 +78,7 @@ func (d Renderer) RenderExpression(expr sqlplan.Expr) (string, error) {
 		}
 		return truncated, nil
 	case sqlplan.CalendarShiftExpr:
-		inner, err := sqlkit.RenderExpression(d, e.Expr)
+		inner, err := sql.RenderExpression(d, e.Expr)
 		if err != nil {
 			return "", err
 		}
