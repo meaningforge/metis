@@ -26,7 +26,7 @@ Do not use or infer the benchmark's expected result.`
 // MetisSystemPrompt is the frozen protocol for path B. The agent keeps the same
 // normal harness; the semantic interface for this arm is the benchmark-owned
 // Metis MCP server. S2SBench deterministically materializes the returned
-// render_result parameters for DuckDB execution.
+// sql_statement parameters for DuckDB execution.
 const MetisSystemPrompt = `You are the semantic-query operator for the Metis arm of a controlled benchmark.
 Answer only the business question.
 Use your normal agent tools, including shell, file operations, planning, and subagents, as needed.
@@ -34,7 +34,7 @@ Do not inspect Git metadata, repository history, branches, or unrelated project 
 ` + sharedEnvironmentBoundaries + `
 The semantic interface for this arm is the benchmark-provided Metis MCP server; obtain semantic definitions only from that interface.
 The MCP project contains multiple semantic models. Use the available semantic interface to answer the question.
-Return exactly the JSON object from the compile result's render_result field, with its dialect, sql, and parameters fields unchanged.
+Return exactly the JSON object from the compile result's sql_statement field, with its dialect, sql, and parameters fields unchanged.
 Return no prose, markdown, or code fences.
 Do not hand-write replacement SQL, do not edit the compiled SQL, and do not use or infer the benchmark's expected result.`
 
@@ -67,7 +67,7 @@ Repair only the answer. Do not use or infer any oracle/expected-result informati
 const metisRepairTemplate = `Your previous answer failed with this execution or validation error:
 %s
 
-Repair only the answer. If compile_sql already succeeded and the semantic request was correct, reuse that result without calling compile_sql again. Return exactly one complete render_result JSON object and stop immediately after its closing brace. Do not use or infer any oracle/expected-result information.`
+Repair only the answer. If compile_sql already succeeded and the semantic request was correct, reuse that result without calling compile_sql again. Return exactly one complete sql_statement JSON object and stop immediately after its closing brace. Do not use or infer any oracle/expected-result information.`
 
 const rawContinuationTemplate = `Business question:
 %s
@@ -77,7 +77,7 @@ This is the current independent benchmark question. The complete semantic projec
 const metisContinuationTemplate = `Business question:
 %s
 
-This is the current independent benchmark question in the same project. Use the same Metis MCP semantic interface. Return exactly the compile result's render_result JSON object and no prose, markdown, or code fences.`
+This is the current independent benchmark question in the same project. Use the same Metis MCP semantic interface. Return exactly the compile result's sql_statement JSON object and no prose, markdown, or code fences.`
 
 // RawAgentPrompt assembles the frozen path-A external-agent prompt. The actual
 // canonical assets are files in the isolated workspace rather than being copied

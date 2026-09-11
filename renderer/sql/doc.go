@@ -3,7 +3,7 @@
 // owns deterministic traversal, physical lowering helpers, SQL text, and
 // parameter collection. SQL values remain separate from parameter bindings.
 //
-// SQLDialect, QueryParameter, and SQLRenderResult participate in the Renderer and
+// SQLDialect, QueryParameter, and SqlStatement participate in the Renderer and
 // Driver contracts. Behavior and the rendering helpers are optional,
 // experimental APIs and are not yet a stable extension commitment.
 //

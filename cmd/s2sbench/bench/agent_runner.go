@@ -128,44 +128,44 @@ func (r *AgentRunner) CloseSession() error {
 	return err
 }
 
-func normalizeAgentOutput(path Path, output string) (sql.SQLRenderResult, error) {
+func normalizeAgentOutput(path Path, output string) (sql.SqlStatement, error) {
 	output = strings.TrimSpace(output)
 	if output == "" {
-		return sql.SQLRenderResult{}, fmt.Errorf("external agent returned no answer")
+		return sql.SqlStatement{}, fmt.Errorf("external agent returned no answer")
 	}
 	if path == PathRawAssets {
 		statement, err := unwrapAgentCodeFence(output, "sql")
-		return sql.SQLRenderResult{Dialect: "DUCKDB", SQL: statement}, err
+		return sql.SqlStatement{Dialect: "DUCKDB", SQL: statement}, err
 	}
 	if path != PathMetis {
-		return sql.SQLRenderResult{}, fmt.Errorf("unknown S2SBench path %q", path)
+		return sql.SqlStatement{}, fmt.Errorf("unknown S2SBench path %q", path)
 	}
 	var err error
 	output, err = unwrapAgentCodeFence(output, "json")
 	if err != nil {
-		return sql.SQLRenderResult{}, err
+		return sql.SqlStatement{}, err
 	}
 
 	decoder := json.NewDecoder(bytes.NewBufferString(output))
 	decoder.DisallowUnknownFields()
 	decoder.UseNumber()
-	var physicalQuery sql.SQLRenderResult
+	var physicalQuery sql.SqlStatement
 	if err := decoder.Decode(&physicalQuery); err != nil {
-		return sql.SQLRenderResult{}, fmt.Errorf("decode Metis render_result returned by external agent: %w; output prefix=%q", err, agentOutputPrefix(output))
+		return sql.SqlStatement{}, fmt.Errorf("decode Metis sql_statement returned by external agent: %w; output prefix=%q", err, agentOutputPrefix(output))
 	}
 	var trailing any
 	if err := decoder.Decode(&trailing); err != io.EOF {
 		if err == nil {
-			return sql.SQLRenderResult{}, fmt.Errorf("external agent returned more than one JSON value for Metis render_result")
+			return sql.SqlStatement{}, fmt.Errorf("external agent returned more than one JSON value for Metis sql_statement")
 		}
 		trailingOutput := strings.TrimSpace(output[decoder.InputOffset():])
-		return sql.SQLRenderResult{}, fmt.Errorf("external agent returned one valid Metis render_result JSON object followed by invalid trailing content; return only the first complete object and remove everything after it: %w; trailing prefix=%q", err, agentOutputPrefix(trailingOutput))
+		return sql.SqlStatement{}, fmt.Errorf("external agent returned one valid Metis sql_statement JSON object followed by invalid trailing content; return only the first complete object and remove everything after it: %w; trailing prefix=%q", err, agentOutputPrefix(trailingOutput))
 	}
 	if physicalQuery.Dialect != "DUCKDB" {
-		return sql.SQLRenderResult{}, fmt.Errorf("Metis render_result dialect is %q, want DUCKDB", physicalQuery.Dialect)
+		return sql.SqlStatement{}, fmt.Errorf("Metis sql_statement dialect is %q, want DUCKDB", physicalQuery.Dialect)
 	}
 	if strings.TrimSpace(physicalQuery.SQL) == "" {
-		return sql.SQLRenderResult{}, fmt.Errorf("Metis render_result contains empty SQL")
+		return sql.SqlStatement{}, fmt.Errorf("Metis sql_statement contains empty SQL")
 	}
 	return physicalQuery, nil
 }

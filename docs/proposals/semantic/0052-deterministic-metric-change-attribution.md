@@ -51,7 +51,7 @@ SemanticPlan
 SQLPlan
     |
     v
-SQLRenderResult
+SqlStatement
     |
     | Metis boundary
     v
@@ -722,10 +722,10 @@ Metis may internally produce a bounded attribution compilation bundle:
 MetricAttributionCompilation
     |
     +-- dimension region
-    |      `-- SQLRenderResult
+    |      `-- SqlStatement
     |
     +-- dimension category
-           `-- SQLRenderResult
+           `-- SqlStatement
 ```
 
 but the physical queries are still executed elsewhere.
@@ -737,7 +737,7 @@ The architectural boundary remains:
 ```text
 Metis
     |
-    | SQLRenderResult
+    | SqlStatement
     v
 =========================
     |

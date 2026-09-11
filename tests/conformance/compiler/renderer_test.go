@@ -34,17 +34,17 @@ func (r unsupportedTestRenderer) ExpressionDialect() string  { return string(r.d
 func (unsupportedTestRenderer) Capabilities() renderer.Capabilities {
 	return renderer.Capabilities{}
 }
-func (r unsupportedTestRenderer) Render(*sqlplan.Plan) (sql.SQLRenderResult, error) {
-	return sql.SQLRenderResult{}, fmt.Errorf("SQL dialect %q is not supported", r.dialect)
+func (r unsupportedTestRenderer) Render(*sqlplan.Plan) (sql.SqlStatement, error) {
+	return sql.SqlStatement{}, fmt.Errorf("SQL dialect %q is not supported", r.dialect)
 }
 
-func compilePlan(ctx context.Context, plan *semanticplan.SemanticPlan, renderer renderer.Renderer) (sql.SQLRenderResult, error) {
+func compilePlan(ctx context.Context, plan *semanticplan.SemanticPlan, renderer renderer.Renderer) (sql.SqlStatement, error) {
 	if _, unsupported := renderer.(unsupportedTestRenderer); unsupported {
-		return sql.SQLRenderResult{}, &serrors.Error{Code: serrors.ErrUnsupportedDialect, Message: "selected SQL dialect is not registered"}
+		return sql.SqlStatement{}, &serrors.Error{Code: serrors.ErrUnsupportedDialect, Message: "selected SQL dialect is not registered"}
 	}
 	compiled, err := compiler.CompileWithRenderer(ctx, plan, renderer)
 	if err != nil {
-		return sql.SQLRenderResult{}, err
+		return sql.SqlStatement{}, err
 	}
-	return compiled.SQLRenderResult, nil
+	return compiled.SqlStatement, nil
 }

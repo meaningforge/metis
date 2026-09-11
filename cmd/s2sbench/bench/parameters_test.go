@@ -15,7 +15,7 @@ type parameterizedSemanticCompiler struct{}
 
 func (parameterizedSemanticCompiler) Compile(_ context.Context, req service.CompileRequest) (*artifact.CompiledQuery, error) {
 	return &artifact.CompiledQuery{
-		SQLRenderResult: sql.SQLRenderResult{
+		SqlStatement: sql.SqlStatement{
 			SQL: "SELECT ? AS scenario_name",
 			Parameters: []sql.QueryParameter{
 				{Value: req.Query.Metrics[0].Name},

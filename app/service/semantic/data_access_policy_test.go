@@ -29,7 +29,7 @@ func channelDataPolicy(req policy.Request) policy.Decision {
 	}
 	return out
 }
-func assertPolicyQuery(t *testing.T, q sql.SQLRenderResult) {
+func assertPolicyQuery(t *testing.T, q sql.SqlStatement) {
 	t.Helper()
 	if !strings.Contains(q.SQL, "(SELECT * FROM") || strings.Contains(q.SQL, "private-policy-value") {
 		t.Fatalf("policy not safely parameterized: %s", q.SQL)
@@ -57,7 +57,7 @@ func TestCompileValidateExplainShareDataPolicy(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	assertPolicyQuery(t, compiled.SQLRenderResult)
+	assertPolicyQuery(t, compiled.SqlStatement)
 	for _, column := range compiled.OutputSchema.Columns {
 		if strings.Contains(column.Name, "channel") {
 			t.Fatal("policy-only field leaked into output")
@@ -98,8 +98,8 @@ func TestComparisonAndAttributionEvaluateOneSnapshot(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		assertPolicyQuery(t, baseline.SQLRenderResult)
-		assertPolicyQuery(t, current.SQLRenderResult)
+		assertPolicyQuery(t, baseline.SqlStatement)
+		assertPolicyQuery(t, current.SqlStatement)
 		if calls != 1 {
 			t.Fatalf("evaluations=%d", calls)
 		}
@@ -123,7 +123,7 @@ func TestComparisonAndAttributionEvaluateOneSnapshot(t *testing.T) {
 			t.Fatal("missing attribution dimensions")
 		}
 		for _, compiled := range bundle.Queries {
-			assertPolicyQuery(t, compiled.SQLRenderResult)
+			assertPolicyQuery(t, compiled.SqlStatement)
 		}
 		if calls != 1 {
 			t.Fatalf("evaluations=%d", calls)

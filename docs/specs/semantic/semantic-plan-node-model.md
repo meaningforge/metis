@@ -108,7 +108,7 @@ The plan fingerprint is an engineering regression contract only. It is not a cac
 
 ## SQL parameter evidence
 
-Core's `renderer/sql.SQLRenderResult` keeps SQL placeholders and parameters separate.
+Core's `renderer/sql.SqlStatement` keeps SQL placeholders and parameters separate.
 Offline exports preserve both values; engine verification binds the parameters
 through drivers. Consumers MUST NOT reimplement generic SQL string interpolation.
 See the [CLI overview](../../../README.md) for query export.

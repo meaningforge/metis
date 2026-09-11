@@ -518,7 +518,7 @@ A compile request with:
 is unsupported and fails closed through `UNSUPPORTED_DIALECT` / `CHANGE_TARGET`.
 No hidden fallback to DuckDB is permitted.
 
-The returned `compiler.SQLRenderResult.Dialect` must equal the concrete selected dialect.
+The returned `compiler.SqlStatement.Dialect` must equal the concrete selected dialect.
 
 ## Migration plan
 
@@ -764,7 +764,7 @@ The implementation is complete when all of the following are true:
 1. `DefaultDialectRegistry().Names()` includes `duckdb`, `doris`, and
    `clickhouse`, and does not include `ansi`.
 2. `CompileTarget{Engine: "metis-native", Dialect: "duckdb"}` compiles the full
-   required corpus and returns `SQLRenderResult.Dialect == "duckdb"`.
+   required corpus and returns `SqlStatement.Dialect == "duckdb"`.
 3. `dialect=ansi` fails with the ordinary unsupported-dialect contract and is not
    silently redirected.
 4. DuckDB has a concrete renderer type and target-owned tests.

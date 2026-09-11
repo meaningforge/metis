@@ -27,7 +27,7 @@ func (*attributionTestRenderer) ExpressionDialect() string  { return "DORIS" }
 func (*attributionTestRenderer) Capabilities() renderer.Capabilities {
 	return renderer.Capabilities{}
 }
-func (r *attributionTestRenderer) Render(plan *sqlplan.Plan) (sql.SQLRenderResult, error) {
+func (r *attributionTestRenderer) Render(plan *sqlplan.Plan) (sql.SqlStatement, error) {
 	r.renderCalls++
 	dimension := ""
 	for _, block := range plan.Blocks {
@@ -38,9 +38,9 @@ func (r *attributionTestRenderer) Render(plan *sqlplan.Plan) (sql.SQLRenderResul
 	}
 	r.dimensions = append(r.dimensions, dimension)
 	if r.failAt > 0 && r.renderCalls == r.failAt {
-		return sql.SQLRenderResult{}, fmt.Errorf("forced render failure")
+		return sql.SqlStatement{}, fmt.Errorf("forced render failure")
 	}
-	return sql.SQLRenderResult{Dialect: r.SQLDialect(), SQL: "SELECT 1"}, nil
+	return sql.SqlStatement{Dialect: r.SQLDialect(), SQL: "SELECT 1"}, nil
 }
 
 type countingRendererResolver struct {

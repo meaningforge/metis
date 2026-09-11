@@ -11,18 +11,18 @@ import (
 func TestPhysicalQueryCaptureCorrelatesAndSnapshotsByQueryID(t *testing.T) {
 	captures := newPhysicalQueryCapture()
 	compiled := &artifact.CompiledQuery{
-		SQLRenderResult: sql.SQLRenderResult{Dialect: "DUCKDB", SQL: "SELECT ?", Parameters: []sql.QueryParameter{{Value: int64(7)}}},
-		OutputSchema:    artifact.OutputSchema{Columns: []artifact.OutputColumn{{Name: "value"}}},
+		SqlStatement: sql.SqlStatement{Dialect: "DUCKDB", SQL: "SELECT ?", Parameters: []sql.QueryParameter{{Value: int64(7)}}},
+		OutputSchema: artifact.OutputSchema{Columns: []artifact.OutputColumn{{Name: "value"}}},
 	}
 	if err := captures.record("query-7", compiled); err != nil {
 		t.Fatal(err)
 	}
-	compiled.SQLRenderResult.SQL = "mutated"
+	compiled.SqlStatement.SQL = "mutated"
 	record, err := captures.decorateAttempt(readiness.AttemptRecord{QueryEvidence: &readiness.QueryEvidence{QueryID: "query-7"}})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if record.ExecutedQuery == nil || record.ExecutedQuery.SQLRenderResult.SQL != "SELECT ?" || len(record.ExecutedQuery.SQLRenderResult.Parameters) != 1 {
+	if record.ExecutedQuery == nil || record.ExecutedQuery.SqlStatement.SQL != "SELECT ?" || len(record.ExecutedQuery.SqlStatement.Parameters) != 1 {
 		t.Fatalf("captured query = %#v", record.ExecutedQuery)
 	}
 	if _, err := captures.decorateAttempt(readiness.AttemptRecord{QueryEvidence: &readiness.QueryEvidence{QueryID: "query-7"}}); err == nil {

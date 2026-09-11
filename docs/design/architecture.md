@@ -14,7 +14,7 @@ Ossie source documents
 query.SemanticQuery
   -> resolver -> planner/evaluation -> planner/semanticplan
   -> planner/conversion -> sqlplan.Plan
-  -> selected renderer -> renderer/sql.SQLRenderResult + compiler/artifact.OutputSchema
+  -> selected renderer -> renderer/sql.SqlStatement + compiler/artifact.OutputSchema
   -> optional execution/runner -> Backend Driver -> analytical engine
 ```
 

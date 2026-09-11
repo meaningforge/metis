@@ -341,7 +341,7 @@ DataflowPlan                          SemanticPlan
 SQL Plan                              SQLPlan
    |                                        |
    v                                        v
-Rendered SQL                         compiler.SQLRenderResult
+Rendered SQL                         compiler.SqlStatement
 ```
 
 The future plan-level `SemanticEvaluation` is a query-scoped metric evaluation

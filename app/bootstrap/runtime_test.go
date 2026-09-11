@@ -108,9 +108,9 @@ projects:
 		if err != nil {
 			t.Fatalf("compile %s: %v", test.project, err)
 		}
-		physical := result.SQLRenderResult
+		physical := result.SqlStatement
 		if physical.Dialect != "DUCKDB" {
-			t.Fatalf("compile %s query=%#v", test.project, result.SQLRenderResult)
+			t.Fatalf("compile %s query=%#v", test.project, result.SqlStatement)
 		}
 	}
 
@@ -120,8 +120,8 @@ projects:
 	if err != nil {
 		t.Fatalf("compile with default project: %v", err)
 	}
-	if query := compiled.SQLRenderResult; query.Dialect != "DUCKDB" {
-		t.Fatalf("default-project compilation=%#v", compiled.SQLRenderResult)
+	if query := compiled.SqlStatement; query.Dialect != "DUCKDB" {
+		t.Fatalf("default-project compilation=%#v", compiled.SqlStatement)
 	}
 	search, err := runtime.Discovery.SearchSemantics(caller, service.SearchSemanticsRequest{Query: "revenue"})
 	if err != nil || len(search.Matches) == 0 || search.Matches[0].Project != "finance" {

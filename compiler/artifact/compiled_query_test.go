@@ -9,14 +9,14 @@ import (
 func TestSnapshotCompiledQueryOwnsMutableArtifactContainers(t *testing.T) {
 	parameter := []byte("a")
 	compiled, err := NewCompiledQuery(
-		sql.SQLRenderResult{Dialect: "DORIS", SQL: "SELECT ?", Parameters: []sql.QueryParameter{{Name: "value", Value: parameter}}},
+		sql.SqlStatement{Dialect: "DORIS", SQL: "SELECT ?", Parameters: []sql.QueryParameter{{Name: "value", Value: parameter}}},
 		OutputSchema{Columns: []OutputColumn{{Name: "value"}}},
 	)
 	if err != nil {
 		t.Fatal(err)
 	}
 	parameter[0] = 'b'
-	query := compiled.SQLRenderResult
+	query := compiled.SqlStatement
 	if string(query.Parameters[0].Value.([]byte)) != "a" {
 		t.Fatalf("parameter value = %#v, want owned copy", query.Parameters[0].Value)
 	}
@@ -24,7 +24,7 @@ func TestSnapshotCompiledQueryOwnsMutableArtifactContainers(t *testing.T) {
 
 func TestSnapshotCompiledQueryRejectsUnknownParameterValue(t *testing.T) {
 	_, err := NewCompiledQuery(
-		sql.SQLRenderResult{Dialect: "DORIS", SQL: "SELECT ?", Parameters: []sql.QueryParameter{{Value: &struct{}{}}}},
+		sql.SqlStatement{Dialect: "DORIS", SQL: "SELECT ?", Parameters: []sql.QueryParameter{{Value: &struct{}{}}}},
 		OutputSchema{},
 	)
 	if err == nil {
@@ -33,7 +33,7 @@ func TestSnapshotCompiledQueryRejectsUnknownParameterValue(t *testing.T) {
 }
 
 func TestNewCompiledQueryRejectsStructurallyInvalidPhysicalQuery(t *testing.T) {
-	for _, query := range []sql.SQLRenderResult{
+	for _, query := range []sql.SqlStatement{
 		{SQL: "SELECT 1"},
 		{Dialect: "DORIS", SQL: " \t\n"},
 	} {

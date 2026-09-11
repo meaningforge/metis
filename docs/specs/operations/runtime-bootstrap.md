@@ -223,7 +223,7 @@ resolving SecretRefs and opening its one process-scoped `DataSourceRuntime`.
 The DataSourceRuntime owns a reusable pool/client; it lends an Executor only a
 request-scoped lease and is closed during server shutdown. Runtime passes an
 Executor only a private snapshot of `CompiledQuery`
-(`SQLRenderResult + OutputSchema`). Runtime validation and result accounting use
+(`SqlStatement + OutputSchema`). Runtime validation and result accounting use
 a separate content-identical snapshot, so mutation within an Executor cannot
 alter Runtime validation evidence, the caller artifact, or the returned schema.
 Executors cannot depend on semantic manifests, resolver/planner state, SQL

@@ -437,7 +437,7 @@ func compileToolResult(compiled *artifact.CompiledQuery) (*mcp.CallToolResult, e
 	if compiled == nil {
 		return nil, fmt.Errorf("compiled query is required")
 	}
-	physicalQuery, err := json.Marshal(compiled.SQLRenderResult)
+	physicalQuery, err := json.Marshal(compiled.SqlStatement)
 	if err != nil {
 		return nil, fmt.Errorf("marshal physical query for MCP content: %w", err)
 	}

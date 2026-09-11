@@ -120,7 +120,7 @@ func (e *ProductionExecution) RunCompiled(t *testing.T, name string, compiled *a
 // projection over attribution evidence. Callers must provide an explicit
 // OutputSchema; execution, normalization, limits, and cleanup still belong to
 // production Runner and Driver implementations.
-func (e *ProductionExecution) RunRawQuery(t *testing.T, name string, query sql.SQLRenderResult, schema artifact.OutputSchema) scenarios.ResultSet {
+func (e *ProductionExecution) RunRawQuery(t *testing.T, name string, query sql.SqlStatement, schema artifact.OutputSchema) scenarios.ResultSet {
 	t.Helper()
 	if e == nil || e.runtime == nil || e.route.Backend.Renderer == nil {
 		t.Fatal("production conformance execution is not configured")
@@ -183,11 +183,11 @@ func (e *ProductionExecution) RunProjection(t *testing.T, name string, source *a
 		}
 	}
 	statement := "SELECT " + strings.Join(names, ", ") + " FROM (" +
-		strings.TrimSuffix(strings.TrimSpace(source.SQLRenderResult.SQL), ";") + ") evidence"
+		strings.TrimSuffix(strings.TrimSpace(source.SqlStatement.SQL), ";") + ") evidence"
 	if strings.TrimSpace(predicate) != "" {
 		statement += " WHERE " + predicate
 	}
-	query := source.SQLRenderResult
+	query := source.SqlStatement
 	query.SQL = statement
 	return e.RunRawQuery(t, name, query, SelectOutputSchema(t, source.OutputSchema, names...))
 }
@@ -200,9 +200,9 @@ func (e *ProductionExecution) executeCompiled(t *testing.T, name string, compile
 		if errors.As(err, &executionErr) && executionErr.ResultContract != nil {
 			failure := executionErr.ResultContract
 			t.Fatalf("execute %s through production runtime: %v (column=%s expected=%s observed=%s)\nSQL:\n%s",
-				name, err, failure.Column, failure.ExpectedDatatype, failure.ObservedFamily, compiled.SQLRenderResult.SQL)
+				name, err, failure.Column, failure.ExpectedDatatype, failure.ObservedFamily, compiled.SqlStatement.SQL)
 		}
-		t.Fatalf("execute %s through production runtime: %v\nSQL:\n%s", name, err, compiled.SQLRenderResult.SQL)
+		t.Fatalf("execute %s through production runtime: %v\nSQL:\n%s", name, err, compiled.SqlStatement.SQL)
 	}
 	return conformanceResult(t, result)
 }

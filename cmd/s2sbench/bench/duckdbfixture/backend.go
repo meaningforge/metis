@@ -67,7 +67,7 @@ func (b *Backend) RunSQL(ctx context.Context, query string, params ...sql.QueryP
 		return scenarios.ResultSet{}, err
 	}
 	defer executor.Close()
-	stream, err := executor.Execute(ctx, &artifact.CompiledQuery{SQLRenderResult: sql.SQLRenderResult{Dialect: "DUCKDB", SQL: statement, Parameters: params}})
+	stream, err := executor.Execute(ctx, &artifact.CompiledQuery{SqlStatement: sql.SqlStatement{Dialect: "DUCKDB", SQL: statement, Parameters: params}})
 	if err != nil {
 		return scenarios.ResultSet{}, fmt.Errorf("execute DuckDB SQL through production Driver: %w", err)
 	}

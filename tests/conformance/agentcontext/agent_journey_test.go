@@ -62,9 +62,9 @@ func TestAgentProjectMetricDimensionCompileJourney(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	physical := compiled.SQLRenderResult
+	physical := compiled.SqlStatement
 	if physical.SQL == "" || physical.Dialect != "DORIS" {
-		t.Fatalf("physical query=%#v", compiled.SQLRenderResult)
+		t.Fatalf("physical query=%#v", compiled.SqlStatement)
 	}
 }
 
@@ -171,9 +171,9 @@ func TestMetricFreeTemporalJourneyUsesModelScopedDimensions(t *testing.T) {
 	if got := outputColumnNames(compiled.OutputSchema.Columns); !slicesEqual(got, []string{"orders.order_id", "customer_history.customer_tier"}) {
 		t.Fatalf("output columns = %v", got)
 	}
-	physical := compiled.SQLRenderResult
+	physical := compiled.SqlStatement
 	if !strings.Contains(physical.SQL, "valid_from") || !strings.Contains(physical.SQL, "valid_to") {
-		t.Fatalf("temporal physical query = %#v", compiled.SQLRenderResult)
+		t.Fatalf("temporal physical query = %#v", compiled.SqlStatement)
 	}
 }
 

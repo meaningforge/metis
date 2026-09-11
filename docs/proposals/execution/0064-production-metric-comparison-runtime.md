@@ -119,7 +119,7 @@ comparison arithmetic.
 
 Semantic Core sees two ordinary `query.SemanticQuery` values and has no
 comparison-specific branch. Execution Runtime sees only two atomic
-`CompiledQuery { SQLRenderResult + OutputSchema }` values and receives no
+`CompiledQuery { SqlStatement + OutputSchema }` values and receives no
 comparison request, manifest, Resolver, SemanticPlan, SQLPlan, or Renderer.
 
 `analytics/comparison` owns schema/row validation, deterministic alignment,

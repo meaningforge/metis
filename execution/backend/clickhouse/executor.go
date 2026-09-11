@@ -15,7 +15,7 @@ func (e *executor) Execute(ctx context.Context, compiled *artifact.CompiledQuery
 	if e == nil || e.db == nil || compiled == nil {
 		return nil, fmt.Errorf("ClickHouse Executor is not initialized")
 	}
-	query := compiled.SQLRenderResult
+	query := compiled.SqlStatement
 	arguments := make([]any, len(query.Parameters))
 	for index, parameter := range query.Parameters {
 		arguments[index] = parameter.Value
