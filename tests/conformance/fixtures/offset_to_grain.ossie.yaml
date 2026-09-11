@@ -1,0 +1,22 @@
+version: "0.2.0.dev0"
+semantic_model:
+  - name: offset_to_grain
+    description: Calendar-year boundary metrics over observed order periods.
+    datasets:
+      - name: orders
+        source: analytics.offset_to_grain_orders
+        fields:
+          - {name: order_date, datatype: Date, expression: {dialects: [{dialect: ANSI_SQL, expression: order_date}]}, dimension: {is_time: true}}
+          - {name: region, datatype: String, expression: {dialects: [{dialect: ANSI_SQL, expression: region}]}, dimension: {}}
+          - {name: revenue, datatype: Decimal, expression: {dialects: [{dialect: ANSI_SQL, expression: revenue}]}}
+    metrics:
+      - name: revenue
+        datatype: Decimal
+        expression: {dialects: [{dialect: ANSI_SQL, expression: "SUM(revenue)"}]}
+      - name: revenue_at_year_start
+        description: Revenue observed at the start of the containing calendar year when reporting at a finer time grain such as month.
+        datatype: Decimal
+        expression: {dialects: [{dialect: ANSI_SQL, expression: revenue}]}
+        custom_extensions:
+          - vendor_name: METIS
+            data: '{"kind":"offset_to_grain","base_metric":"revenue","time_dimension":"order_date","grain":"year"}'

@@ -1,0 +1,51 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/apache/ossie/main/core-spec/osi-schema.json
+version: "0.2.0.dev0"
+semantic_model:
+  - name: sales
+    description: Minimal Metis M1 sales semantic model
+    datasets:
+      - name: orders
+        source: sales.public.orders
+        primary_key: [order_id]
+        fields:
+          - name: order_id
+            datatype: String
+            expression:
+              dialects: [{dialect: ANSI_SQL, expression: order_id}]
+          - name: customer_id
+            datatype: String
+            expression:
+              dialects: [{dialect: ANSI_SQL, expression: customer_id}]
+          - name: amount
+            datatype: Decimal
+            expression:
+              dialects: [{dialect: ANSI_SQL, expression: amount}]
+      - name: customer
+        source: sales.public.customer
+        primary_key: [customer_id]
+        fields:
+          - name: customer_id
+            datatype: String
+            expression:
+              dialects: [{dialect: ANSI_SQL, expression: customer_id}]
+          - name: region
+            datatype: String
+            expression:
+              dialects: [{dialect: ANSI_SQL, expression: region}]
+            dimension: {}
+    relationships:
+      - name: orders_to_customer
+        from: orders
+        to: customer
+        from_columns: [customer_id]
+        to_columns: [customer_id]
+    metrics:
+      - name: total_revenue
+        description: Total order revenue
+        expression:
+          dialects:
+            - dialect: ANSI_SQL
+              expression: SUM(orders.amount)
+    custom_extensions:
+      - vendor_name: METIS_EXAMPLE
+        data: '{"preserved":true}'

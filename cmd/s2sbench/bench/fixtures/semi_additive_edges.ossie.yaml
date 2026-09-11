@@ -1,0 +1,122 @@
+version: "0.2.0.dev0"
+semantic_model:
+  - name: semi_additive_edges
+    description: Canonical semantic world for advanced semi-additive selection behavior.
+    datasets:
+      - name: inventory_snapshot
+        source: analytics.inventory_snapshot_edges
+        fields:
+          - name: snapshot_date
+            datatype: Date
+            dimension: {is_time: true}
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: inventory_snapshot.snapshot_date
+          - name: warehouse
+            datatype: String
+            dimension: {}
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: inventory_snapshot.warehouse
+          - name: quantity
+            datatype: Decimal
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: inventory_snapshot.quantity
+          - name: snapshot_sequence
+            datatype: Integer
+            dimension: {}
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: inventory_snapshot.snapshot_sequence
+    metrics:
+      - name: inventory_quantity
+        datatype: Decimal
+        expression:
+          dialects:
+            - dialect: ANSI_SQL
+              expression: SUM(inventory_snapshot.quantity)
+      - name: nullable_inventory_quantity
+        datatype: Decimal
+        expression:
+          dialects:
+            - dialect: ANSI_SQL
+              expression: MAX(inventory_snapshot.quantity)
+            - dialect: CLICKHOUSE
+              expression: sumOrNull(inventory_snapshot.quantity)
+      - name: inventory_first_tie_break
+        datatype: Decimal
+        expression:
+          dialects:
+            - dialect: ANSI_SQL
+              expression: inventory_quantity
+        custom_extensions:
+          - vendor_name: METIS
+            data: '{"kind":"semi_additive","base_metric":"inventory_quantity","non_additive_dimension":"snapshot_date","aggregation":"first","tie_break_dimension":"snapshot_sequence"}'
+      - name: inventory_last_tie_break
+        datatype: Decimal
+        expression:
+          dialects:
+            - dialect: ANSI_SQL
+              expression: inventory_quantity
+        custom_extensions:
+          - vendor_name: METIS
+            data: '{"kind":"semi_additive","base_metric":"inventory_quantity","non_additive_dimension":"snapshot_date","aggregation":"last","tie_break_dimension":"snapshot_sequence"}'
+      - name: inventory_first_skip_null
+        datatype: Decimal
+        expression:
+          dialects:
+            - dialect: ANSI_SQL
+              expression: nullable_inventory_quantity
+        custom_extensions:
+          - vendor_name: METIS
+            data: '{"kind":"semi_additive","base_metric":"nullable_inventory_quantity","non_additive_dimension":"snapshot_date","aggregation":"first","tie_break_dimension":"snapshot_sequence","null_policy":"skip"}'
+      - name: inventory_last_skip_null
+        datatype: Decimal
+        expression:
+          dialects:
+            - dialect: ANSI_SQL
+              expression: nullable_inventory_quantity
+        custom_extensions:
+          - vendor_name: METIS
+            data: '{"kind":"semi_additive","base_metric":"nullable_inventory_quantity","non_additive_dimension":"snapshot_date","aggregation":"last","tie_break_dimension":"snapshot_sequence","null_policy":"skip"}'
+      - name: inventory_balance
+        datatype: Decimal
+        expression:
+          dialects:
+            - dialect: ANSI_SQL
+              expression: inventory_quantity
+        custom_extensions:
+          - vendor_name: METIS
+            data: '{"kind":"semi_additive","base_metric":"inventory_quantity","non_additive_dimension":"snapshot_date","aggregation":"last"}'
+      - name: inventory_window_sum
+        datatype: Decimal
+        expression:
+          dialects:
+            - dialect: ANSI_SQL
+              expression: inventory_quantity
+        custom_extensions:
+          - vendor_name: METIS
+            data: '{"kind":"semi_additive","base_metric":"inventory_quantity","non_additive_dimension":"snapshot_date","aggregation":"last","window_groupings":["warehouse"]}'
+      - name: inventory_window_min
+        datatype: Decimal
+        expression:
+          dialects:
+            - dialect: ANSI_SQL
+              expression: inventory_quantity
+        custom_extensions:
+          - vendor_name: METIS
+            data: '{"kind":"semi_additive","base_metric":"inventory_quantity","non_additive_dimension":"snapshot_date","aggregation":"last","window_groupings":["warehouse"],"rollup_aggregation":"min"}'
+      - name: inventory_window_max
+        datatype: Decimal
+        expression:
+          dialects:
+            - dialect: ANSI_SQL
+              expression: inventory_quantity
+        custom_extensions:
+          - vendor_name: METIS
+            data: '{"kind":"semi_additive","base_metric":"inventory_quantity","non_additive_dimension":"snapshot_date","aggregation":"last","window_groupings":["warehouse"],"rollup_aggregation":"max"}'

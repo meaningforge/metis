@@ -1,0 +1,29 @@
+version: "0.2.0.dev0"
+semantic_model:
+  - name: fiscal_offset
+    description: Prior-period comparison for revenue already recorded on fiscal calendar rows.
+    custom_extensions:
+      - vendor_name: METIS
+        data: '{"kind":"custom_calendar","dataset":"calendar","base_time_dimension":"day","grains":[{"name":"fiscal_week","bucket_dimension":"fiscal_week_start","ordinal_dimension":"fiscal_week_index","dense_mapping":true}]}'
+    datasets:
+      - name: calendar
+        source: analytics.calendar
+        fields:
+          - {name: day, datatype: Date, expression: {dialects: [{dialect: ANSI_SQL, expression: day}]}, dimension: {is_time: true}}
+          - {name: fiscal_week_start, datatype: Date, expression: {dialects: [{dialect: ANSI_SQL, expression: fiscal_week_start}]}, dimension: {}}
+          - {name: fiscal_week_index, datatype: Integer, expression: {dialects: [{dialect: ANSI_SQL, expression: fiscal_week_index}]}, dimension: {}}
+          - {name: revenue, datatype: Decimal, expression: {dialects: [{dialect: ANSI_SQL, expression: revenue}]}}
+    metrics:
+      - name: revenue
+        datatype: Decimal
+        expression: {dialects: [{dialect: ANSI_SQL, expression: "SUM(revenue)"}]}
+        custom_extensions:
+          - vendor_name: METIS
+            data: '{"kind":"time_binding","time_dimension":"day"}'
+      - name: previous_fiscal_week_revenue
+        description: Revenue from the prior fiscal week for calendar rows that carry revenue observations.
+        datatype: Decimal
+        expression: {dialects: [{dialect: ANSI_SQL, expression: revenue}]}
+        custom_extensions:
+          - vendor_name: METIS
+            data: '{"kind":"time_offset","base_metric":"revenue","time_dimension":"day","offset":{"count":-1,"unit":"fiscal_week"}}'

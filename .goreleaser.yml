@@ -1,0 +1,58 @@
+version: 2
+
+project_name: metis
+
+before:
+  hooks:
+    - go mod tidy
+    - go test ./...
+    - python3 tools/licenses.py --check
+
+builds:
+  - id: metis
+    main: ./cmd/metis
+    binary: metis
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    flags:
+      - -trimpath
+    ldflags:
+      - >-
+        -s -w
+        -X github.com/meaningforge/metis/version.Version={{.Version}}
+        -X github.com/meaningforge/metis/version.Commit={{.Commit}}
+        -X github.com/meaningforge/metis/version.Date={{.Date}}
+
+archives:
+  - id: default
+    formats: [tar.gz]
+    files:
+      - LICENSE
+      - NOTICE
+      - THIRD_PARTY_NOTICES
+      - README.md
+      - licenses/SHA256SUMS
+      - licenses/components.json
+      - licenses/**/*
+    name_template: >-
+      {{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}
+
+checksum:
+  name_template: checksums.txt
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^chore:'
+
+release:
+  draft: true

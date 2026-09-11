@@ -1,0 +1,69 @@
+version: "0.2.0.dev0"
+semantic_model:
+  - name: conversion
+    description: Canonical semantic world for deterministic conversion assignment.
+    datasets:
+      - name: signups
+        source: analytics.conversion_signups
+        primary_key: [signup_id]
+        fields:
+          - name: signup_id
+            datatype: String
+            expression: {dialects: [{dialect: ANSI_SQL, expression: signup_id}]}
+          - name: signup_time
+            datatype: DateTime
+            expression: {dialects: [{dialect: ANSI_SQL, expression: signup_time}]}
+            dimension: {is_time: true}
+          - name: user_id
+            datatype: String
+            expression: {dialects: [{dialect: ANSI_SQL, expression: user_id}]}
+          - name: campaign
+            datatype: String
+            expression: {dialects: [{dialect: ANSI_SQL, expression: campaign}]}
+            dimension: {}
+          - name: signup_value
+            datatype: Integer
+            expression: {dialects: [{dialect: ANSI_SQL, expression: signup_value}]}
+      - name: purchases
+        source: analytics.conversion_purchases
+        primary_key: [purchase_id]
+        fields:
+          - name: purchase_id
+            datatype: String
+            expression: {dialects: [{dialect: ANSI_SQL, expression: purchase_id}]}
+          - name: purchase_time
+            datatype: DateTime
+            expression: {dialects: [{dialect: ANSI_SQL, expression: purchase_time}]}
+            dimension: {is_time: true}
+          - name: purchaser_id
+            datatype: String
+            expression: {dialects: [{dialect: ANSI_SQL, expression: purchaser_id}]}
+          - name: purchase_value
+            datatype: Integer
+            expression: {dialects: [{dialect: ANSI_SQL, expression: purchase_value}]}
+    metrics:
+      - name: signup_events
+        datatype: Integer
+        expression: {dialects: [{dialect: ANSI_SQL, expression: "SUM(signups.signup_value)"}]}
+        custom_extensions:
+          - vendor_name: METIS
+            data: '{"kind":"time_binding","time_dimension":"signup_time"}'
+      - name: purchase_events
+        datatype: Integer
+        expression: {dialects: [{dialect: ANSI_SQL, expression: "SUM(purchases.purchase_value)"}]}
+        custom_extensions:
+          - vendor_name: METIS
+            data: '{"kind":"time_binding","time_dimension":"purchase_time"}'
+      - name: signup_to_purchase_rate
+        description: Share of signup events that convert to purchases within the attribution window.
+        datatype: Decimal
+        expression: {dialects: [{dialect: ANSI_SQL, expression: "purchase_events / signup_events"}]}
+        custom_extensions:
+          - vendor_name: METIS
+            data: '{"kind":"conversion","base_metric":"signup_events","conversion_metric":"purchase_events","entity":{"base_property":"user_id","conversion_property":"purchaser_id"},"calculation":"conversion_rate","window":{"count":7,"unit":"day"}}'
+      - name: signup_conversions
+        datatype: Integer
+        expression: {dialects: [{dialect: ANSI_SQL, expression: purchase_events}]}
+        custom_extensions:
+          - vendor_name: METIS
+            data: '{"kind":"conversion","base_metric":"signup_events","conversion_metric":"purchase_events","entity":{"base_property":"user_id","conversion_property":"purchaser_id"},"calculation":"conversions","window":{"count":7,"unit":"day"}}'

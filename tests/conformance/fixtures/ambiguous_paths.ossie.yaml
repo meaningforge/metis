@@ -1,0 +1,59 @@
+version: "0.2.0.dev0"
+semantic_model:
+  - name: ambiguous_paths
+    description: Dedicated conformance fixture for relationship path ambiguity
+    datasets:
+      - name: orders
+        source: analytics.orders
+        primary_key: [order_id]
+        fields:
+          - {name: order_id, datatype: String, expression: {dialects: [{dialect: ANSI_SQL, expression: orders.order_id}]}}
+          - {name: customer_id, datatype: String, expression: {dialects: [{dialect: ANSI_SQL, expression: orders.customer_id}]}}
+          - {name: market_id, datatype: String, expression: {dialects: [{dialect: ANSI_SQL, expression: orders.market_id}]}}
+          - {name: amount, datatype: Decimal, expression: {dialects: [{dialect: ANSI_SQL, expression: orders.amount}]}}
+      - name: customer
+        source: analytics.customer
+        primary_key: [customer_id]
+        fields:
+          - {name: customer_id, datatype: String, expression: {dialects: [{dialect: ANSI_SQL, expression: customer.customer_id}]}}
+          - {name: geography_id, datatype: String, expression: {dialects: [{dialect: ANSI_SQL, expression: customer.geography_id}]}}
+      - name: market
+        source: analytics.market
+        primary_key: [market_id]
+        fields:
+          - {name: market_id, datatype: String, expression: {dialects: [{dialect: ANSI_SQL, expression: market.market_id}]}}
+          - {name: geography_id, datatype: String, expression: {dialects: [{dialect: ANSI_SQL, expression: market.geography_id}]}}
+      - name: geography
+        source: analytics.geography
+        primary_key: [geography_id]
+        fields:
+          - {name: geography_id, datatype: String, expression: {dialects: [{dialect: ANSI_SQL, expression: geography.geography_id}]}}
+          - name: country
+            datatype: String
+            expression: {dialects: [{dialect: ANSI_SQL, expression: geography.country}]}
+            dimension: {}
+    relationships:
+      - name: orders_to_customer
+        from: orders
+        to: customer
+        from_columns: [customer_id]
+        to_columns: [customer_id]
+      - name: customer_to_geography
+        from: customer
+        to: geography
+        from_columns: [geography_id]
+        to_columns: [geography_id]
+      - name: orders_to_market
+        from: orders
+        to: market
+        from_columns: [market_id]
+        to_columns: [market_id]
+      - name: market_to_geography
+        from: market
+        to: geography
+        from_columns: [geography_id]
+        to_columns: [geography_id]
+    metrics:
+      - name: revenue
+        datatype: Decimal
+        expression: {dialects: [{dialect: ANSI_SQL, expression: "SUM(orders.amount)"}]}

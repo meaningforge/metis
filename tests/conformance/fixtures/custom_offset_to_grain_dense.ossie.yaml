@@ -1,0 +1,37 @@
+version: "0.2.0.dev0"
+semantic_model:
+  - name: custom_offset_to_grain_dense
+    custom_extensions:
+      - vendor_name: METIS
+        data: '{"kind":"custom_calendar","dataset":"calendar","base_time_dimension":"day","grains":[{"name":"fiscal_week","bucket_dimension":"fiscal_week_start","ordinal_dimension":"fiscal_week_index","dense_mapping":true,"parent_grain":"fiscal_year"},{"name":"fiscal_year","bucket_dimension":"fiscal_year_start","ordinal_dimension":"fiscal_year_index","dense_mapping":true}]}'
+    datasets:
+      - name: orders
+        source: analytics.custom_offset_to_grain_dense_orders
+        fields:
+          - {name: order_date, datatype: Date, expression: {dialects: [{dialect: ANSI_SQL, expression: order_date}]}, dimension: {is_time: true}}
+          - {name: revenue, datatype: Decimal, expression: {dialects: [{dialect: ANSI_SQL, expression: revenue}]}}
+      - name: calendar
+        source: analytics.custom_offset_to_grain_dense_calendar
+        primary_key: [day]
+        fields:
+          - {name: day, datatype: Date, expression: {dialects: [{dialect: ANSI_SQL, expression: day}]}, dimension: {is_time: true}}
+          - {name: fiscal_week_start, datatype: Date, expression: {dialects: [{dialect: ANSI_SQL, expression: fiscal_week_start}]}, dimension: {}}
+          - {name: fiscal_week_index, datatype: Integer, expression: {dialects: [{dialect: ANSI_SQL, expression: fiscal_week_index}]}, dimension: {}}
+          - {name: fiscal_year_start, datatype: Date, expression: {dialects: [{dialect: ANSI_SQL, expression: fiscal_year_start}]}, dimension: {}}
+          - {name: fiscal_year_index, datatype: Integer, expression: {dialects: [{dialect: ANSI_SQL, expression: fiscal_year_index}]}, dimension: {}}
+    relationships:
+      - name: orders_to_calendar
+        from: orders
+        to: calendar
+        from_columns: [order_date]
+        to_columns: [day]
+    metrics:
+      - name: revenue
+        datatype: Decimal
+        expression: {dialects: [{dialect: ANSI_SQL, expression: "SUM(revenue)"}]}
+      - name: revenue_at_fiscal_year_start
+        datatype: Decimal
+        expression: {dialects: [{dialect: ANSI_SQL, expression: revenue}]}
+        custom_extensions:
+          - vendor_name: METIS
+            data: '{"kind":"offset_to_grain","base_metric":"revenue","time_dimension":"day","grain":"fiscal_year"}'

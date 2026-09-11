@@ -1,0 +1,62 @@
+name: real-engine-matrix
+
+on:
+  workflow_dispatch:
+    inputs:
+      engines:
+        description: all or comma-separated registered real-engine dialects
+        required: true
+        default: duckdb
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: real-engine-matrix-${{ github.ref }}-${{ github.event.inputs.engines || 'duckdb' }}
+  cancel-in-progress: false
+
+jobs:
+  targets:
+    name: Resolve registered real engines
+    runs-on: ubuntu-latest
+    outputs:
+      engines: ${{ steps.targets.outputs.engines }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: false
+      - id: targets
+        name: Resolve matrix from executable registry
+        env:
+          REQUESTED_ENGINES: ${{ inputs.engines }}
+        run: echo "engines=$(go run ./tests/conformance/cmd/engines -select "$REQUESTED_ENGINES")" >> "$GITHUB_OUTPUT"
+
+  conformance:
+    name: ${{ matrix.engine }} full real-engine conformance
+    needs: targets
+    strategy:
+      fail-fast: false
+      matrix:
+        engine: ${{ fromJSON(needs.targets.outputs.engines) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check Docker runner capacity
+        run: bash tools/ci/docker-runner-hygiene.sh
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Run real-engine execution conformance
+        env:
+          ENGINE: ${{ matrix.engine }}
+        run: |
+          if [[ "$ENGINE" == "duckdb" ]]; then
+            make test-duckdb-backend
+          else
+            make "test-engine-${ENGINE}-container"
+          fi

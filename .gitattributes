@@ -1,0 +1,2 @@
+# Preserve verbatim third-party license texts and their recorded checksums.
+licenses/** -text -whitespace

@@ -1,0 +1,24 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/apache/ossie/main/core-spec/osi-schema.json
+version: "0.2.0.dev0"
+semantic_model:
+  - name: sales
+    description: Demo sales model for Metis Agent E2E smoke tests
+    datasets:
+      - name: orders
+        source: sales.public.orders
+        fields:
+          - name: amount
+            datatype: Decimal
+            expression:
+              dialects: [{dialect: ANSI_SQL, expression: orders.amount}]
+          - name: region
+            datatype: String
+            expression:
+              dialects: [{dialect: ANSI_SQL, expression: orders.region}]
+            dimension: {}
+    metrics:
+      - name: total_revenue
+        description: Total sales revenue
+        datatype: Decimal
+        expression:
+          dialects: [{dialect: ANSI_SQL, expression: SUM(orders.amount)}]

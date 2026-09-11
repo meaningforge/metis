@@ -1,0 +1,3 @@
+semantic_sources:
+  sales:
+    path: ../../demo/models/*.ossie.yaml

@@ -1,0 +1,29 @@
+version: "0.2.0.dev0"
+semantic_model:
+  - name: offset_to_grain_dense
+    description: Calendar-year boundary metrics over a dense monthly time spine.
+    custom_extensions:
+      - vendor_name: METIS
+        data: '{"kind":"time_spine","dataset":"calendar","time_dimension":"day","grains":["month","year"]}'
+    datasets:
+      - name: orders
+        source: analytics.offset_to_grain_dense_orders
+        fields:
+          - {name: order_date, datatype: Date, expression: {dialects: [{dialect: ANSI_SQL, expression: order_date}]}, dimension: {is_time: true}}
+          - {name: revenue, datatype: Decimal, expression: {dialects: [{dialect: ANSI_SQL, expression: revenue}]}}
+      - name: calendar
+        source: analytics.offset_to_grain_dense_calendar
+        primary_key: [day]
+        fields:
+          - {name: day, datatype: Date, expression: {dialects: [{dialect: ANSI_SQL, expression: day}]}, dimension: {is_time: true}}
+    metrics:
+      - name: revenue
+        datatype: Decimal
+        expression: {dialects: [{dialect: ANSI_SQL, expression: "SUM(revenue)"}]}
+      - name: revenue_at_year_start
+        description: Revenue observed at the start of the containing calendar year when reporting at a finer time grain such as month.
+        datatype: Decimal
+        expression: {dialects: [{dialect: ANSI_SQL, expression: revenue}]}
+        custom_extensions:
+          - vendor_name: METIS
+            data: '{"kind":"offset_to_grain","base_metric":"revenue","time_dimension":"order_date","grain":"year"}'

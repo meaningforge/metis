@@ -1,0 +1,23 @@
+version: "0.2.0.dev0"
+semantic_model:
+  - name: distinct_values
+    description: Canonical semantic world for distinct dimension-value queries.
+    datasets:
+      - name: orders
+        source: analytics.distinct_value_orders
+        fields:
+          - name: region
+            datatype: String
+            dimension: {}
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: orders.region
+          - name: country
+            datatype: String
+            description: ISO 3166-1 alpha-2 country code; for example, Japan is JP and the United States is US.
+            dimension: {}
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: orders.country

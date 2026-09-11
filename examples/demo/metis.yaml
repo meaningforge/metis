@@ -1,0 +1,5 @@
+version: 1
+default_project: demo
+projects:
+  demo:
+    path: ./project.yaml

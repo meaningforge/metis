@@ -1,0 +1,24 @@
+version: "0.2.0.dev0"
+semantic_model:
+  - name: fiscal_inventory
+    custom_extensions:
+      - vendor_name: METIS
+        data: '{"kind":"custom_calendar","dataset":"inventory","base_time_dimension":"snapshot_date","grains":[{"name":"fiscal_week","bucket_dimension":"fiscal_week_start","ordinal_dimension":"fiscal_week_index","dense_mapping":true}]}'
+    datasets:
+      - name: inventory
+        source: analytics.fiscal_inventory_snapshot
+        fields:
+          - {name: snapshot_date, datatype: Date, expression: {dialects: [{dialect: ANSI_SQL, expression: snapshot_date}]}, dimension: {is_time: true}}
+          - {name: fiscal_week_start, datatype: Date, expression: {dialects: [{dialect: ANSI_SQL, expression: fiscal_week_start}]}, dimension: {}}
+          - {name: fiscal_week_index, datatype: Integer, expression: {dialects: [{dialect: ANSI_SQL, expression: fiscal_week_index}]}, dimension: {}}
+          - {name: quantity, datatype: Decimal, expression: {dialects: [{dialect: ANSI_SQL, expression: quantity}]}}
+    metrics:
+      - name: inventory_quantity
+        datatype: Decimal
+        expression: {dialects: [{dialect: ANSI_SQL, expression: "SUM(quantity)"}]}
+      - name: inventory_balance
+        datatype: Decimal
+        expression: {dialects: [{dialect: ANSI_SQL, expression: inventory_quantity}]}
+        custom_extensions:
+          - vendor_name: METIS
+            data: '{"kind":"semi_additive","base_metric":"inventory_quantity","non_additive_dimension":"snapshot_date","aggregation":"last"}'

@@ -1,0 +1,12 @@
+/bin/
+/dist/
+*.test
+.coverage
+.DS_Store
+.workload/
+.workload.partial/
+/s2sbench-results/
+tests/benchmarks/agent-attribution/results/
+tests/benchmarks/agent-comparison/results/
+tests/benchmarks/okf-ossie-sql-readiness/results/
+tests/benchmarks/agent-semantic/results/

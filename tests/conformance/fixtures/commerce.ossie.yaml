@@ -1,0 +1,212 @@
+version: "0.2.0.dev0"
+semantic_model:
+  - name: commerce
+    description: Shared clean-room fixture for semantic/query conformance
+    datasets:
+      - name: orders
+        source: analytics.orders
+        primary_key: [order_id]
+        fields:
+          - {name: order_id, datatype: String, expression: {dialects: [{dialect: ANSI_SQL, expression: orders.order_id}]}}
+          - {name: customer_id, datatype: String, expression: {dialects: [{dialect: ANSI_SQL, expression: orders.customer_id}]}}
+          - {name: product_id, datatype: String, expression: {dialects: [{dialect: ANSI_SQL, expression: orders.product_id}]}}
+          - name: order_date
+            datatype: Date
+            expression: {dialects: [{dialect: ANSI_SQL, expression: orders.order_date}]}
+            dimension: {is_time: true}
+          - name: ship_date
+            datatype: Date
+            expression: {dialects: [{dialect: ANSI_SQL, expression: orders.ship_date}]}
+            dimension: {is_time: true}
+          - name: payment_date
+            description: Timestamp associated with payment processing. A non-null payment date does not define the order lifecycle status.
+            datatype: Date
+            expression: {dialects: [{dialect: ANSI_SQL, expression: orders.payment_date}]}
+            dimension: {is_time: true}
+          - {name: amount, datatype: Decimal, expression: {dialects: [{dialect: ANSI_SQL, expression: orders.amount}]}}
+          - {name: discount, datatype: Decimal, expression: {dialects: [{dialect: ANSI_SQL, expression: orders.discount}]}}
+          - name: status
+            description: Order lifecycle state, such as paid or refunded. Payment state is represented by this field, not by payment_date.
+            datatype: String
+            expression: {dialects: [{dialect: ANSI_SQL, expression: orders.status}]}
+            dimension: {}
+      - name: customer
+        source: analytics.customer
+        primary_key: [customer_id]
+        fields:
+          - {name: customer_id, datatype: String, expression: {dialects: [{dialect: ANSI_SQL, expression: customer.customer_id}]}}
+          - {name: region_code, datatype: String, expression: {dialects: [{dialect: ANSI_SQL, expression: customer.region_code}]}}
+          - name: region
+            datatype: String
+            expression: {dialects: [{dialect: ANSI_SQL, expression: customer.region}]}
+            dimension: {}
+          - name: segment
+            datatype: String
+            expression: {dialects: [{dialect: ANSI_SQL, expression: customer.segment}]}
+            dimension: {}
+      - name: geography
+        source: analytics.geography
+        primary_key: [region_code]
+        fields:
+          - {name: region_code, datatype: String, expression: {dialects: [{dialect: ANSI_SQL, expression: geography.region_code}]}}
+          - name: country
+            datatype: String
+            expression: {dialects: [{dialect: ANSI_SQL, expression: geography.country}]}
+            dimension: {}
+      - name: product
+        source: analytics.product
+        primary_key: [product_id]
+        fields:
+          - {name: product_id, datatype: String, expression: {dialects: [{dialect: ANSI_SQL, expression: product.product_id}]}}
+          - name: category
+            datatype: String
+            expression: {dialects: [{dialect: ANSI_SQL, expression: product.category}]}
+            dimension: {}
+          - name: brand
+            datatype: String
+            expression: {dialects: [{dialect: ANSI_SQL, expression: product.brand}]}
+            dimension: {}
+      - name: costs
+        source: analytics.costs
+        fields:
+          - {name: cost_date, datatype: Date, expression: {dialects: [{dialect: ANSI_SQL, expression: costs.cost_date}]}}
+          - {name: amount, datatype: Decimal, expression: {dialects: [{dialect: ANSI_SQL, expression: costs.amount}]}}
+      - name: calendar
+        source: analytics.calendar
+        primary_key: [day]
+        fields:
+          - name: day
+            datatype: Date
+            expression: {dialects: [{dialect: ANSI_SQL, expression: calendar.day}]}
+            dimension: {is_time: true}
+      - name: inventory_snapshot
+        source: analytics.inventory_snapshot
+        fields:
+          - name: snapshot_date
+            datatype: Date
+            expression: {dialects: [{dialect: ANSI_SQL, expression: inventory_snapshot.snapshot_date}]}
+            dimension: {is_time: true}
+          - name: warehouse
+            datatype: String
+            expression: {dialects: [{dialect: ANSI_SQL, expression: inventory_snapshot.warehouse}]}
+            dimension: {}
+          - {name: quantity, datatype: Decimal, expression: {dialects: [{dialect: ANSI_SQL, expression: inventory_snapshot.quantity}]}}
+    relationships:
+      - name: orders_to_customer
+        from: orders
+        to: customer
+        from_columns: [customer_id]
+        to_columns: [customer_id]
+      - name: customer_to_geography
+        from: customer
+        to: geography
+        from_columns: [region_code]
+        to_columns: [region_code]
+      - name: orders_to_product
+        from: orders
+        to: product
+        from_columns: [product_id]
+        to_columns: [product_id]
+      - name: orders_to_calendar
+        from: orders
+        to: calendar
+        from_columns: [order_date]
+        to_columns: [day]
+      - name: costs_to_calendar
+        from: costs
+        to: calendar
+        from_columns: [cost_date]
+        to_columns: [day]
+    metrics:
+      - name: revenue
+        datatype: Decimal
+        expression: {dialects: [{dialect: ANSI_SQL, expression: "SUM(orders.amount)"}]}
+        custom_extensions:
+          - vendor_name: METIS
+            data: '{"kind":"time_binding","time_dimension":"order_date"}'
+      - name: cumulative_revenue
+        datatype: Decimal
+        expression: {dialects: [{dialect: ANSI_SQL, expression: "revenue"}]}
+        custom_extensions:
+          - vendor_name: METIS
+            data: '{"kind":"cumulative","base_metric":"revenue","time_dimension":"order_date","window":{"type":"unbounded"}}'
+          - vendor_name: METIS
+            data: '{"kind":"time_binding","time_dimension":"order_date"}'
+      - name: previous_month_revenue
+        datatype: Decimal
+        expression: {dialects: [{dialect: ANSI_SQL, expression: "revenue"}]}
+        custom_extensions:
+          - vendor_name: METIS
+            data: '{"kind":"time_offset","base_metric":"revenue","time_dimension":"order_date","offset":{"count":-1,"unit":"month"}}'
+      - name: previous_quarter_revenue
+        datatype: Decimal
+        expression: {dialects: [{dialect: ANSI_SQL, expression: "revenue"}]}
+        custom_extensions:
+          - vendor_name: METIS
+            data: '{"kind":"time_offset","base_metric":"revenue","time_dimension":"order_date","offset":{"count":-1,"unit":"quarter"}}'
+      - name: previous_year_revenue
+        datatype: Decimal
+        expression: {dialects: [{dialect: ANSI_SQL, expression: "revenue"}]}
+        custom_extensions:
+          - vendor_name: METIS
+            data: '{"kind":"time_offset","base_metric":"revenue","time_dimension":"order_date","offset":{"count":-1,"unit":"year"}}'
+      - name: revenue_growth_rate
+        datatype: Decimal
+        expression: {dialects: [{dialect: ANSI_SQL, expression: "(revenue - previous_month_revenue) / previous_month_revenue"}]}
+      - name: discounts
+        datatype: Decimal
+        expression: {dialects: [{dialect: ANSI_SQL, expression: "SUM(orders.discount)"}]}
+      - name: orders_count
+        datatype: Integer
+        expression: {dialects: [{dialect: ANSI_SQL, expression: "COUNT(DISTINCT orders.order_id)"}]}
+      - name: customers_with_matching_orders
+        datatype: Integer
+        expression: {dialects: [{dialect: ANSI_SQL, expression: "COUNT(DISTINCT customer.customer_id)"}]}
+      - name: customer_rows_with_matching_orders
+        datatype: Integer
+        expression: {dialects: [{dialect: ANSI_SQL, expression: "COUNT(customer.customer_id)"}]}
+      - name: average_order_amount
+        datatype: Decimal
+        expression: {dialects: [{dialect: ANSI_SQL, expression: "AVG(orders.amount)"}]}
+      - name: minimum_order_amount
+        datatype: Decimal
+        expression: {dialects: [{dialect: ANSI_SQL, expression: "MIN(orders.amount)"}]}
+      - name: maximum_order_amount
+        datatype: Decimal
+        expression: {dialects: [{dialect: ANSI_SQL, expression: "MAX(orders.amount)"}]}
+      - name: cost
+        datatype: Decimal
+        expression: {dialects: [{dialect: ANSI_SQL, expression: "SUM(costs.amount)"}]}
+      - name: contribution_margin
+        datatype: Decimal
+        expression: {dialects: [{dialect: ANSI_SQL, expression: "revenue - discounts"}]}
+      - name: average_order_value
+        datatype: Decimal
+        expression: {dialects: [{dialect: ANSI_SQL, expression: "revenue / orders_count"}]}
+      - name: gross_margin
+        datatype: Decimal
+        expression: {dialects: [{dialect: ANSI_SQL, expression: "revenue - cost"}]}
+      - name: nested_margin_ratio
+        datatype: Decimal
+        expression: {dialects: [{dialect: ANSI_SQL, expression: "contribution_margin / revenue"}]}
+      - name: revenue_per_customer
+        datatype: Decimal
+        expression: {dialects: [{dialect: ANSI_SQL, expression: "SUM(orders.amount) / COUNT(DISTINCT customer.customer_id)"}]}
+      - name: scaled_revenue
+        datatype: Decimal
+        expression: {dialects: [{dialect: ANSI_SQL, expression: "SUM(orders.amount)"}]}
+        custom_extensions:
+          - vendor_name: metis.semantic
+            data: '{"kind":"metric_scale","version":"1","factor":2}'
+      - name: scaled_net_revenue
+        datatype: Decimal
+        expression: {dialects: [{dialect: ANSI_SQL, expression: "scaled_revenue - discounts"}]}
+      - name: inventory_quantity
+        datatype: Decimal
+        expression: {dialects: [{dialect: ANSI_SQL, expression: "SUM(inventory_snapshot.quantity)"}]}
+      - name: inventory_balance
+        datatype: Decimal
+        expression: {dialects: [{dialect: ANSI_SQL, expression: "inventory_quantity"}]}
+        custom_extensions:
+          - vendor_name: METIS
+            data: '{"kind":"semi_additive","base_metric":"inventory_quantity","non_additive_dimension":"snapshot_date","aggregation":"last"}'

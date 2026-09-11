@@ -1,0 +1,7 @@
+version: 1
+default_project: finance
+projects:
+  finance:
+    path: ./projects/finance.yaml
+  growth:
+    path: ./projects/growth.yaml

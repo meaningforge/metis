@@ -1,0 +1,18 @@
+# Test-only DataSources. The shape follows deployment datasources.yaml while
+# config values may reference the environment used by a real-engine test.
+clickhouse:
+  type: clickhouse
+  config:
+    scheme: http
+    address: "${METIS_TEST_CLICKHOUSE_ADDRESS}"
+    username: "${METIS_TEST_CLICKHOUSE_USERNAME}"
+    password: "${METIS_TEST_CLICKHOUSE_PASSWORD}"
+    database: default
+
+doris:
+  type: doris
+  config:
+    host: "${METIS_TEST_DORIS_HOST}"
+    port: "${METIS_TEST_DORIS_PORT}"
+    username: root
+    database: analytics

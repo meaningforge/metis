@@ -1,0 +1,40 @@
+version: "0.2.0.dev0"
+semantic_model:
+  - name: fiscal_gtd
+    custom_extensions:
+      - vendor_name: METIS
+        data: '{"kind":"custom_calendar","dataset":"calendar","base_time_dimension":"calendar_day","grains":[{"name":"fiscal_week","bucket_dimension":"fiscal_week_start","ordinal_dimension":"fiscal_week_index","dense_mapping":true,"parent_grain":"fiscal_quarter"},{"name":"fiscal_quarter","bucket_dimension":"fiscal_quarter_start","ordinal_dimension":"fiscal_quarter_index","dense_mapping":true}]}'
+    datasets:
+      - name: orders
+        source: analytics.gtd_orders
+        fields:
+          - {name: order_day, datatype: Date, expression: {dialects: [{dialect: ANSI_SQL, expression: order_day}]}, dimension: {is_time: true}}
+          - {name: revenue, datatype: Decimal, expression: {dialects: [{dialect: ANSI_SQL, expression: revenue}]}}
+      - name: calendar
+        source: analytics.gtd_calendar
+        primary_key: [calendar_day]
+        fields:
+          - {name: calendar_day, datatype: Date, expression: {dialects: [{dialect: ANSI_SQL, expression: calendar_day}]}, dimension: {is_time: true}}
+          - {name: fiscal_week_start, datatype: Date, expression: {dialects: [{dialect: ANSI_SQL, expression: fiscal_week_start}]}, dimension: {}}
+          - {name: fiscal_week_index, datatype: Integer, expression: {dialects: [{dialect: ANSI_SQL, expression: fiscal_week_index}]}, dimension: {}}
+          - {name: fiscal_quarter_start, datatype: Date, expression: {dialects: [{dialect: ANSI_SQL, expression: fiscal_quarter_start}]}, dimension: {}}
+          - {name: fiscal_quarter_index, datatype: Integer, expression: {dialects: [{dialect: ANSI_SQL, expression: fiscal_quarter_index}]}, dimension: {}}
+    relationships:
+      - name: orders_to_calendar
+        from: orders
+        to: calendar
+        from_columns: [order_day]
+        to_columns: [calendar_day]
+    metrics:
+      - name: revenue
+        datatype: Decimal
+        expression: {dialects: [{dialect: ANSI_SQL, expression: "SUM(revenue)"}]}
+        custom_extensions:
+          - vendor_name: METIS
+            data: '{"kind":"time_binding","time_dimension":"calendar_day"}'
+      - name: fiscal_quarter_to_date_revenue
+        datatype: Decimal
+        expression: {dialects: [{dialect: ANSI_SQL, expression: revenue}]}
+        custom_extensions:
+          - vendor_name: METIS
+            data: '{"kind":"cumulative","base_metric":"revenue","time_dimension":"calendar_day","window":{"type":"grain_to_date","unit":"fiscal_quarter"}}'

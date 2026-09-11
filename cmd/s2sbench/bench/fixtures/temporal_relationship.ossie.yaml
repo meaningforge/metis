@@ -1,0 +1,63 @@
+version: "0.2.0.dev0"
+semantic_model:
+  - name: temporal_relationship
+    description: Canonical point-in-time relationship fixture for SCD correctness.
+    datasets:
+      - name: orders
+        source: analytics.temporal_orders
+        primary_key: [order_id]
+        fields:
+          - name: order_id
+            datatype: String
+            expression: {dialects: [{dialect: ANSI_SQL, expression: orders.order_id}]}
+            dimension: {}
+          - name: customer_id
+            datatype: String
+            expression: {dialects: [{dialect: ANSI_SQL, expression: orders.customer_id}]}
+          - name: order_time
+            datatype: DateTime
+            expression: {dialects: [{dialect: ANSI_SQL, expression: orders.order_time}]}
+            dimension: {is_time: true}
+          - name: status
+            datatype: String
+            expression: {dialects: [{dialect: ANSI_SQL, expression: orders.status}]}
+            dimension: {}
+          - name: amount
+            datatype: Decimal
+            expression: {dialects: [{dialect: ANSI_SQL, expression: orders.amount}]}
+      - name: customer_history
+        source: analytics.temporal_customer_history
+        primary_key: [history_id]
+        fields:
+          - name: history_id
+            datatype: String
+            expression: {dialects: [{dialect: ANSI_SQL, expression: customer_history.history_id}]}
+          - name: customer_id
+            datatype: String
+            expression: {dialects: [{dialect: ANSI_SQL, expression: customer_history.customer_id}]}
+          - name: valid_from
+            datatype: DateTime
+            expression: {dialects: [{dialect: ANSI_SQL, expression: customer_history.valid_from}]}
+          - name: valid_to
+            datatype: DateTime
+            expression: {dialects: [{dialect: ANSI_SQL, expression: customer_history.valid_to}]}
+          - name: customer_tier
+            datatype: String
+            expression: {dialects: [{dialect: ANSI_SQL, expression: customer_history.customer_tier}]}
+            dimension: {}
+    relationships:
+      - name: orders_to_customer_history
+        from: orders
+        to: customer_history
+        from_columns: [customer_id]
+        to_columns: [customer_id]
+        custom_extensions:
+          - vendor_name: METIS
+            data: '{"kind":"temporal","from_time_dimension":"order_time","to_valid_from":"valid_from","to_valid_to":"valid_to","cardinality":"many_to_one"}'
+    metrics:
+      - name: revenue
+        datatype: Decimal
+        expression: {dialects: [{dialect: ANSI_SQL, expression: "SUM(orders.amount)"}]}
+        custom_extensions:
+          - vendor_name: METIS
+            data: '{"kind":"time_binding","time_dimension":"order_time"}'

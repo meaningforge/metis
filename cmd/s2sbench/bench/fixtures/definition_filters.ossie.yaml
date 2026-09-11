@@ -1,0 +1,95 @@
+version: "0.2.0.dev0"
+semantic_model:
+  - name: definition_filters
+    description: Canonical semantic world for intrinsic metric definition filters.
+    datasets:
+      - name: orders
+        source: analytics.definition_filter_orders
+        fields:
+          - name: customer_id
+            datatype: String
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: orders.customer_id
+          - name: amount
+            datatype: Decimal
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: orders.amount
+      - name: customers
+        source: analytics.definition_filter_customers
+        primary_key: [customer_id]
+        fields:
+          - name: customer_id
+            datatype: String
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: customers.customer_id
+          - name: tier
+            datatype: String
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: customers.tier
+      - name: post_orders
+        source: analytics.post_definition_filter_orders
+        fields:
+          - name: segment
+            datatype: String
+            dimension: {}
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: post_orders.segment
+          - name: amount
+            datatype: Decimal
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: post_orders.amount
+          - name: order_count_value
+            datatype: Integer
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: post_orders.order_count_value
+    relationships:
+      - name: orders_to_customers
+        from: orders
+        to: customers
+        from_columns: [customer_id]
+        to_columns: [customer_id]
+    metrics:
+      - name: gold_revenue
+        datatype: Decimal
+        expression:
+          dialects:
+            - dialect: ANSI_SQL
+              expression: SUM(orders.amount)
+        custom_extensions:
+          - vendor_name: METIS
+            data: '{"kind":"definition_filter","filters":[{"field":"tier","operator":"eq","value":"gold"}]}'
+      - name: revenue
+        datatype: Decimal
+        expression:
+          dialects:
+            - dialect: ANSI_SQL
+              expression: SUM(post_orders.amount)
+      - name: order_count
+        datatype: Integer
+        expression:
+          dialects:
+            - dialect: ANSI_SQL
+              expression: SUM(post_orders.order_count_value)
+      - name: average_order_value
+        datatype: Decimal
+        expression:
+          dialects:
+            - dialect: ANSI_SQL
+              expression: revenue / order_count
+        custom_extensions:
+          - vendor_name: METIS
+            data: '{"kind":"definition_filter","stage":"post_aggregation","filters":[{"field":"average_order_value","operator":"gte","value":50}]}'

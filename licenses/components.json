@@ -1,0 +1,574 @@
+[
+  {
+    "module": "filippo.io/edwards25519",
+    "version": "v1.2.0",
+    "source": "https://proxy.golang.org/filippo.io/edwards25519/@v/v1.2.0.zip",
+    "notices": [
+      "licenses/_modules/filippo.io/edwards25519@v1.2.0/LICENSE"
+    ]
+  },
+  {
+    "module": "github.com/ClickHouse/ch-go",
+    "version": "v0.74.0",
+    "source": "https://proxy.golang.org/github.com/!click!house/ch-go/@v/v0.74.0.zip",
+    "notices": [
+      "licenses/_modules/github.com/ClickHouse/ch-go@v0.74.0/LICENSE"
+    ]
+  },
+  {
+    "module": "github.com/ClickHouse/clickhouse-go/v2",
+    "version": "v2.48.0",
+    "source": "https://proxy.golang.org/github.com/!click!house/clickhouse-go/v2/@v/v2.48.0.zip",
+    "notices": [
+      "licenses/_modules/github.com/ClickHouse/clickhouse-go/v2@v2.48.0/LICENSE"
+    ]
+  },
+  {
+    "module": "github.com/andybalholm/brotli",
+    "version": "v1.2.2",
+    "source": "https://proxy.golang.org/github.com/andybalholm/brotli/@v/v1.2.2.zip",
+    "notices": [
+      "licenses/_modules/github.com/andybalholm/brotli@v1.2.2/LICENSE",
+      "licenses/_modules/github.com/andybalholm/brotli@v1.2.2/flate/LICENSE"
+    ]
+  },
+  {
+    "module": "github.com/beorn7/perks",
+    "version": "v1.0.1",
+    "source": "https://proxy.golang.org/github.com/beorn7/perks/@v/v1.0.1.zip",
+    "notices": [
+      "licenses/_modules/github.com/beorn7/perks@v1.0.1/LICENSE"
+    ]
+  },
+  {
+    "module": "github.com/cenkalti/backoff/v5",
+    "version": "v5.0.3",
+    "source": "https://proxy.golang.org/github.com/cenkalti/backoff/v5/@v/v5.0.3.zip",
+    "notices": [
+      "licenses/_modules/github.com/cenkalti/backoff/v5@v5.0.3/LICENSE"
+    ]
+  },
+  {
+    "module": "github.com/cespare/xxhash/v2",
+    "version": "v2.3.0",
+    "source": "https://proxy.golang.org/github.com/cespare/xxhash/v2/@v/v2.3.0.zip",
+    "notices": [
+      "licenses/_modules/github.com/cespare/xxhash/v2@v2.3.0/LICENSE.txt"
+    ]
+  },
+  {
+    "module": "github.com/duckdb/duckdb-go-bindings",
+    "version": "v0.10505.0",
+    "source": "https://proxy.golang.org/github.com/duckdb/duckdb-go-bindings/@v/v0.10505.0.zip",
+    "notices": [
+      "licenses/_modules/github.com/duckdb/duckdb-go-bindings@v0.10505.0/LICENSE"
+    ]
+  },
+  {
+    "module": "github.com/duckdb/duckdb-go-bindings/lib/darwin-amd64",
+    "version": "v0.10505.0",
+    "source": "https://proxy.golang.org/github.com/duckdb/duckdb-go-bindings/lib/darwin-amd64/@v/v0.10505.0.zip",
+    "notices": [
+      "licenses/_modules/github.com/duckdb/duckdb-go-bindings/lib/darwin-amd64@v0.10505.0/LICENSE"
+    ]
+  },
+  {
+    "module": "github.com/duckdb/duckdb-go-bindings/lib/darwin-arm64",
+    "version": "v0.10505.0",
+    "source": "https://proxy.golang.org/github.com/duckdb/duckdb-go-bindings/lib/darwin-arm64/@v/v0.10505.0.zip",
+    "notices": [
+      "licenses/_modules/github.com/duckdb/duckdb-go-bindings/lib/darwin-arm64@v0.10505.0/LICENSE"
+    ]
+  },
+  {
+    "module": "github.com/duckdb/duckdb-go-bindings/lib/linux-amd64",
+    "version": "v0.10505.0",
+    "source": "https://proxy.golang.org/github.com/duckdb/duckdb-go-bindings/lib/linux-amd64/@v/v0.10505.0.zip",
+    "notices": [
+      "licenses/_modules/github.com/duckdb/duckdb-go-bindings/lib/linux-amd64@v0.10505.0/LICENSE"
+    ]
+  },
+  {
+    "module": "github.com/duckdb/duckdb-go-bindings/lib/linux-arm64",
+    "version": "v0.10505.0",
+    "source": "https://proxy.golang.org/github.com/duckdb/duckdb-go-bindings/lib/linux-arm64/@v/v0.10505.0.zip",
+    "notices": [
+      "licenses/_modules/github.com/duckdb/duckdb-go-bindings/lib/linux-arm64@v0.10505.0/LICENSE"
+    ]
+  },
+  {
+    "module": "github.com/duckdb/duckdb-go/v2",
+    "version": "v2.10505.0",
+    "source": "https://proxy.golang.org/github.com/duckdb/duckdb-go/v2/@v/v2.10505.0.zip",
+    "notices": [
+      "licenses/_modules/github.com/duckdb/duckdb-go/v2@v2.10505.0/LICENSE"
+    ]
+  },
+  {
+    "module": "github.com/gabriel-vasile/mimetype",
+    "version": "v1.4.12",
+    "source": "https://proxy.golang.org/github.com/gabriel-vasile/mimetype/@v/v1.4.12.zip",
+    "notices": [
+      "licenses/_modules/github.com/gabriel-vasile/mimetype@v1.4.12/LICENSE"
+    ]
+  },
+  {
+    "module": "github.com/gin-contrib/sse",
+    "version": "v1.1.0",
+    "source": "https://proxy.golang.org/github.com/gin-contrib/sse/@v/v1.1.0.zip",
+    "notices": [
+      "licenses/_modules/github.com/gin-contrib/sse@v1.1.0/LICENSE"
+    ]
+  },
+  {
+    "module": "github.com/gin-gonic/gin",
+    "version": "v1.12.0",
+    "source": "https://proxy.golang.org/github.com/gin-gonic/gin/@v/v1.12.0.zip",
+    "notices": [
+      "licenses/_modules/github.com/gin-gonic/gin@v1.12.0/LICENSE"
+    ]
+  },
+  {
+    "module": "github.com/go-faster/city",
+    "version": "v1.0.1",
+    "source": "https://proxy.golang.org/github.com/go-faster/city/@v/v1.0.1.zip",
+    "notices": [
+      "licenses/_modules/github.com/go-faster/city@v1.0.1/LICENSE"
+    ]
+  },
+  {
+    "module": "github.com/go-faster/errors",
+    "version": "v0.7.1",
+    "source": "https://proxy.golang.org/github.com/go-faster/errors/@v/v0.7.1.zip",
+    "notices": [
+      "licenses/_modules/github.com/go-faster/errors@v0.7.1/LICENSE"
+    ]
+  },
+  {
+    "module": "github.com/go-logr/logr",
+    "version": "v1.4.4",
+    "source": "https://proxy.golang.org/github.com/go-logr/logr/@v/v1.4.4.zip",
+    "notices": [
+      "licenses/_modules/github.com/go-logr/logr@v1.4.4/LICENSE"
+    ]
+  },
+  {
+    "module": "github.com/go-logr/stdr",
+    "version": "v1.2.2",
+    "source": "https://proxy.golang.org/github.com/go-logr/stdr/@v/v1.2.2.zip",
+    "notices": [
+      "licenses/_modules/github.com/go-logr/stdr@v1.2.2/LICENSE"
+    ]
+  },
+  {
+    "module": "github.com/go-playground/locales",
+    "version": "v0.14.1",
+    "source": "https://proxy.golang.org/github.com/go-playground/locales/@v/v0.14.1.zip",
+    "notices": [
+      "licenses/_modules/github.com/go-playground/locales@v0.14.1/LICENSE"
+    ]
+  },
+  {
+    "module": "github.com/go-playground/universal-translator",
+    "version": "v0.18.1",
+    "source": "https://proxy.golang.org/github.com/go-playground/universal-translator/@v/v0.18.1.zip",
+    "notices": [
+      "licenses/_modules/github.com/go-playground/universal-translator@v0.18.1/LICENSE"
+    ]
+  },
+  {
+    "module": "github.com/go-playground/validator/v10",
+    "version": "v10.30.1",
+    "source": "https://proxy.golang.org/github.com/go-playground/validator/v10/@v/v10.30.1.zip",
+    "notices": [
+      "licenses/_modules/github.com/go-playground/validator/v10@v10.30.1/LICENSE"
+    ]
+  },
+  {
+    "module": "github.com/go-sql-driver/mysql",
+    "version": "v1.10.0",
+    "source": "https://proxy.golang.org/github.com/go-sql-driver/mysql/@v/v1.10.0.zip",
+    "notices": [
+      "licenses/_modules/github.com/go-sql-driver/mysql@v1.10.0/LICENSE"
+    ]
+  },
+  {
+    "module": "github.com/go-viper/mapstructure/v2",
+    "version": "v2.5.0",
+    "source": "https://proxy.golang.org/github.com/go-viper/mapstructure/v2/@v/v2.5.0.zip",
+    "notices": [
+      "licenses/_modules/github.com/go-viper/mapstructure/v2@v2.5.0/LICENSE"
+    ]
+  },
+  {
+    "module": "github.com/goccy/go-yaml",
+    "version": "v1.19.2",
+    "source": "https://proxy.golang.org/github.com/goccy/go-yaml/@v/v1.19.2.zip",
+    "notices": [
+      "licenses/_modules/github.com/goccy/go-yaml@v1.19.2/LICENSE"
+    ]
+  },
+  {
+    "module": "github.com/google/jsonschema-go",
+    "version": "v0.4.3",
+    "source": "https://proxy.golang.org/github.com/google/jsonschema-go/@v/v0.4.3.zip",
+    "notices": [
+      "licenses/_modules/github.com/google/jsonschema-go@v0.4.3/LICENSE"
+    ]
+  },
+  {
+    "module": "github.com/google/uuid",
+    "version": "v1.6.0",
+    "source": "https://proxy.golang.org/github.com/google/uuid/@v/v1.6.0.zip",
+    "notices": [
+      "licenses/_modules/github.com/google/uuid@v1.6.0/LICENSE"
+    ]
+  },
+  {
+    "module": "github.com/grpc-ecosystem/grpc-gateway/v2",
+    "version": "v2.29.0",
+    "source": "https://proxy.golang.org/github.com/grpc-ecosystem/grpc-gateway/v2/@v/v2.29.0.zip",
+    "notices": [
+      "licenses/_modules/github.com/grpc-ecosystem/grpc-gateway/v2@v2.29.0/LICENSE",
+      "licenses/_modules/github.com/grpc-ecosystem/grpc-gateway/v2@v2.29.0/internal/casing/LICENSE.md"
+    ]
+  },
+  {
+    "module": "github.com/klauspost/compress",
+    "version": "v1.19.1",
+    "source": "https://proxy.golang.org/github.com/klauspost/compress/@v/v1.19.1.zip",
+    "notices": [
+      "licenses/_modules/github.com/klauspost/compress@v1.19.1/LICENSE",
+      "licenses/_modules/github.com/klauspost/compress@v1.19.1/gzhttp/LICENSE",
+      "licenses/_modules/github.com/klauspost/compress@v1.19.1/internal/lz4ref/LICENSE",
+      "licenses/_modules/github.com/klauspost/compress@v1.19.1/internal/snapref/LICENSE",
+      "licenses/_modules/github.com/klauspost/compress@v1.19.1/s2/LICENSE",
+      "licenses/_modules/github.com/klauspost/compress@v1.19.1/s2/cmd/internal/filepathx/LICENSE",
+      "licenses/_modules/github.com/klauspost/compress@v1.19.1/s2/cmd/internal/readahead/LICENSE",
+      "licenses/_modules/github.com/klauspost/compress@v1.19.1/snappy/LICENSE",
+      "licenses/_modules/github.com/klauspost/compress@v1.19.1/snappy/xerial/LICENSE",
+      "licenses/_modules/github.com/klauspost/compress@v1.19.1/zstd/internal/xxhash/LICENSE.txt"
+    ]
+  },
+  {
+    "module": "github.com/leodido/go-urn",
+    "version": "v1.4.0",
+    "source": "https://proxy.golang.org/github.com/leodido/go-urn/@v/v1.4.0.zip",
+    "notices": [
+      "licenses/_modules/github.com/leodido/go-urn@v1.4.0/LICENSE"
+    ]
+  },
+  {
+    "module": "github.com/mattn/go-isatty",
+    "version": "v0.0.20",
+    "source": "https://proxy.golang.org/github.com/mattn/go-isatty/@v/v0.0.20.zip",
+    "notices": [
+      "licenses/_modules/github.com/mattn/go-isatty@v0.0.20/LICENSE"
+    ]
+  },
+  {
+    "module": "github.com/modelcontextprotocol/go-sdk",
+    "version": "v1.6.1",
+    "source": "https://proxy.golang.org/github.com/modelcontextprotocol/go-sdk/@v/v1.6.1.zip",
+    "notices": [
+      "licenses/_modules/github.com/modelcontextprotocol/go-sdk@v1.6.1/LICENSE"
+    ]
+  },
+  {
+    "module": "github.com/munnerz/goautoneg",
+    "version": "v0.0.0-20191010083416-a7dc8b61c822",
+    "source": "https://proxy.golang.org/github.com/munnerz/goautoneg/@v/v0.0.0-20191010083416-a7dc8b61c822.zip",
+    "notices": [
+      "licenses/_modules/github.com/munnerz/goautoneg@v0.0.0-20191010083416-a7dc8b61c822/LICENSE"
+    ]
+  },
+  {
+    "module": "github.com/paulmach/orb",
+    "version": "v0.13.0",
+    "source": "https://proxy.golang.org/github.com/paulmach/orb/@v/v0.13.0.zip",
+    "notices": [
+      "licenses/_modules/github.com/paulmach/orb@v0.13.0/LICENSE.md"
+    ]
+  },
+  {
+    "module": "github.com/pelletier/go-toml/v2",
+    "version": "v2.2.4",
+    "source": "https://proxy.golang.org/github.com/pelletier/go-toml/v2/@v/v2.2.4.zip",
+    "notices": [
+      "licenses/_modules/github.com/pelletier/go-toml/v2@v2.2.4/LICENSE"
+    ]
+  },
+  {
+    "module": "github.com/pierrec/lz4/v4",
+    "version": "v4.1.27",
+    "source": "https://proxy.golang.org/github.com/pierrec/lz4/v4/@v/v4.1.27.zip",
+    "notices": [
+      "licenses/_modules/github.com/pierrec/lz4/v4@v4.1.27/LICENSE"
+    ]
+  },
+  {
+    "module": "github.com/prometheus/client_golang",
+    "version": "v1.24.1",
+    "source": "https://proxy.golang.org/github.com/prometheus/client_golang/@v/v1.24.1.zip",
+    "notices": [
+      "licenses/_modules/github.com/prometheus/client_golang@v1.24.1/LICENSE",
+      "licenses/_modules/github.com/prometheus/client_golang@v1.24.1/NOTICE",
+      "licenses/_modules/github.com/prometheus/client_golang@v1.24.1/internal/github.com/golang/gddo/LICENSE"
+    ]
+  },
+  {
+    "module": "github.com/prometheus/client_model",
+    "version": "v0.6.2",
+    "source": "https://proxy.golang.org/github.com/prometheus/client_model/@v/v0.6.2.zip",
+    "notices": [
+      "licenses/_modules/github.com/prometheus/client_model@v0.6.2/LICENSE",
+      "licenses/_modules/github.com/prometheus/client_model@v0.6.2/NOTICE"
+    ]
+  },
+  {
+    "module": "github.com/prometheus/common",
+    "version": "v0.70.1",
+    "source": "https://proxy.golang.org/github.com/prometheus/common/@v/v0.70.1.zip",
+    "notices": [
+      "licenses/_modules/github.com/prometheus/common@v0.70.1/LICENSE",
+      "licenses/_modules/github.com/prometheus/common@v0.70.1/NOTICE"
+    ]
+  },
+  {
+    "module": "github.com/prometheus/procfs",
+    "version": "v0.21.1",
+    "source": "https://proxy.golang.org/github.com/prometheus/procfs/@v/v0.21.1.zip",
+    "notices": [
+      "licenses/_modules/github.com/prometheus/procfs@v0.21.1/LICENSE",
+      "licenses/_modules/github.com/prometheus/procfs@v0.21.1/NOTICE"
+    ]
+  },
+  {
+    "module": "github.com/quic-go/qpack",
+    "version": "v0.6.0",
+    "source": "https://proxy.golang.org/github.com/quic-go/qpack/@v/v0.6.0.zip",
+    "notices": [
+      "licenses/_modules/github.com/quic-go/qpack@v0.6.0/LICENSE.md"
+    ]
+  },
+  {
+    "module": "github.com/quic-go/quic-go",
+    "version": "v0.59.0",
+    "source": "https://proxy.golang.org/github.com/quic-go/quic-go/@v/v0.59.0.zip",
+    "notices": [
+      "licenses/_modules/github.com/quic-go/quic-go@v0.59.0/LICENSE",
+      "licenses/_modules/github.com/quic-go/quic-go@v0.59.0/assets/LICENSE.md"
+    ]
+  },
+  {
+    "module": "github.com/segmentio/asm",
+    "version": "v1.2.1",
+    "source": "https://proxy.golang.org/github.com/segmentio/asm/@v/v1.2.1.zip",
+    "notices": [
+      "licenses/_modules/github.com/segmentio/asm@v1.2.1/LICENSE"
+    ]
+  },
+  {
+    "module": "github.com/segmentio/encoding",
+    "version": "v0.5.4",
+    "source": "https://proxy.golang.org/github.com/segmentio/encoding/@v/v0.5.4.zip",
+    "notices": [
+      "licenses/_modules/github.com/segmentio/encoding@v0.5.4/LICENSE",
+      "licenses/_modules/github.com/segmentio/encoding@v0.5.4/json/fuzz/LICENSE"
+    ]
+  },
+  {
+    "module": "github.com/shopspring/decimal",
+    "version": "v1.4.0",
+    "source": "https://proxy.golang.org/github.com/shopspring/decimal/@v/v1.4.0.zip",
+    "notices": [
+      "licenses/_modules/github.com/shopspring/decimal@v1.4.0/LICENSE"
+    ]
+  },
+  {
+    "module": "github.com/spf13/cobra",
+    "version": "v1.10.1",
+    "source": "https://proxy.golang.org/github.com/spf13/cobra/@v/v1.10.1.zip",
+    "notices": [
+      "licenses/_modules/github.com/spf13/cobra@v1.10.1/LICENSE.txt"
+    ]
+  },
+  {
+    "module": "github.com/spf13/pflag",
+    "version": "v1.0.9",
+    "source": "https://proxy.golang.org/github.com/spf13/pflag/@v/v1.0.9.zip",
+    "notices": [
+      "licenses/_modules/github.com/spf13/pflag@v1.0.9/LICENSE"
+    ]
+  },
+  {
+    "module": "github.com/ugorji/go/codec",
+    "version": "v1.3.1",
+    "source": "https://proxy.golang.org/github.com/ugorji/go/codec/@v/v1.3.1.zip",
+    "notices": [
+      "licenses/_modules/github.com/ugorji/go/codec@v1.3.1/LICENSE"
+    ]
+  },
+  {
+    "module": "github.com/yosida95/uritemplate/v3",
+    "version": "v3.0.2",
+    "source": "https://proxy.golang.org/github.com/yosida95/uritemplate/v3/@v/v3.0.2.zip",
+    "notices": [
+      "licenses/_modules/github.com/yosida95/uritemplate/v3@v3.0.2/LICENSE"
+    ]
+  },
+  {
+    "module": "go.mongodb.org/mongo-driver/v2",
+    "version": "v2.5.0",
+    "source": "https://proxy.golang.org/go.mongodb.org/mongo-driver/v2/@v/v2.5.0.zip",
+    "notices": [
+      "licenses/_modules/go.mongodb.org/mongo-driver/v2@v2.5.0/LICENSE"
+    ]
+  },
+  {
+    "module": "go.opentelemetry.io/auto/sdk",
+    "version": "v1.2.1",
+    "source": "https://proxy.golang.org/go.opentelemetry.io/auto/sdk/@v/v1.2.1.zip",
+    "notices": [
+      "licenses/_modules/go.opentelemetry.io/auto/sdk@v1.2.1/LICENSE"
+    ]
+  },
+  {
+    "module": "go.opentelemetry.io/otel",
+    "version": "v1.45.0",
+    "source": "https://proxy.golang.org/go.opentelemetry.io/otel/@v/v1.45.0.zip",
+    "notices": [
+      "licenses/_modules/go.opentelemetry.io/otel@v1.45.0/LICENSE"
+    ]
+  },
+  {
+    "module": "go.opentelemetry.io/otel/exporters/otlp/otlptrace",
+    "version": "v1.45.0",
+    "source": "https://proxy.golang.org/go.opentelemetry.io/otel/exporters/otlp/otlptrace/@v/v1.45.0.zip",
+    "notices": [
+      "licenses/_modules/go.opentelemetry.io/otel/exporters/otlp/otlptrace@v1.45.0/LICENSE"
+    ]
+  },
+  {
+    "module": "go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp",
+    "version": "v1.45.0",
+    "source": "https://proxy.golang.org/go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp/@v/v1.45.0.zip",
+    "notices": [
+      "licenses/_modules/go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp@v1.45.0/LICENSE"
+    ]
+  },
+  {
+    "module": "go.opentelemetry.io/otel/metric",
+    "version": "v1.45.0",
+    "source": "https://proxy.golang.org/go.opentelemetry.io/otel/metric/@v/v1.45.0.zip",
+    "notices": [
+      "licenses/_modules/go.opentelemetry.io/otel/metric@v1.45.0/LICENSE"
+    ]
+  },
+  {
+    "module": "go.opentelemetry.io/otel/sdk",
+    "version": "v1.45.0",
+    "source": "https://proxy.golang.org/go.opentelemetry.io/otel/sdk/@v/v1.45.0.zip",
+    "notices": [
+      "licenses/_modules/go.opentelemetry.io/otel/sdk@v1.45.0/LICENSE"
+    ]
+  },
+  {
+    "module": "go.opentelemetry.io/otel/trace",
+    "version": "v1.45.0",
+    "source": "https://proxy.golang.org/go.opentelemetry.io/otel/trace/@v/v1.45.0.zip",
+    "notices": [
+      "licenses/_modules/go.opentelemetry.io/otel/trace@v1.45.0/LICENSE"
+    ]
+  },
+  {
+    "module": "go.opentelemetry.io/proto/otlp",
+    "version": "v1.11.0",
+    "source": "https://proxy.golang.org/go.opentelemetry.io/proto/otlp/@v/v1.11.0.zip",
+    "notices": [
+      "licenses/_modules/go.opentelemetry.io/proto/otlp@v1.11.0/LICENSE"
+    ]
+  },
+  {
+    "module": "go.yaml.in/yaml/v3",
+    "version": "v3.0.4",
+    "source": "https://proxy.golang.org/go.yaml.in/yaml/v3/@v/v3.0.4.zip",
+    "notices": [
+      "licenses/_modules/go.yaml.in/yaml/v3@v3.0.4/LICENSE",
+      "licenses/_modules/go.yaml.in/yaml/v3@v3.0.4/NOTICE"
+    ]
+  },
+  {
+    "module": "golang.org/x/crypto",
+    "version": "v0.54.0",
+    "source": "https://proxy.golang.org/golang.org/x/crypto/@v/v0.54.0.zip",
+    "notices": [
+      "licenses/_modules/golang.org/x/crypto@v0.54.0/LICENSE"
+    ]
+  },
+  {
+    "module": "golang.org/x/net",
+    "version": "v0.57.0",
+    "source": "https://proxy.golang.org/golang.org/x/net/@v/v0.57.0.zip",
+    "notices": [
+      "licenses/_modules/golang.org/x/net@v0.57.0/LICENSE"
+    ]
+  },
+  {
+    "module": "golang.org/x/oauth2",
+    "version": "v0.36.0",
+    "source": "https://proxy.golang.org/golang.org/x/oauth2/@v/v0.36.0.zip",
+    "notices": [
+      "licenses/_modules/golang.org/x/oauth2@v0.36.0/LICENSE"
+    ]
+  },
+  {
+    "module": "golang.org/x/sys",
+    "version": "v0.47.0",
+    "source": "https://proxy.golang.org/golang.org/x/sys/@v/v0.47.0.zip",
+    "notices": [
+      "licenses/_modules/golang.org/x/sys@v0.47.0/LICENSE"
+    ]
+  },
+  {
+    "module": "golang.org/x/text",
+    "version": "v0.40.0",
+    "source": "https://proxy.golang.org/golang.org/x/text/@v/v0.40.0.zip",
+    "notices": [
+      "licenses/_modules/golang.org/x/text@v0.40.0/LICENSE"
+    ]
+  },
+  {
+    "module": "google.golang.org/genproto/googleapis/api",
+    "version": "v0.0.0-20260803160001-6ac0973c030d",
+    "source": "https://proxy.golang.org/google.golang.org/genproto/googleapis/api/@v/v0.0.0-20260803160001-6ac0973c030d.zip",
+    "notices": [
+      "licenses/_modules/google.golang.org/genproto/googleapis/api@v0.0.0-20260803160001-6ac0973c030d/LICENSE"
+    ]
+  },
+  {
+    "module": "google.golang.org/genproto/googleapis/rpc",
+    "version": "v0.0.0-20260803160001-6ac0973c030d",
+    "source": "https://proxy.golang.org/google.golang.org/genproto/googleapis/rpc/@v/v0.0.0-20260803160001-6ac0973c030d.zip",
+    "notices": [
+      "licenses/_modules/google.golang.org/genproto/googleapis/rpc@v0.0.0-20260803160001-6ac0973c030d/LICENSE"
+    ]
+  },
+  {
+    "module": "google.golang.org/grpc",
+    "version": "v1.83.0",
+    "source": "https://proxy.golang.org/google.golang.org/grpc/@v/v1.83.0.zip",
+    "notices": [
+      "licenses/_modules/google.golang.org/grpc@v1.83.0/LICENSE",
+      "licenses/_modules/google.golang.org/grpc@v1.83.0/NOTICE.txt"
+    ]
+  },
+  {
+    "module": "google.golang.org/protobuf",
+    "version": "v1.36.11",
+    "source": "https://proxy.golang.org/google.golang.org/protobuf/@v/v1.36.11.zip",
+    "notices": [
+      "licenses/_modules/google.golang.org/protobuf@v1.36.11/LICENSE"
+    ]
+  }
+]

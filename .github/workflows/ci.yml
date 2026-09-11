@@ -1,0 +1,177 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  detect-engine-execution-impact:
+    name: Real-engine execution impact detection
+    runs-on: ubuntu-latest
+    outputs:
+      docs_only: ${{ steps.changes.outputs.docs_only }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: changes
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # Manual ci runs validate the standard correctness path only. Manual
+          # warehouse execution belongs to real-engine-matrix.yml.
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "docs_only=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            BASE="${{ github.event.pull_request.base.sha }}"
+            HEAD="${{ github.event.pull_request.head.sha }}"
+          else
+            BASE="${{ github.event.before }}"
+            HEAD="${{ github.sha }}"
+          fi
+
+          CHANGED="$(git diff --name-only "$BASE" "$HEAD")"
+          printf '%s\n' "$CHANGED"
+
+          # A documentation-only change may touch docs/** or Markdown files
+          # anywhere in the repository. Any workflow, build, source, fixture,
+          # example, or test change forces the full correctness path.
+          docs_only=true
+          if [[ -z "$CHANGED" ]]; then
+            docs_only=false
+          else
+            while IFS= read -r path; do
+              [[ -z "$path" ]] && continue
+              if [[ "$path" != docs/* && "$path" != *.md ]]; then
+                docs_only=false
+                break
+              fi
+            done <<<"$CHANGED"
+          fi
+          echo "docs_only=$docs_only" >> "$GITHUB_OUTPUT"
+
+  test:
+    name: Required correctness tests
+    needs: detect-engine-execution-impact
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run docs-only correctness gate
+        if: ${{ needs.detect-engine-execution-impact.outputs.docs_only == 'true' }}
+        run: make docs-check
+      - uses: actions/setup-go@v7
+        if: ${{ needs.detect-engine-execution-impact.outputs.docs_only != 'true' }}
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Download modules
+        if: ${{ needs.detect-engine-execution-impact.outputs.docs_only != 'true' }}
+        run: go mod download
+      - name: Verify module files are tidy
+        if: ${{ needs.detect-engine-execution-impact.outputs.docs_only != 'true' }}
+        run: |
+          go mod tidy
+          git diff --exit-code -- go.mod go.sum
+      - name: Verify Go formatting
+        if: ${{ needs.detect-engine-execution-impact.outputs.docs_only != 'true' }}
+        run: make fmt-check
+      - name: Run standard correctness gate
+        if: ${{ needs.detect-engine-execution-impact.outputs.docs_only != 'true' }}
+        run: make check
+      - name: Run embedded DuckDB Backend and real-engine conformance
+        if: ${{ needs.detect-engine-execution-impact.outputs.docs_only != 'true' }}
+        run: make test-duckdb-backend
+      - name: Run deployable E2E smoke test
+        if: ${{ needs.detect-engine-execution-impact.outputs.docs_only != 'true' }}
+        run: make test-e2e
+
+  container:
+    name: Container build and version contract
+    needs: detect-engine-execution-impact
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Skip container build for docs-only change
+        if: ${{ needs.detect-engine-execution-impact.outputs.docs_only == 'true' }}
+        run: echo 'Documentation-only change; container build is not required.'
+      - uses: actions/checkout@v4
+        if: ${{ needs.detect-engine-execution-impact.outputs.docs_only != 'true' }}
+      - name: Check Docker runner capacity
+        if: ${{ needs.detect-engine-execution-impact.outputs.docs_only != 'true' }}
+        run: bash tools/ci/docker-runner-hygiene.sh
+      - name: Reclaim stale Metis Docker artifacts
+        if: ${{ needs.detect-engine-execution-impact.outputs.docs_only != 'true' }}
+        run: |
+          docker image rm -f metis:ci >/dev/null 2>&1 || true
+          docker builder prune -f --filter 'until=24h' >/dev/null || true
+      - name: Build container image
+        if: ${{ needs.detect-engine-execution-impact.outputs.docs_only != 'true' }}
+        run: |
+          docker build \
+            --build-arg VERSION=ci \
+            --build-arg COMMIT=${GITHUB_SHA} \
+            --build-arg BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ) \
+            -t metis:ci .
+      - name: Verify container version
+        if: ${{ needs.detect-engine-execution-impact.outputs.docs_only != 'true' }}
+        run: docker run --rm metis:ci version | grep -q '"version":"ci"'
+      - name: Verify container licenses
+        if: ${{ needs.detect-engine-execution-impact.outputs.docs_only != 'true' }}
+        run: docker run --rm --entrypoint sh metis:ci -c 'cd /usr/share/licenses/metis && test -s LICENSE && test -s NOTICE && test -s THIRD_PARTY_NOTICES && sha256sum -c licenses/SHA256SUMS'
+      - name: Cleanup container build artifacts
+        if: ${{ always() && needs.detect-engine-execution-impact.outputs.docs_only != 'true' }}
+        run: |
+          docker image rm -f metis:ci >/dev/null 2>&1 || true
+          docker container prune -f >/dev/null 2>&1 || true
+          docker builder prune -f --filter 'until=24h' >/dev/null 2>&1 || true
+          docker system df || true
+
+  release-packaging:
+    name: Release packaging snapshot
+    needs: detect-engine-execution-impact
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      # The tag-triggered release workflow runs GoReleaser for the first time at
+      # tag-push time, when a failure is most expensive to discover. This job
+      # exercises the same packaging path continuously so that never happens.
+      - name: Skip packaging snapshot for docs-only change
+        if: ${{ needs.detect-engine-execution-impact.outputs.docs_only == 'true' }}
+        run: echo 'Documentation-only change; release packaging is not required.'
+      - uses: actions/checkout@v4
+        if: ${{ needs.detect-engine-execution-impact.outputs.docs_only != 'true' }}
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v7
+        if: ${{ needs.detect-engine-execution-impact.outputs.docs_only != 'true' }}
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Build release archives without publishing
+        if: ${{ needs.detect-engine-execution-impact.outputs.docs_only != 'true' }}
+        uses: goreleaser/goreleaser-action@v7
+        with:
+          distribution: goreleaser
+          version: '~> v2'
+          args: release --snapshot --clean --skip=publish
+      # Verify every target and exercise the runner-native packaged binary.
+      - name: Verify packaged release artifacts
+        if: ${{ needs.detect-engine-execution-impact.outputs.docs_only != 'true' }}
+        run: bash tools/ci/release-artifact-smoke.sh dist "$GITHUB_SHA"
+      - name: Cleanup packaging artifacts
+        if: ${{ always() && needs.detect-engine-execution-impact.outputs.docs_only != 'true' }}
+        run: rm -rf dist
