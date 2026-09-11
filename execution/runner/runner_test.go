@@ -230,7 +230,7 @@ func TestExecutionRuntimeResolvesSecretsBeforeOpeningAndClosesResources(t *testi
 	observer := &recordingObserver{}
 	runtime := newExecutionRuntime(t, factory, testSecretResolver{value: "secret-value"}, observer, policy(10*time.Second, 10, 1024))
 
-	query := sqlquery.SQLQuery{Dialect: "DORIS", SQL: "SELECT region"}
+	query := sqlquery.SQLRenderResult{Dialect: "DORIS", SQL: "SELECT region"}
 	schema := artifact.OutputSchema{Columns: []artifact.OutputColumn{{Name: "region"}}}
 	compiled := &artifact.CompiledQuery{PhysicalQuery: query, OutputSchema: schema}
 	result, err := runtime.Execute(execution.WithQueryID(context.Background(), "query-123"), "doris-prod", compiled, execution.ExecutionOptions{MaxRows: 5})
@@ -602,7 +602,7 @@ func TestExecutionRuntimeNormalizesValuesUsingOutputSchema(t *testing.T) {
 		{Name: "event_date", Datatype: ossie.DataTypeDate},
 	}}
 	compiled := &artifact.CompiledQuery{
-		PhysicalQuery: sqlquery.SQLQuery{Dialect: "DORIS", SQL: "SELECT result"},
+		PhysicalQuery: sqlquery.SQLRenderResult{Dialect: "DORIS", SQL: "SELECT result"},
 		OutputSchema:  schema,
 	}
 	stream := &runtimeStream{rows: [][]any{{
@@ -634,7 +634,7 @@ func TestExecutionRuntimeNormalizesValuesUsingOutputSchema(t *testing.T) {
 
 func TestExecutionRuntimeRejectsNonBooleanIntegerResult(t *testing.T) {
 	compiled := &artifact.CompiledQuery{
-		PhysicalQuery: sqlquery.SQLQuery{Dialect: "DORIS", SQL: "SELECT active"},
+		PhysicalQuery: sqlquery.SQLRenderResult{Dialect: "DORIS", SQL: "SELECT active"},
 		OutputSchema: artifact.OutputSchema{Columns: []artifact.OutputColumn{{
 			Name: "active", Datatype: ossie.DataTypeBoolean,
 		}}},
@@ -651,7 +651,7 @@ func TestExecutionRuntimeRejectsNonBooleanIntegerResult(t *testing.T) {
 
 func TestExecutionRuntimeRejectsLossyDecimalResult(t *testing.T) {
 	compiled := &artifact.CompiledQuery{
-		PhysicalQuery: sqlquery.SQLQuery{Dialect: "DORIS", SQL: "SELECT revenue"},
+		PhysicalQuery: sqlquery.SQLRenderResult{Dialect: "DORIS", SQL: "SELECT revenue"},
 		OutputSchema: artifact.OutputSchema{Columns: []artifact.OutputColumn{{
 			Name: "revenue", Datatype: ossie.DataTypeDecimal,
 		}}},
@@ -673,7 +673,7 @@ func TestExecutionRuntimeRejectsLossyDecimalResult(t *testing.T) {
 func TestExecutionRuntimeSnapshotsCompiledQueryOwnership(t *testing.T) {
 	parameterValue := []byte("a")
 	compiled := &artifact.CompiledQuery{
-		PhysicalQuery: sqlquery.SQLQuery{
+		PhysicalQuery: sqlquery.SQLRenderResult{
 			Dialect:    "DORIS",
 			SQL:        "SELECT value",
 			Parameters: []sqlquery.QueryParameter{{Value: parameterValue}},
@@ -1190,7 +1190,7 @@ func oneColumnSchema() artifact.OutputSchema {
 }
 
 func compiledSQL(sql string) *artifact.CompiledQuery {
-	return &artifact.CompiledQuery{PhysicalQuery: sqlquery.SQLQuery{Dialect: "DORIS", SQL: sql}, OutputSchema: oneColumnSchema()}
+	return &artifact.CompiledQuery{PhysicalQuery: sqlquery.SQLRenderResult{Dialect: "DORIS", SQL: sql}, OutputSchema: oneColumnSchema()}
 }
 
 func equalResultRow(left, right []any) bool {

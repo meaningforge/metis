@@ -13,9 +13,9 @@ import (
 // execution Runner. It deliberately contains no DataSource, Backend, Renderer,
 // or routing state.
 type CompiledQuery struct {
-	PhysicalQuery sql.SQLQuery `json:"physical_query"`
-	OutputSchema  OutputSchema `json:"output_schema"`
-	Warnings      []Warning    `json:"warnings,omitempty"`
+	PhysicalQuery sql.SQLRenderResult `json:"physical_query"`
+	OutputSchema  OutputSchema        `json:"output_schema"`
+	Warnings      []Warning           `json:"warnings,omitempty"`
 }
 
 type Warning struct {
@@ -28,7 +28,7 @@ type Warning struct {
 // NewCompiledQuery establishes ownership of a compiler artifact at its
 // construction boundary. Its nested containers do not alias Renderer-owned
 // storage.
-func NewCompiledQuery(query sql.SQLQuery, schema OutputSchema) (*CompiledQuery, error) {
+func NewCompiledQuery(query sql.SQLRenderResult, schema OutputSchema) (*CompiledQuery, error) {
 	return SnapshotCompiledQuery(&CompiledQuery{PhysicalQuery: query, OutputSchema: schema})
 }
 
@@ -45,7 +45,7 @@ func SnapshotCompiledQuery(compiled *CompiledQuery) (*CompiledQuery, error) {
 	if strings.TrimSpace(compiled.PhysicalQuery.SQL) == "" {
 		return nil, fmt.Errorf("physical SQL query text is required")
 	}
-	query, err := snapshotSQLQuery(compiled.PhysicalQuery)
+	query, err := snapshotSQLRenderResult(compiled.PhysicalQuery)
 	if err != nil {
 		return nil, err
 	}
@@ -56,13 +56,13 @@ func SnapshotCompiledQuery(compiled *CompiledQuery) (*CompiledQuery, error) {
 	}, nil
 }
 
-func snapshotSQLQuery(query sql.SQLQuery) (sql.SQLQuery, error) {
+func snapshotSQLRenderResult(query sql.SQLRenderResult) (sql.SQLRenderResult, error) {
 	snapshot := query
 	snapshot.Parameters = make([]sql.QueryParameter, len(query.Parameters))
 	for index, parameter := range query.Parameters {
 		value, err := snapshotQueryParameterValue(parameter.Value)
 		if err != nil {
-			return sql.SQLQuery{}, fmt.Errorf("parameter %d: %w", index, err)
+			return sql.SQLRenderResult{}, fmt.Errorf("parameter %d: %w", index, err)
 		}
 		snapshot.Parameters[index] = sql.QueryParameter{Name: parameter.Name, Value: value}
 	}

@@ -29,7 +29,7 @@ func channelDataPolicy(req policy.Request) policy.Decision {
 	}
 	return out
 }
-func assertPolicyQuery(t *testing.T, q sql.SQLQuery) {
+func assertPolicyQuery(t *testing.T, q sql.SQLRenderResult) {
 	t.Helper()
 	if !strings.Contains(q.SQL, "(SELECT * FROM") || strings.Contains(q.SQL, "private-policy-value") {
 		t.Fatalf("policy not safely parameterized: %s", q.SQL)

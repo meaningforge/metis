@@ -82,7 +82,7 @@ func semanticGraphNodePredicates(node semanticplan.SemanticPlanNode) []semanticp
 	return out
 }
 
-func compileGrainToDateWithTimeSpine(t *testing.T, query query.SemanticQuery, dialect string) (*semanticplan.SemanticPlan, sql.SQLQuery) {
+func compileGrainToDateWithTimeSpine(t *testing.T, query query.SemanticQuery, dialect string) (*semanticplan.SemanticPlan, sql.SQLRenderResult) {
 	t.Helper()
 	doc, err := ossie.NewLoader().Load(fixtures.CommerceModelYAML)
 	if err != nil {

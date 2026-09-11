@@ -517,7 +517,7 @@ func stricterLimit(deployment, caller int64) int64 {
 	return deployment
 }
 
-func validateQueryDialect(query sql.SQLQuery, backend backend.Backend) error {
+func validateQueryDialect(query sql.SQLRenderResult, backend backend.Backend) error {
 	if query.SQL == "" || query.Dialect != backend.SQLDialect() {
 		return executionError(ExecutionInvalidInput, "physical query dialect does not match the DataSource Backend")
 	}

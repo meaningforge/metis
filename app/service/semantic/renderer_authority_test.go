@@ -94,7 +94,7 @@ func (r *identityRenderer) Capabilities() renderer.Capabilities {
 	r.capabilitiesCalls++
 	return r.delegate.Capabilities()
 }
-func (r *identityRenderer) Render(plan *sqlplan.Plan) (sql.SQLQuery, error) {
+func (r *identityRenderer) Render(plan *sqlplan.Plan) (sql.SQLRenderResult, error) {
 	r.renderCalls++
 	return r.delegate.Render(plan)
 }

@@ -69,7 +69,7 @@ SQLPlan
 Dialect Renderer
       |
       v
-compiler.SQLQuery
+compiler.SQLRenderResult
 ```
 
 `SemanticEvaluation` is the proposed future query-scoped metric-evaluation DAG
@@ -259,7 +259,7 @@ sql.DialectRegistry
 sql.Dialect.Render
         |
         v
-compiler.SQLQuery
+compiler.SQLRenderResult
 ```
 
 Package responsibilities are:
@@ -410,7 +410,7 @@ affecting field has a documented projection disposition and a per-field
 movement gate.
 
 `FingerprintSQLPlan` is regression identity for the complete physical plan,
-including parameter values that change the returned `compiler.SQLQuery`. It is
+including parameter values that change the returned `compiler.SQLRenderResult`. It is
 not a cache key or semantic identity. Sensitive values must never be printed as
 part of fingerprint diagnostics.
 
@@ -449,7 +449,7 @@ The renderer interface becomes conceptually:
 ```go
 type Dialect interface {
     Name() string
-    Render(*sqlplan.Plan) (compiler.SQLQuery, error)
+    Render(*sqlplan.Plan) (compiler.SQLRenderResult, error)
 }
 ```
 
@@ -478,7 +478,7 @@ same SQL and parameters.
 ### Parameters and output schema
 
 Typed predicate values remain owned by SQLPlan until rendering. The renderer
-chooses placeholder syntax and returns `compiler.SQLQuery.Parameters` in exact
+chooses placeholder syntax and returns `compiler.SQLRenderResult.Parameters` in exact
 placeholder order. SQLPlan fingerprinting observes value changes, while
 explanation redacts values.
 
@@ -664,7 +664,7 @@ RFC-0038 may become `Implemented` only when all of the following are true:
     compatibility fields no longer exist.
 17. Repository source scans prove there are no production or test imports of
     `github.com/meaningforge/metis/sqlast`.
-18. `compiler.PhysicalQuery`, `compiler.SQLQuery`, `compiler.OutputSchema`,
+18. `compiler.PhysicalQuery`, `compiler.SQLRenderResult`, `compiler.OutputSchema`,
     execution binding behavior, REST, and MCP contracts remain unchanged.
 19. Adding a concrete dialect still follows the registry and renderer workflow
     without modifying semantic resolution or creating a new SQLPlan builder.

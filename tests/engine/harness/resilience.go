@@ -76,7 +76,7 @@ func (e *ProductionExecution) executeProbe(ctx context.Context, statement string
 	if e == nil || e.runtime == nil || e.route.Backend.Renderer == nil {
 		return runner.ResultSet{}, errors.New("production conformance execution is not configured")
 	}
-	compiled, err := artifact.NewCompiledQuery(sql.SQLQuery{
+	compiled, err := artifact.NewCompiledQuery(sql.SQLRenderResult{
 		Dialect: e.route.Backend.SQLDialect(),
 		SQL:     statement,
 	}, artifact.OutputSchema{Columns: []artifact.OutputColumn{{Name: "probe", Datatype: datatype}}})

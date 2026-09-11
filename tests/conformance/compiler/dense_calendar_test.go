@@ -76,7 +76,7 @@ func TestOrdinaryMetricDoesNotLowerDenseCalendar(t *testing.T) {
 	}
 }
 
-func compileWithTimeSpine(t *testing.T, query query.SemanticQuery, dialect string) (*semanticplan.SemanticPlan, sql.SQLQuery) {
+func compileWithTimeSpine(t *testing.T, query query.SemanticQuery, dialect string) (*semanticplan.SemanticPlan, sql.SQLRenderResult) {
 	t.Helper()
 	doc, err := ossie.NewLoader().Load(fixtures.CommerceModelYAML)
 	if err != nil {

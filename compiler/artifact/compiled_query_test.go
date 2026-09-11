@@ -9,7 +9,7 @@ import (
 func TestSnapshotCompiledQueryOwnsMutableArtifactContainers(t *testing.T) {
 	parameter := []byte("a")
 	compiled, err := NewCompiledQuery(
-		sql.SQLQuery{Dialect: "DORIS", SQL: "SELECT ?", Parameters: []sql.QueryParameter{{Name: "value", Value: parameter}}},
+		sql.SQLRenderResult{Dialect: "DORIS", SQL: "SELECT ?", Parameters: []sql.QueryParameter{{Name: "value", Value: parameter}}},
 		OutputSchema{Columns: []OutputColumn{{Name: "value"}}},
 	)
 	if err != nil {
@@ -24,7 +24,7 @@ func TestSnapshotCompiledQueryOwnsMutableArtifactContainers(t *testing.T) {
 
 func TestSnapshotCompiledQueryRejectsUnknownParameterValue(t *testing.T) {
 	_, err := NewCompiledQuery(
-		sql.SQLQuery{Dialect: "DORIS", SQL: "SELECT ?", Parameters: []sql.QueryParameter{{Value: &struct{}{}}}},
+		sql.SQLRenderResult{Dialect: "DORIS", SQL: "SELECT ?", Parameters: []sql.QueryParameter{{Value: &struct{}{}}}},
 		OutputSchema{},
 	)
 	if err == nil {
@@ -33,7 +33,7 @@ func TestSnapshotCompiledQueryRejectsUnknownParameterValue(t *testing.T) {
 }
 
 func TestNewCompiledQueryRejectsStructurallyInvalidPhysicalQuery(t *testing.T) {
-	for _, query := range []sql.SQLQuery{
+	for _, query := range []sql.SQLRenderResult{
 		{SQL: "SELECT 1"},
 		{Dialect: "DORIS", SQL: " \t\n"},
 	} {

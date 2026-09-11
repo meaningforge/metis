@@ -81,11 +81,11 @@ func semiAdditiveComposabilityDocument(t *testing.T, terminalBase bool) *ossie.D
 	return doc
 }
 
-func compileSemiAdditiveComposability(t *testing.T, doc *ossie.Document, dialect string) (sql.SQLQuery, error) {
+func compileSemiAdditiveComposability(t *testing.T, doc *ossie.Document, dialect string) (sql.SQLRenderResult, error) {
 	t.Helper()
 	snapshot, err := manifest.BuildProjectManifest(projectName, doc)
 	if err != nil {
-		return sql.SQLQuery{}, err
+		return sql.SQLRenderResult{}, err
 	}
 	semanticQuery := query.SemanticQuery{
 		Project:    projectName,
@@ -96,15 +96,15 @@ func compileSemiAdditiveComposability(t *testing.T, doc *ossie.Document, dialect
 	renderer := mustRenderer(t, dialect)
 	resolved, err := resolver.New(manifest.NewStore(snapshot)).ResolveForRenderer(context.Background(), semanticQuery, renderer)
 	if err != nil {
-		return sql.SQLQuery{}, err
+		return sql.SQLRenderResult{}, err
 	}
 	plan, err := planner.New().Plan(context.Background(), resolved, renderer)
 	if err != nil {
-		return sql.SQLQuery{}, err
+		return sql.SQLRenderResult{}, err
 	}
 	sqlQuery, err := compilePlan(context.Background(), plan, renderer)
 	if err != nil {
-		return sql.SQLQuery{}, err
+		return sql.SQLRenderResult{}, err
 	}
 	return sqlQuery, nil
 }

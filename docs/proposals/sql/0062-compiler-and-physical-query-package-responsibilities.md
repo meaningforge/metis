@@ -42,13 +42,13 @@ The target end-to-end flow is:
 SemanticPlan
     -> sqlplan.Plan
     -> renderer.Renderer
-    -> sql.SQLQuery
+    -> sql.SQLRenderResult
     -> compiler/artifact.CompiledQuery
     -> execution/driver
 ```
 
 `sqlplan.Plan` remains Metis's sole renderer-neutral structured physical SQL IR.
-`sql.SQLQuery` is not another plan IR; it is the already-rendered SQL text,
+`sql.SQLRenderResult` is not another plan IR; it is the already-rendered SQL text,
 SQL dialect identity, and parameters.
 
 The root `compiler` package becomes the generic compilation orchestrator only
@@ -70,7 +70,7 @@ compiler/pipeline -> planner + renderer + compiler
 ```
 
 The root `compiler` package defined values such as `SQLDialect`,
-`RendererCapabilities`, `QueryParameter`, `SQLQuery`, `OutputSchema`, and
+`RendererCapabilities`, `QueryParameter`, `SQLRenderResult`, `OutputSchema`, and
 `CompiledQuery`. `renderer.Renderer` therefore imports `compiler` even though
 `compiler/pipeline` is the layer that actually orchestrates Renderer selection,
 SQLPlan conversion, rendering, and final `CompiledQuery` construction.
@@ -153,7 +153,7 @@ renderer/
     renderer.go                Renderer, Capabilities
     registry.go                Registry
     <warehouse>/               concrete SQL Renderers
-    sql/                       shared rendering and SQLQuery values
+    sql/                       shared rendering and SQLRenderResult values
 
 compiler/
     compiler.go                generic compilation orchestration
@@ -171,9 +171,9 @@ The role of each package is normative.
 
 | Package | Owns | Must not own |
 | --- | --- | --- |
-| `renderer/sql` | shared SQLPlan rendering and query values: `SQLDialect`, parameters, `SQLQuery` | semantic meaning, SQLPlan nodes, Renderer registry, compilation orchestration, execution |
+| `renderer/sql` | shared SQLPlan rendering and query values: `SQLDialect`, parameters, `SQLRenderResult` | semantic meaning, SQLPlan nodes, Renderer registry, compilation orchestration, execution |
 | `sqlplan` | renderer-neutral typed physical SQL IR, validation, cloning, explanation, fingerprints | semantic plan authority, Renderer lookup, rendered SQL artifacts, execution |
-| `renderer` | SQL Renderer contract, Renderer capabilities, registry, and dialect-specific `sqlplan.Plan -> sql.SQLQuery` rendering | semantic resolution, planner orchestration, final `CompiledQuery`, DataSource routing, execution |
+| `renderer` | SQL Renderer contract, Renderer capabilities, registry, and dialect-specific `sqlplan.Plan -> sql.SQLRenderResult` rendering | semantic resolution, planner orchestration, final `CompiledQuery`, DataSource routing, execution |
 | `compiler/artifact` | immutable completed compilation output: `CompiledQuery`, `OutputSchema`, output columns, structural validation and clone rules | semantic schema derivation, planner orchestration, Renderer selection, execution policy |
 | `compiler` | Renderer resolution for compile-only callers, generic one-plan compilation orchestration, invocation of planner conversion and rendering, final artifact composition | semantic meaning, SQL syntax implementation, runtime execution, credentials |
 | `compiler/attribution` | attribution-specific orchestration over multiple already-defined semantic plans and the generic compiler | attribution mathematics, Renderer implementation, execution |
@@ -197,7 +197,7 @@ type QueryParameter struct {
     Value any
 }
 
-type SQLQuery struct {
+type SQLRenderResult struct {
     Dialect    SQLDialect
     SQL        string
     Parameters []QueryParameter
@@ -217,13 +217,13 @@ This RFC also deliberately does not introduce `physical.QueryType` or a generic
 physical query kind exists would create an unused abstraction. A future non-SQL
 physical query form requires a separate design decision.
 
-The package name does not mean that `sql.SQLQuery` is a physical plan.
+The package name does not mean that `sql.SQLRenderResult` is a physical plan.
 Metis has exactly one structured physical SQL planning IR: `sqlplan.Plan`.
 
 ### `renderer`: SQL rendering authority
 
 `renderer.Renderer` is explicitly a SQL Renderer. Its input is `sqlplan.Plan`
-and its output is `sql.SQLQuery`.
+and its output is `sql.SQLRenderResult`.
 
 Renderer capabilities belong to `renderer`, because they are facts supplied by
 the selected Renderer rather than facts owned by compiler orchestration.
@@ -243,17 +243,17 @@ type Renderer interface {
     SQLDialect() sql.SQLDialect
     ExpressionDialect() string
     Capabilities() Capabilities
-    Render(*sqlplan.Plan) (sql.SQLQuery, error)
+    Render(*sqlplan.Plan) (sql.SQLRenderResult, error)
 }
 ```
 
 `Capabilities` must not contain `Outputs []physical.QueryType`. Once the
-Renderer contract itself guarantees a `sql.SQLQuery` result, an
+Renderer contract itself guarantees a `sql.SQLRenderResult` result, an
 `Outputs: [SQL]` capability is tautological and cannot represent another output
 kind. New capability fields require concrete SQL-rendering behavior to justify
 them.
 
-Returning one `sql.SQLQuery` keeps SQL text, SQL dialect, and parameters as
+Returning one `sql.SQLRenderResult` keeps SQL text, SQL dialect, and parameters as
 one owned value instead of a parallel `(string, []Parameter)` tuple. The
 compiler validates that the returned query is structurally valid and that its
 `SQLDialect` matches the exact selected Renderer.
@@ -286,7 +286,7 @@ type OutputSchema struct {
 }
 
 type CompiledQuery struct {
-    PhysicalQuery sql.SQLQuery
+    PhysicalQuery sql.SQLRenderResult
     OutputSchema  OutputSchema
 }
 ```
@@ -302,7 +302,7 @@ Artifact ownership is intentionally split from semantic schema derivation:
   from a validated `SemanticPlan`, including column order, metric/dimension
   roles, datatypes, and grain/output-contract evidence;
 - root `compiler` only receives the already-derived schema and composes it with
-  the rendered `sql.SQLQuery`; it must not re-derive, reorder, reinterpret,
+  the rendered `sql.SQLRenderResult`; it must not re-derive, reorder, reinterpret,
   or infer schema from rendered SQL.
 
 Moving these types must not weaken the existing atomic
@@ -387,7 +387,7 @@ planner conversion: SemanticPlan -> sqlplan.Plan
 same Renderer.Render(sqlplan.Plan)
         |
         v
-sql.SQLQuery
+sql.SQLRenderResult
         |
         v
 artifact.NewCompiledQuery(physicalQuery, outputSchema)
@@ -523,7 +523,7 @@ Renderer SPI
     renderer.Registry
     sql.SQLDialect
     sql.QueryParameter
-    sql.SQLQuery
+    sql.SQLRenderResult
     sqlplan.Plan and public SQLPlan node/value types reachable from Plan
 ```
 
@@ -537,7 +537,7 @@ Driver SPI
     execution/datasource contracts referenced by Driver
     compiler/artifact.CompiledQuery
     compiler/artifact.OutputSchema and reachable output types
-    sql.SQLQuery and reachable parameter/dialect types
+    sql.SQLRenderResult and reachable parameter/dialect types
 ```
 
 Root `compiler` is not part of the Driver SPI.
@@ -560,10 +560,10 @@ The following terms have distinct meanings and must not be collapsed:
 ```text
 SemanticPlan               source-aware logical semantic DAG
 sqlplan.Plan / SQLPlan     renderer-neutral structured physical SQL planning IR
-sql.SQLQuery          rendered SQL text + SQLDialect + parameters
+sql.SQLRenderResult          rendered SQL text + SQLDialect + parameters
 artifact.CompiledQuery     rendered query + semantic OutputSchema
 compiler                   orchestration that constructs CompiledQuery
-renderer                   dialect-specific SQLPlan -> SQLQuery conversion
+renderer                   dialect-specific SQLPlan -> SQLRenderResult conversion
 execution                  running CompiledQuery against a DataSource
 ```
 
@@ -593,7 +593,7 @@ orchestration destination after extraction.
 ### Keep a generic `physical.Query` and `RendererCapabilities.Outputs`
 
 There is currently no second physical Renderer output kind. If Renderer always
-returns `sql.SQLQuery`, `Outputs: [SQL]` is a tautology rather than a real
+returns `sql.SQLRenderResult`, `Outputs: [SQL]` is a tautology rather than a real
 capability boundary.
 
 Rejected. Generalize only when a concrete non-SQL physical query form requires
@@ -608,7 +608,7 @@ Rejected in favor of `sql.SQLDialect`.
 
 ### Put every shared type in `renderer`
 
-`sql.SQLQuery` and `CompiledQuery` are consumed outside rendering.
+`sql.SQLRenderResult` and `CompiledQuery` are consumed outside rendering.
 Execution should not import Renderer authority merely to execute an already
 compiled artifact.
 
@@ -637,7 +637,7 @@ acyclic and testable.
 
 ### Phase 1: introduce low-level owners
 
-1. Add `renderer/sql` with `SQLDialect`, `QueryParameter`, and `SQLQuery`.
+1. Add `renderer/sql` with `SQLDialect`, `QueryParameter`, and `SQLRenderResult`.
 2. Add `compiler/artifact` with `OutputSchema`, `OutputColumn`, and
    `CompiledQuery` contracts.
 3. Migrate repository callers directly to the new owners; add no root aliases.
@@ -649,8 +649,8 @@ No behavior or SQL output changes are allowed in this phase.
 1. Move Renderer capability ownership to `renderer.Capabilities`.
 2. Remove output-kind pseudo-generalization from Renderer capabilities.
 3. Change Renderer signatures and implementations to use `sql.SQLDialect`,
-   `sql.QueryParameter`, and `sql.SQLQuery`.
-4. Return one owned `sql.SQLQuery` from `Renderer.Render`.
+   `sql.QueryParameter`, and `sql.SQLRenderResult`.
+4. Return one owned `sql.SQLRenderResult` from `Renderer.Render`.
 5. Update Renderer registry, built-ins, SQL toolkit integration, tests, and
    architecture guards.
 
@@ -724,7 +724,7 @@ This RFC cannot become `Implemented` until all of the following are true:
   execution tests pass;
 - no process-global registry, compatibility Renderer path, or second physical
   IR is introduced; and
-- current docs explicitly distinguish `SQLPlan`, `sql.SQLQuery`,
+- current docs explicitly distinguish `SQLPlan`, `sql.SQLRenderResult`,
   `CompiledQuery`, compiler orchestration, Renderer authority, and execution.
 
 ## Documentation updates

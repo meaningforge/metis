@@ -12,10 +12,10 @@ type QueryParameter struct {
 	Value any `json:"value"`
 }
 
-// SQLQuery is one complete rendered SQL query. SQL retains placeholders;
+// SQLRenderResult is the output of rendering a SQL plan. SQL retains placeholders;
 // execution backends pass Parameters separately to their database drivers.
 // Exporters preserve both SQL and Parameters without interpolating values.
-type SQLQuery struct {
+type SQLRenderResult struct {
 	Dialect    SQLDialect       `json:"dialect"`
 	SQL        string           `json:"sql"`
 	Parameters []QueryParameter `json:"parameters,omitempty"`

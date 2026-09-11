@@ -73,7 +73,7 @@ func TestRollingCumulativeCompilerConformance(t *testing.T) {
 	}
 }
 
-func compileRollingWithTimeSpine(t *testing.T, query query.SemanticQuery, dialect string) (*semanticplan.SemanticPlan, sql.SQLQuery) {
+func compileRollingWithTimeSpine(t *testing.T, query query.SemanticQuery, dialect string) (*semanticplan.SemanticPlan, sql.SQLRenderResult) {
 	t.Helper()
 	doc, err := ossie.NewLoader().Load(fixtures.CommerceModelYAML)
 	if err != nil {

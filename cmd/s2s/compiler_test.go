@@ -115,7 +115,7 @@ func TestCompilePreservesParametersInJSON(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var got sql.SQLQuery
+	var got sql.SQLRenderResult
 	if err := json.Unmarshal([]byte(text), &got); err != nil {
 		t.Fatal(err)
 	}
