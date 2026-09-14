@@ -268,7 +268,7 @@ The two target-specific contracts are intentionally independent. A renderer can 
 ## Standard entry points
 
 ```bash
-make check                  # required offline correctness gate
+make check                  # required correctness gate, no live database needed
 make test-e2e               # deployable API/MCP smoke test
 make test-engine-clickhouse # real ClickHouse execution conformance
 make test-engine-doris      # real Doris execution conformance
@@ -277,6 +277,11 @@ make semantic-correctness-coverage-check # reject stale corpus evidence report
 ```
 
 Real-engine backends follow the naming convention `make test-engine-<engine>`.
+
+The independent-host integration test inherits `GOPROXY` and `GOSUMDB` from
+the environment. A fresh module cache requires dependency downloads, including
+transitive module metadata that a repository-only build may not fetch. Offline
+runs require the independent host's dependencies to be cached as well.
 
 ## Adding a new dialect or engine
 

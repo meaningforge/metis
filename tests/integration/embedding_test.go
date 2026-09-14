@@ -30,7 +30,10 @@ func TestIndependentHostUsesPublicModule(t *testing.T) {
 	defer cancel()
 	cmd := exec.CommandContext(ctx, "go", "run", "-mod=mod", ".")
 	cmd.Dir = work
-	cmd.Env = append(os.Environ(), "GOWORK=off", "CGO_ENABLED=0", "GOPROXY=off", "GOSUMDB=off", "GIN_MODE=release")
+	// An independent consumer may need transitive go.mod versions that the
+	// repository build did not cache. Inherit proxy and checksum settings so
+	// this test also works on a fresh runner without a preceding go mod tidy.
+	cmd.Env = append(os.Environ(), "GOWORK=off", "CGO_ENABLED=0", "GIN_MODE=release")
 	if out, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("external module: %v\n%s", err, out)
 	} else {
