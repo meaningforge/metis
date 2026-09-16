@@ -30,6 +30,9 @@ func ValidateDocument(doc *Document) error {
 		if err := validateModel(m); err != nil {
 			return err
 		}
+		if _, _, err := SemanticModelDataSource(m); err != nil {
+			return invalid("invalid METIS data-source extension", map[string]any{"model": m.Name, "cause": err.Error()})
+		}
 		if spec, ok, err := TimeSpine(m); err != nil {
 			return invalid("invalid METIS time-spine extension", map[string]any{"model": m.Name, "cause": err.Error()})
 		} else if ok {

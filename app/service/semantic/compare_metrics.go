@@ -126,9 +126,9 @@ func (s *CompareMetricsService) CompareMetrics(ctx context.Context, input Metric
 			return nil, err
 		}
 	}
-	dataSource, ok := s.projects.DataSourceForProject(project)
+	dataSource, ok := dataSourceForModel(s.projects, project, normalized.Model)
 	if !ok {
-		return nil, queryExecutionError(serrors.ErrQueryExecutionUnavailable, "project has no configured DataSource")
+		return nil, queryExecutionError(serrors.ErrQueryExecutionUnavailable, "semantic model has no configured DataSource")
 	}
 	route, err := s.runtime.ResolveDataSource(dataSource)
 	if err != nil {

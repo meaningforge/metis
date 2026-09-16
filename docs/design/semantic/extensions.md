@@ -34,6 +34,13 @@ In one sentence:
 
 Preservation does not imply semantic support. An unknown extension must not silently change resolution, planning, or generated SQL merely because Metis can load it.
 
+The typed `METIS` semantic-model `data_source` extension is operational
+placement metadata rather than a Renderer capability. Bootstrap reads it only
+to select one member of a Deployment's applied DataSource set before
+compilation. It contains a logical name, never connection configuration, and is
+specified by [runtime bootstrap](../../specs/operations/runtime-bootstrap.md)
+and [ADR-0018](../../decisions/operations/0018-semantic-model-selects-one-applied-datasource.md).
+
 The current runtime observes custom extensions attached to these Ossie owners:
 
 ```text

@@ -127,9 +127,9 @@ func (s *DimensionValuesService) GetDimensionValues(ctx context.Context, input D
 		return nil, serrors.Internal("could not create query identifier", nil)
 	}
 	executionCtx := runner.WithQueryID(ctx, queryID)
-	dataSource, ok := s.projects.DataSourceForProject(project)
+	dataSource, ok := dataSourceForModel(s.projects, project, normalized.model)
 	if !ok {
-		return nil, queryExecutionError(serrors.ErrQueryExecutionUnavailable, "project has no configured DataSource")
+		return nil, queryExecutionError(serrors.ErrQueryExecutionUnavailable, "semantic model has no configured DataSource")
 	}
 	route, err := s.runtime.ResolveDataSource(dataSource)
 	if err != nil {

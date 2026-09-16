@@ -5,7 +5,7 @@
 
 **Status:** Accepted
 **Date:** 2026-09-01
-**Last reviewed:** 2026-09-01
+**Last reviewed:** 2026-09-16
 **Supersedes:** ADR-0011 only where it stabilized arbitrary nested DataSource and Driver Config values and nested SecretRef envelopes
 
 ## Context
@@ -20,7 +20,8 @@ configuration unnecessarily different.
 External systems demonstrate that environment- and vault-backed connection
 fields are useful, but their complete profile grammar, templating language,
 targets, and authentication schema are not Metis authorities. Metis already
-has a direct Project-to-DataSource runtime model and exact Driver secret lookup.
+has deterministic semantic-model-to-DataSource placement and exact Driver
+secret lookup.
 
 ## Decision
 

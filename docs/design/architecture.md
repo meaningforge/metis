@@ -36,15 +36,18 @@ Metis does not scan SQL text to interpolate placeholders.
 ## Runtime and Project isolation
 
 A Runtime can host multiple Projects. Each Project has a semantic namespace,
-its own immutable generations, and at most one configured DataSource reference.
+its own immutable generations, and zero or more applied DataSource references.
 The Manager owns Project generation pointers and lazy request pinning. It is
 not a connection pool or a DataSource. An explicit replacement rebuilds semantic
 state while preserving process-owned execution resources.
 
 Compile-only requests select a SQL dialect. Executed queries derive a Backend
-from the resolved Project's DataSource type; that Backend supplies the exact
-Renderer and DriverFactory. The same selected Renderer participates throughout
-compilation. Model expressions do not choose database placement.
+from the resolved semantic model's applied DataSource type; that Backend
+supplies the exact Renderer and DriverFactory. A sole Project DataSource is
+inferred. With several applied sources, each semantic model explicitly names
+one logical source through a typed METIS extension. The same selected Renderer
+participates throughout compilation. Requests and expressions do not choose
+database placement, and one query never spans sources.
 
 ## Extension and interface boundaries
 

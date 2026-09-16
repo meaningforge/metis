@@ -13,12 +13,13 @@ import (
 	"github.com/meaningforge/metis/execution/datasource"
 )
 
-// ProjectInput carries semantic bytes and one optional physical association.
+// ProjectInput carries semantic bytes and optional applied DataSource names.
 // Document paths are identities for validation; NewRuntime never opens them.
 type ProjectInput struct {
-	Config     *execution.ProjectConfig
-	Documents  []source.SourceDocument
-	DataSource string
+	Config      *execution.ProjectConfig
+	Documents   []source.SourceDocument
+	DataSource  string
+	DataSources []string
 }
 
 // RuntimeInput contains only process configuration, never Cloud storage,
@@ -49,7 +50,7 @@ func NewRuntime(ctx context.Context, input RuntimeInput, options ...RuntimeOptio
 	}
 	config := &DeploymentConfig{DefaultProject: input.DefaultProject, Projects: map[string]ProjectRegistration{}}
 	for id, p := range input.Projects {
-		config.Projects[id] = ProjectRegistration{Path: "<memory>", DataSource: p.DataSource}
+		config.Projects[id] = ProjectRegistration{Path: "<memory>", DataSource: p.DataSource, DataSources: append([]string(nil), p.DataSources...)}
 	}
 	if len(input.DataSources) > 0 {
 		config.DataSources = &DataSourceRegistryRef{Path: "<memory>"}
@@ -85,8 +86,8 @@ func NewRuntime(ctx context.Context, input RuntimeInput, options ...RuntimeOptio
 			return nil, err
 		}
 		p := input.Projects[id]
-		if p.DataSource != "" {
-			if _, err := registry.Resolve(p.DataSource); err != nil {
+		for _, name := range registrationDataSources(config.Projects[id]) {
+			if _, err := registry.Resolve(name); err != nil {
 				return nil, invalidDeploymentConfig("project references an unknown DataSource", map[string]any{"project": id})
 			}
 		}
