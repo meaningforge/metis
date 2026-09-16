@@ -32,8 +32,9 @@ type DeploymentConfig struct {
 }
 
 type ProjectRegistration struct {
-	Path       string `yaml:"path" json:"path"`
-	DataSource string `yaml:"data_source,omitempty" json:"data_source,omitempty"`
+	Path        string   `yaml:"path" json:"path"`
+	DataSource  string   `yaml:"data_source,omitempty" json:"data_source,omitempty"`
+	DataSources []string `yaml:"data_sources,omitempty" json:"data_sources,omitempty"`
 }
 
 // DataSourceRegistryRef identifies the one deployment-level DataSource file.
@@ -212,11 +213,10 @@ func loadDataSources(baseDir string, config *DeploymentConfig, backends *backend
 	sort.Strings(projects)
 	for _, project := range projects {
 		registration := config.Projects[project]
-		if registration.DataSource == "" {
-			continue
-		}
-		if _, err := registry.Resolve(registration.DataSource); err != nil {
-			return nil, invalidDeploymentConfig("project references an unknown DataSource", map[string]any{"project": project, "data_source": registration.DataSource})
+		for _, name := range registrationDataSources(registration) {
+			if _, err := registry.Resolve(name); err != nil {
+				return nil, invalidDeploymentConfig("project references an unknown DataSource", map[string]any{"project": project, "data_source": name})
+			}
 		}
 	}
 	return registry, nil
@@ -252,18 +252,42 @@ func (c *DeploymentConfig) ResolveProject(explicit string) (string, error) {
 	return "", &serrors.Error{Code: serrors.ErrProjectRequired, Message: "project is required"}
 }
 
-// DataSourceForProject returns the deployment-owned DataSource reference for
-// one already resolved project. It deliberately does not apply project
-// selection or any fallback.
+// DataSourceForProject returns the sole deployment-owned DataSource for one
+// already resolved project. It returns false for zero or several applied
+// sources and deliberately does not apply project selection or fallback.
 func (c *DeploymentConfig) DataSourceForProject(project string) (string, bool) {
 	if c == nil {
 		return "", false
 	}
 	registration, ok := c.Projects[project]
-	if !ok || registration.DataSource == "" {
+	if !ok {
 		return "", false
 	}
-	return registration.DataSource, true
+	names := registrationDataSources(registration)
+	if len(names) != 1 {
+		return "", false
+	}
+	return names[0], true
+}
+
+// DataSourcesForProject returns the complete applied source set for one
+// already resolved project. The returned slice is owned by the caller.
+func (c *DeploymentConfig) DataSourcesForProject(project string) []string {
+	if c == nil {
+		return nil
+	}
+	registration, ok := c.Projects[project]
+	if !ok {
+		return nil
+	}
+	return registrationDataSources(registration)
+}
+
+func registrationDataSources(registration ProjectRegistration) []string {
+	if registration.DataSource != "" {
+		return []string{registration.DataSource}
+	}
+	return append([]string(nil), registration.DataSources...)
 }
 
 func loadDeploymentConfig(data []byte) (*DeploymentConfig, error) {
@@ -286,7 +310,20 @@ func loadDeploymentConfig(data []byte) (*DeploymentConfig, error) {
 		if project.DataSource != strings.TrimSpace(project.DataSource) {
 			return nil, invalidDeploymentConfig("project DataSource reference must not have surrounding whitespace", map[string]any{"project": key})
 		}
-		if project.DataSource != "" && config.DataSources == nil {
+		if project.DataSource != "" && len(project.DataSources) > 0 {
+			return nil, invalidDeploymentConfig("project must use either data_source or data_sources", map[string]any{"project": key})
+		}
+		seenSources := map[string]struct{}{}
+		for _, name := range project.DataSources {
+			if name == "" || name != strings.TrimSpace(name) {
+				return nil, invalidDeploymentConfig("project DataSource reference must be non-empty and trimmed", map[string]any{"project": key})
+			}
+			if _, exists := seenSources[name]; exists {
+				return nil, invalidDeploymentConfig("project data_sources must not contain duplicates", map[string]any{"project": key, "data_source": name})
+			}
+			seenSources[name] = struct{}{}
+		}
+		if (project.DataSource != "" || len(project.DataSources) > 0) && config.DataSources == nil {
 			return nil, invalidDeploymentConfig("project DataSource reference requires data_sources registry", map[string]any{"project": key})
 		}
 	}

@@ -158,6 +158,10 @@ func assembleSemanticServices(semanticManifest *manifest.SemanticManifest, proje
 	if !ok {
 		return runtimeservice.SemanticServices{}, fmt.Errorf("project resolver does not provide execution placement")
 	}
+	executionResolver, err := newExecutionPlacementResolver(executionResolver, semanticManifest)
+	if err != nil {
+		return runtimeservice.SemanticServices{}, err
+	}
 	store := manifest.NewStore(semanticManifest)
 	discoveryService := service.NewDiscoveryService(store).
 		WithProjectResolver(projectResolver).

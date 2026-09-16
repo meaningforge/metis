@@ -15,7 +15,7 @@ default_project: finance
 projects:
   finance:
     path: ./projects/finance.yaml
-    data_source: doris-prod
+    data_sources: [orders, customers]
   demo:
     path: ./projects/demo.yaml
 
@@ -28,9 +28,30 @@ Key/Name. `default_project`, when present, MUST reference an existing key.
 Configuration decoding is strict: unknown fields fail startup.
 
 Project registration owns deployment wiring only. It references one semantic
-project manifest and MAY reference exactly one DataSource. There is no
+project manifest and MAY apply one or more named DataSources. The singular
+`data_source` field remains a shorthand for a one-item set; a registration MUST
+NOT specify both forms. There is no
 `ExecutionBinding`, `target`, `default_target`, or `execution.projects` route
 map in the accepted grammar.
+
+When exactly one DataSource is applied, every semantic model without explicit
+placement uses it. When several are applied, every semantic model MUST select
+one applied name through this Ossie extension:
+
+```yaml
+semantic_model:
+  - name: orders
+    custom_extensions:
+      - vendor_name: METIS
+        data: '{"kind":"data_source","name":"orders"}'
+```
+
+The name is a stable Project-level logical selector. Endpoint, credential,
+database-family, policy, and Driver configuration remain exclusively in the
+deployment DataSource registry. The extension binds the complete semantic
+model, so one compiled query always uses one DataSource and one Renderer.
+Cross-source joins, request-time source selection, and federation are not part
+of this contract.
 
 ## Semantic project manifests
 
@@ -207,11 +228,13 @@ changing Config shape, Runner, or a Driver; an unconfigured provider fails
 closed and never falls back to plaintext. Compile-only SQL dialects do not
 become runtime Backends merely because their Renderers are registered.
 
-A project without `data_source` is valid for compile-only use. Runtime execution
-for that project fails explicitly. Agent Project discovery reports `compile_sql`
-for a compilable Project and additionally reports `query_metrics` only when the
-direct DataSource and Backend resolve through Runner. This inspection performs
-no connection or secret-resolution work.
+A project without `data_source` or `data_sources` is valid for compile-only use.
+Runtime execution for that project fails explicitly. An explicit semantic-model
+placement may remain in a compile-only release; it acquires runtime authority
+only when the Deployment applies that named DataSource. Agent Project discovery
+reports `compile_sql` for a compilable Project and additionally reports
+`query_metrics` only when an applied DataSource and Backend resolve through
+Runner. This inspection performs no connection or secret-resolution work.
 
 ## Governed execution boundary
 
@@ -257,15 +280,18 @@ attempt. After a fault, the process-scoped Runtime remains reusable when its
 Driver can safely reuse it; shutdown and explicit recycle are the only Core
 lifecycle authorities.
 
-`query_metrics` resolves a project once, follows its direct `data_source`
-reference once, resolves that DataSource's Backend once, and uses that exact
-Backend Renderer for semantic resolution, planning, rendering, and execution.
+`query_metrics` resolves a project and semantic model once, resolves the
+model's DataSource placement once, resolves that DataSource's Backend once, and
+uses that exact Backend Renderer for semantic resolution, planning, rendering,
+and execution. A sole applied source is inferred; a multi-source Project must
+have complete explicit model placement before the generation can activate.
 It accepts semantic intent only and returns `query_id`, normalized schema,
 rows, and count. Compile-only deployments still register the public REST/MCP
 operation but return `QUERY_EXECUTION_UNAVAILABLE`; they never infer a target.
 
-`get_dimension_values` follows the same exact Project-to-DataSource-to-Backend
-Renderer authority and execution-unavailable behavior. It compiles and executes
+`get_dimension_values` follows the same exact
+Project-to-model-to-DataSource-to-Backend Renderer authority and
+execution-unavailable behavior. It compiles and executes
 exactly one normalized semantic query with a caller row ceiling of `limit + 1`,
 then validates and projects one typed dimension column. It accepts no runtime
 placement override and returns no SQL.

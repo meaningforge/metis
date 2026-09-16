@@ -13,11 +13,38 @@ import (
 )
 
 // ExecutionProjectResolver resolves the semantic namespace and exposes its
-// direct deployment DataSource wiring. It must not contain target aliases or
-// runtime overrides.
+// legacy singular deployment DataSource wiring. It must not contain target
+// aliases or runtime overrides.
 type ExecutionProjectResolver interface {
 	ProjectResolver
 	DataSourceForProject(project string) (string, bool)
+}
+
+// ModelExecutionProjectResolver is the additive multi-source placement
+// contract. Existing resolvers retain direct Project wiring; deployments with
+// several applied sources resolve one source from the requested semantic model.
+type ModelExecutionProjectResolver interface {
+	ExecutionProjectResolver
+	DataSourceForModel(project, model string) (string, bool)
+	DataSourcesForProject(project string) []string
+}
+
+func dataSourceForModel(projects ExecutionProjectResolver, project, model string) (string, bool) {
+	if resolver, ok := projects.(ModelExecutionProjectResolver); ok {
+		return resolver.DataSourceForModel(project, model)
+	}
+	return projects.DataSourceForProject(project)
+}
+
+func dataSourcesForProject(projects ExecutionProjectResolver, project string) []string {
+	if resolver, ok := projects.(ModelExecutionProjectResolver); ok {
+		return resolver.DataSourcesForProject(project)
+	}
+	name, ok := projects.DataSourceForProject(project)
+	if !ok {
+		return nil
+	}
+	return []string{name}
 }
 
 // QueryMetricsRequest contains semantic intent only. Physical SQL, dialect,
@@ -39,7 +66,7 @@ type QueryMetricsResult struct {
 }
 
 // QueryMetricsService composes the only generic public semantic execution workflow:
-// resolve project -> direct DataSource -> Backend -> same Renderer compile ->
+// resolve project and model -> DataSource -> Backend -> same Renderer compile ->
 // atomic execution. It remains transport-neutral.
 type QueryMetricsService struct {
 	compile               *CompileService
@@ -84,12 +111,10 @@ func (s *QueryMetricsService) ProjectCapabilities(_ context.Context, project str
 	if err != nil || resolved != project {
 		return nil
 	}
-	dataSource, ok := s.projects.DataSourceForProject(resolved)
-	if !ok {
-		return nil
-	}
-	if _, err := s.runtime.ResolveDataSource(dataSource); err == nil {
-		return []AgentProjectCapability{AgentCapabilityQueryMetrics}
+	for _, dataSource := range dataSourcesForProject(s.projects, resolved) {
+		if _, err := s.runtime.ResolveDataSource(dataSource); err == nil {
+			return []AgentProjectCapability{AgentCapabilityQueryMetrics}
+		}
 	}
 	return nil
 }
@@ -131,9 +156,9 @@ func (s *QueryMetricsService) QueryMetrics(ctx context.Context, req QueryMetrics
 			return nil, err
 		}
 	}
-	dataSource, ok := s.projects.DataSourceForProject(project)
+	dataSource, ok := dataSourceForModel(s.projects, project, req.Query.Model)
 	if !ok {
-		return nil, queryExecutionError(serrors.ErrQueryExecutionUnavailable, "project has no configured DataSource")
+		return nil, queryExecutionError(serrors.ErrQueryExecutionUnavailable, "semantic model has no configured DataSource")
 	}
 	route, err := s.runtime.ResolveDataSource(dataSource)
 	if err != nil {

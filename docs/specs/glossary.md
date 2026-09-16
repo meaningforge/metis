@@ -153,7 +153,8 @@ independent Renderer/target authority.
 ## Execution binding (transitional)
 
 The former project/model placement alias. [Core runtime contract](operations/runtime-bootstrap.md) removes it in favor of a
-root Project Registration optionally referencing one DataSource. New semantic
+root Project Registration applying named DataSources and model-level selection.
+New semantic
 or runtime contracts must not depend on `ExecutionBinding`.
 
 ## Backend
@@ -172,7 +173,7 @@ DataSource is not a semantic asset, Backend, connection handle, or Catalog.
 ## Project registration
 
 The root deployment entry addressed by Project Key/Name. It references one
-semantic project manifest and may reference zero or one DataSource. Project
+semantic project manifest and may apply zero or more DataSources. Project
 resolution is explicit project, then configured `default_project`, then the
 sole registered project, otherwise `PROJECT_REQUIRED`.
 

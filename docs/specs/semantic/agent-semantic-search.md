@@ -24,7 +24,7 @@ It also exposes one optional live, governed discovery workflow:
 get_dimension_values
 ```
 
-When an executable Project DataSource is configured, the same primary surface
+When an executable Project DataSource is applied, the same primary surface
 also exposes governed `query_metrics`. Agents use it by default when the user
 needs result rows; `compile_sql` remains the explicit path when physical SQL is
 needed for external execution.
@@ -380,7 +380,7 @@ ordering, top-k, and limit intent use canonical discovery output and semantic
 query fields directly; they MUST NOT trigger dimension-value discovery.
 
 The operation is read-only, non-destructive, idempotent, and open-world. It
-requires execution authorization and an executable Project DataSource. It MUST
+requires execution authorization and an executable model DataSource. It MUST
 NOT be conditionally embedded in the closed-world `get_dimension` metadata
 tool, and returned values MUST NOT be persisted or added to logs, metrics,
 traces, or errors.

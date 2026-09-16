@@ -105,7 +105,7 @@ pagination, counts, and search results. `list_projects` itself requires
 and its action decision:
 
 - `compile_sql` requires `compile`;
-- `query_metrics` requires `execute` and an executable Project DataSource and
+- `query_metrics` requires `execute` and an executable applied DataSource and
   Backend.
 
 Capability evaluation does not open a Driver, resolve a secret, or probe a

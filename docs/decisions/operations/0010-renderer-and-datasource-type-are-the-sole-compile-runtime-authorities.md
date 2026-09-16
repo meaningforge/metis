@@ -5,7 +5,7 @@
 
 **Status:** Accepted
 **Date:** 2026-08-29
-**Last reviewed:** 2026-08-29
+**Last reviewed:** 2026-09-16
 **Supersedes:** ADR-0009 where it requires `ExecutionBinding` routes, a user-selected Driver, or independent compile/runtime target authority
 
 ## Context
@@ -47,9 +47,10 @@ explicit project
     > PROJECT_REQUIRED
 ```
 
-The resolved root Project Registration may reference one DataSource instance.
-`DataSource.type` is the sole runtime database-family authority. Two registries
-have deliberately different cardinality and ownership:
+The resolved root Project Registration applies a set of DataSource instances.
+The resolved semantic model selects exactly one member of that set as defined
+by ADR-0018. `DataSource.type` remains the sole runtime database-family
+authority. Two registries have deliberately different cardinality and ownership:
 
 ```text
 BackendRegistry[type]
@@ -129,4 +130,5 @@ the intended public request is a governed semantic metric query.
 - [Core runtime contract](../../specs/operations/runtime-bootstrap.md)
 - [RFC-0058: Semantic Core Layering](../../proposals/semantic/0058-semantic-core-layering-and-semantic-graph.md)
 - [ADR-0009: Execution Runtime Is Optional](0009-execution-runtime-is-optional-driver-factory-based-and-orchestrated.md)
+- [ADR-0018: Semantic Model Selects One Applied DataSource](0018-semantic-model-selects-one-applied-datasource.md)
 - [RFC-0056: Runtime Metric Query Execution](../../proposals/execution/0056-runtime-metric-query-execution.md)

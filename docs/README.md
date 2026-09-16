@@ -53,7 +53,7 @@ Several names changed during development:
 | --- | --- |
 | `physical`, `renderer/sqlquery` | `renderer/sql`: SQL text, dialect, and separate parameters |
 | `Catalog` | `manifest.SemanticManifest` and its derived `SemanticGraph` |
-| `CompileTarget`, semantic `Engine`, `ExecutionBinding` | Explicit compile dialect; runtime Project → DataSource → Backend |
+| `CompileTarget`, semantic `Engine`, `ExecutionBinding` | Explicit compile dialect; runtime Project → semantic model → applied DataSource → Backend |
 | `AgentBench`, `tests/agentbench`, `tests/s2sbench` | `cmd/s2sbench`; black-box coverage under `tests/benchmarks` |
 | SQL parameter materialization | Preserve SQL and parameters separately; database drivers bind values |
 

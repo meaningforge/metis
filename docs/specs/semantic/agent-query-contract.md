@@ -165,8 +165,10 @@ That dialect selects one Renderer exactly once; the same Renderer identity is
 used for expression evidence, capabilities, and final rendering.
 
 Runtime callers do not override SQLDialect, Renderer, Driver, DataSource, or
-target. Project resolution selects the root Project Registration, whose optional
-DataSource reference selects Backend through `DataSource.type`.
+target. Project resolution selects the root Project Registration. The resolved
+semantic model then selects one source from the Deployment's applied DataSource
+set; a sole applied source is inferred. That DataSource selects Backend through
+`DataSource.type`. Agent requests never contain a source selector.
 
 When a decoded non-null result cannot satisfy its compiled logical datatype,
 `query_metrics` returns `QUERY_RESULT_SCHEMA_MISMATCH` rather than the generic
@@ -293,7 +295,7 @@ REST `dimension-values` and MCP `get_dimension_values` bind the same
 `DimensionValuesQuery` and call `DimensionValuesService` directly. The service
 proves canonical identity, datatype, model/source determinism, and optional
 metric compatibility before constructing an existing `SemanticQuery`. It
-selects the Project DataSource Backend and its exact Renderer once, executes
+selects the resolved model's DataSource Backend and its exact Renderer once, executes
 one atomic `CompiledQuery`, strictly validates schema and rows, and returns
 typed values without SQL or internal metric columns.
 

@@ -19,6 +19,7 @@ Architectural decision records retained for their rationale. Superseded decision
 - [ADR-0010: Renderer and DataSource Type Are the Sole Compile and Runtime Authorities](operations/0010-renderer-and-datasource-type-are-the-sole-compile-runtime-authorities.md) — Accepted
 - [ADR-0014: DataSource Config Is a Flat String Map with External References](operations/0014-flat-string-datasource-config.md) — Accepted
 - [ADR-0017: Data policy binds before semantic optimization](operations/0017-data-policy-binds-before-semantic-optimization.md) — Proposed
+- [ADR-0018: Semantic Model Selects One Applied DataSource](operations/0018-semantic-model-selects-one-applied-datasource.md) — Accepted
 
 ## Semantic
 
