@@ -1,6 +1,8 @@
 # RFC-0086: Federated Semantic Query Execution
 
 - **Status:** Draft
+- **Priority:** P3 / Future capability
+- **Implementation target:** Not scheduled; not a near-term delivery goal
 - **Owners:** Metis maintainers
 - **Created:** 2026-09-17
 - **Last updated:** 2026-09-17
@@ -9,7 +11,9 @@
 
 ## Summary
 
-This RFC adds true cross-DataSource semantic query execution to Metis while preserving the existing single-DataSource fast path.
+This RFC reserves an architecture for true cross-DataSource semantic query execution while preserving the existing single-DataSource fast path.
+
+**Priority is P3 / Future capability. Cross-source execution is not a near-term Metis implementation target.** The direct single-source semantic execution path remains the product priority. This RFC is architecture reserve, not a delivery commitment; implementation should begin only after the activation criteria in this document are met by concrete workloads.
 
 The design follows four rules:
 
@@ -39,90 +43,63 @@ Physical Planner
 DirectPlan / FederatedPlan
 ```
 
-Placement Resolution is deterministic. It answers where a semantic dataset physically executes; it is not a separate cost-based optimizer.
+A single-source query continues through the current Backend/Renderer/Runner path. Only a query whose required datasets resolve to multiple DataSources produces a `FederatedPlan`.
 
-A single-source query stays on the current path:
-
-```text
-Semantic Query
-      ↓
-SemanticPlan
-      ↓
-Physical Planner
-      ↓
-DirectPlan
-      ↓
-DataSource -> Backend -> Renderer -> Driver
-      ↓
-Database
-      ↓
-Result
-```
-
-Only a query whose required datasets span multiple DataSources produces a `FederatedPlan`:
-
-```text
-                     FederatedPlan
-                          │
-          ┌───────────────┼───────────────┐
-          ▼               ▼               ▼
-    Fragment f0      Fragment f1      Fragment f2
-     Doris            ClickHouse        DuckDB DS
-          │               │               │
-       source SQL      source SQL      source SQL
-          │               │               │
-          ▼               ▼               ▼
-       Result          Result          Result
-          └───────────────┬───────────────┘
-                          ▼
-                     Arrow boundary
-                          ↓
-                    Embedded DuckDB
-                   JOIN / UNION / CALC
-                          ↓
-                     Final Result
-                          ↓
-               governed result normalize
-                          ↓
-                    Agent / User
-```
-
-The embedded DuckDB federation runtime is an **optional compile-time capability**. The default Metis build remains CGO-free.
-
-Metis does not add a persistent federation store, worker cluster, distributed shuffle, distributed SQL engine, or mandatory materialization layer.
+The embedded DuckDB federation runtime is optional and compile-time selected. The normal Metis build remains CGO-free. Metis does not add a persistent federation store, worker cluster, distributed shuffle, distributed SQL engine, or mandatory materialization layer.
 
 ## Motivation
 
-Metis already allows one Project to apply several DataSources and routes semantic models to configured DataSources. The current governed execution path still resolves one model to one physical route, selects that route's Renderer, compiles one SQL query, and executes it through Runner.
+Metis already supports a Project applying several DataSources and routing each SemanticModel to one applied DataSource. Current governed execution still resolves one model to one physical route, selects that route's Renderer, compiles one SQL query, and executes it through Runner.
 
-That is multi-source placement, not cross-source analysis.
+That is **multi-DataSource placement**, not cross-source analysis.
 
-A normal semantic question may require:
+A future workload may need one SemanticModel whose datasets physically live on different systems, for example:
 
 ```text
 orders      -> Doris
 customers   -> ClickHouse
 ```
 
-for example revenue from `orders` grouped by `customers.region`.
+while the semantic question remains ordinary: revenue grouped by customer region.
 
-Requiring a separate Trino cluster for every bounded cross-source semantic join adds infrastructure that many deployments do not need. Building a Metis Store or a custom distributed executor would duplicate mature systems and make users pay additional CPU, memory, storage, network, HA, capacity planning, and operations cost.
+Federation should be considered only when normal data modeling, ETL/ELT, co-location, or an existing source-native federation engine is not a better answer. Requiring a separate Trino cluster for every small bounded join is unnecessary, but building a Metis Store or a custom distributed executor would be worse. The narrow missing capability is to push maximum work into each source and compose only bounded intermediate results.
 
-The missing capability is deliberately narrow:
+## Terminology and scope
 
-1. understand semantic meaning;
-2. resolve where each required dataset lives;
-3. maximize source-local computation;
-4. move only bounded intermediate results;
-5. delegate remaining local relational composition to embedded DuckDB.
+Federation is a **physical execution property**, not a semantic-model property.
+
+Direct and federated execution use the same Ossie concepts:
+
+- `SemanticModel`;
+- `Dataset`;
+- `Relationship`;
+- `Metric`;
+- `SemanticQuery`;
+- `DataSource`.
+
+Metis MUST NOT create parallel semantic concepts such as `FederatedMetric`, `CrossSourceDataset`, or `FederatedRelationship`.
+
+The only physical distinction is:
+
+```text
+same SemanticQuery
+      ↓
+same semantic meaning
+      ↓
+Physical Planner
+      ├── one DataSource   -> DirectPlan
+      └── many DataSources -> FederatedPlan
+```
+
+Moving a dataset between DataSources may change execution mode, but MUST NOT require rewriting the metric, relationship, or caller query solely because of physical placement.
+
+Cross-Model semantic composition is explicitly outside this RFC. A query that combines independent SemanticModels requires separate semantics for qualified refs, cross-model relationships/entities, metric ownership, and ambiguity resolution.
 
 ## Design principles
 
 ### Single-source execution remains unchanged
 
-Federation is additive.
-
-If all datasets required by a semantic plan resolve to one DataSource, Metis MUST continue to use the existing route:
+If all required datasets resolve to one DataSource, Metis MUST continue to use the current route:
 
 ```text
 SemanticQuery
@@ -136,90 +113,41 @@ SemanticQuery
 
 The direct path MUST NOT initialize the federation Composer, convert results to Arrow, or pass through DuckDB.
 
+Because this RFC is P3/Future, Metis MUST NOT refactor the production direct path merely to pre-stage federation.
+
 ### Databases perform database work
 
-Source databases remain responsible for:
+Source databases remain responsible for scans, source-local joins, filters, projection, aggregation, ordering where safe, indexes/materialized views, cost-based optimization, and their own distributed execution.
 
-- scans;
-- source-local joins;
-- filtering;
-- projection;
-- aggregation;
-- sorting where useful;
-- native indexes and materialized views;
-- cost-based optimization;
-- distributed execution owned by the source.
-
-Metis MUST maximize safe pushdown before data crosses the federation boundary.
+Metis MUST maximize safe source pushdown before data crosses the federation boundary.
 
 ### Metis does not become a SQL execution engine
 
-Metis MUST NOT implement its own:
+Metis MUST NOT implement its own hash-join engine, vectorized executor, shuffle service, worker scheduler, persistent analytical store, or mandatory materialization/cache layer.
 
-- hash join engine;
-- vectorized executor;
-- distributed shuffle;
-- worker scheduler;
-- persistent analytical store;
-- mandatory cache/materialization subsystem.
-
-Bounded local JOIN, UNION, GROUP BY, sorting, windows, and expressions are delegated to embedded DuckDB.
+Remaining bounded relational composition is delegated to embedded DuckDB.
 
 ### Arrow is interchange, not a DataSource requirement
 
-A source does not need native Arrow support.
+A source does not need native Arrow support. Existing row/native-protocol Drivers remain valid. Native Arrow or Arrow Flight may later be an optimization.
 
-```text
-existing Driver / native source protocol
-              ↓
-      bounded source result
-              ↓
-         Arrow bridge
-              ↓
-       Arrow RecordBatch
-              ↓
-       embedded DuckDB
-```
+### Metis owns semantics; DuckDB owns bounded physical composition
 
-Native Arrow or Arrow Flight may be added later as an optional fast path.
+Metis owns metric semantics, entities, relationships, grain, aggregation algebra, timezone intent, semantic correctness, placement, and plan decomposition.
 
-### Metis owns semantic types; DuckDB owns federation execution types
-
-Metis owns semantic meaning: metric datatype, entities, relationships, aggregation semantics, grain, timezone intent, and semantic correctness.
-
-Metis MUST NOT create a complete duplicate physical type/coercion system for federation.
-
-At the federation boundary, source values are mapped losslessly to Arrow/DuckDB-compatible physical types. DuckDB owns ordinary physical coercion during composition. Metis rejects mappings that lose required precision or semantic meaning.
-
-### Federation is an optional compiled capability
-
-The default Metis build remains CGO-free. Users who need local cross-source composition explicitly select the federation build flavor.
-
-The existing DuckDB DataSource Backend and the federation Composer are separate capabilities:
-
-- `duckdb`: user-configured DuckDB DataSource through normal Backend/Driver execution;
-- `federation_duckdb`: internal embedded DuckDB Composer for cross-DataSource queries.
+DuckDB owns physical JOIN/UNION/final aggregation/order/window/scalar execution for bounded intermediate relations. Metis MUST NOT recreate a second complete physical coercion engine.
 
 ## Placement Resolution
 
-**Placement is the deterministic binding of a semantic physical dataset to a configured physical DataSource.**
-
-It answers one question:
+Placement is the deterministic binding of a semantic dataset to a configured physical DataSource:
 
 ```text
 semantic dataset -> physical DataSource
 ```
 
-Example:
+Placement answers **where data executes**, not how SQL is written.
 
-```text
-orders    -> doris-prod
-customers -> clickhouse-prod
-```
-
-Placement does not decide SQL syntax, dialect, Renderer, Driver, join implementation, or aggregation strategy.
-
-Placement precedence is:
+The future precedence is:
 
 ```text
 explicit dataset placement
@@ -231,122 +159,108 @@ sole Project DataSource inference
 unresolved -> deployment configuration error
 ```
 
-Conceptually:
+Current Metis runtime placement is model-level. Dataset-level placement is proposed by this RFC and is not current behavior.
 
-```go
-type DatasetExecutionProjectResolver interface {
-    ModelExecutionProjectResolver
+The future dataset form MUST reuse Ossie `custom_extensions`, not introduce a separate federation DSL. The same `METIS data_source` kind is scoped by where it appears:
 
-    DataSourceForDataset(
-        project string,
-        model string,
-        dataset string,
-    ) (string, bool)
-}
+```yaml
+semantic_model:
+  - name: commerce
+    custom_extensions:
+      - vendor_name: METIS
+        data: '{"kind":"data_source","name":"doris-prod"}'
+
+    datasets:
+      - name: orders
+        source: sales.orders
+
+      - name: customers
+        source: crm.customers
+        custom_extensions:
+          - vendor_name: METIS
+            data: '{"kind":"data_source","name":"clickhouse-prod"}'
 ```
 
-Physical placement remains deployment-owned. Agent and REST/MCP callers do not choose DataSources.
+Here `orders` inherits `doris-prod`; `customers` overrides to `clickhouse-prod`. Project-applied DataSources remain the deployment allowlist. A semantic asset cannot expand Project runtime authority by naming an unapplied DataSource.
 
-### Placement Resolution is part of Physical Planning
+The `METIS data_source` placement kind MUST NOT be accepted on Metric or Relationship as an execution-placement authority.
 
-Metis does not introduce a heavyweight standalone `PlacementPlanner` in v1.
+Placement Resolution is part of Physical Planning, not a standalone cost-based optimizer. A true cost-based Placement Planner is justified only if the same dataset/plan has multiple viable execution locations and Metis must choose among them.
 
-```text
-SemanticPlan
-     ↓
-Physical Planner
-     ├── Placement Resolution
-     │      dataset -> DataSource
-     ├── Fragmentation
-     │      split at cross-source boundaries
-     ├── Pushdown Analysis
-     │      keep maximal safe work at sources
-     └── Composition Planning
-            remaining work -> Composer
-     ↓
-ExecutionPlan
-```
+## Semantic resolution and deferred physical binding
 
-A separate cost-based Placement Planner is justified only if a future version has multiple viable physical execution locations for the same dataset or whole plan.
+This is a critical implementation constraint.
 
-## Two-phase semantic and physical lowering
+Current Metis semantic resolution is Renderer-aware: target-specific field/metric expressions are selected using the Renderer expression dialect before planning, and current SemanticPlan nodes carry resolved expressions. A future federation implementation therefore cannot simply remove one Renderer argument and declare the current `SemanticPlan` renderer-neutral.
 
-Cross-source execution cannot bind the entire semantic query to one Renderer before placement is known.
+The durable rule is:
 
-### Phase A: renderer-neutral semantic resolution
+> **Resolve semantic meaning before placement-dependent physical syntax; bind target-specific expressions only after the execution route is known.**
 
-Resolve:
+Before physical binding, Metis may resolve information that is independent of one SQL dialect:
 
-- metrics;
-- dimensions;
-- entities;
-- datasets;
-- relationships;
-- filters;
-- grouping requirements;
-- aggregation methods;
+- metric/dimension/entity/dataset/relationship identity;
+- dependency closure;
+- relationship cardinality and grain;
+- target-independent aggregation algebra;
+- data-access-policy intent and relation constraints;
 - required source fields;
-- semantic expressions;
-- semantic datatypes.
+- semantic datatypes and governed output intent.
 
-The output is a renderer-neutral `SemanticPlan`.
+If the current `SemanticPlan` cannot represent that state without a Renderer, the implementation MAY introduce an internal pre-binding representation. That is an internal planning detail, not a new public semantic vocabulary.
 
-### Phase B: fragment-specific physical lowering
-
-After placement and fragmentation, every source fragment resolves its exact route:
+After placement and fragmentation, each fragment resolves its route and only then binds target-specific expressions:
 
 ```text
-Fragment f0 -> doris-prod      -> Doris Backend      -> Doris Renderer
-Fragment f1 -> clickhouse-prod -> ClickHouse Backend -> ClickHouse Renderer
+fragment semantic intent
+        ↓
+resolved DataSource route
+        ↓
+exact Backend Renderer
+        ↓
+target-specific expression binding
+        ↓
+fragment physical plan / SQL
 ```
 
-Each fragment is compiled using the Renderer from the same resolved route later used for execution.
+Source-specific SQL expression strings MUST NOT cross the federation boundary and be reinterpreted by DuckDB. Remaining work is represented as typed composition operations and lowered independently by the Composer.
+
+If a semantic operation cannot be decomposed into equivalent source-local work plus composition work, the federated shape MUST fail closed.
+
+Data-access policy is evaluated once for the governed semantic request. Source-local policy predicates are bound into the corresponding fragment after its route is resolved; federation MUST NOT create a weaker second authorization decision.
 
 ## Dialect authority and route resolution
 
 Placement determines a DataSource, **not a SQL dialect**.
 
-Dialect is derived from the exact Backend bound to the resolved DataSource:
+Dialect derives from the Backend bound to the resolved DataSource:
 
 ```text
-Semantic Dataset
-      ↓
+Dataset
+  ↓
 Placement Resolution
-      ↓
-DataSource name
-      ↓
-DataSource Registry
-      ↓
+  ↓
+DataSource
+  ↓
 DataSource.Type
-      ↓
-Backend Registry
-      ↓
+  ↓
 Backend
-  ├── Renderer
-  │     ├── SQLDialect()
-  │     └── ExpressionDialect()
+  ├── Renderer -> SQLDialect / ExpressionDialect
   └── DriverFactory
 ```
 
-Ownership is explicit:
+Ownership is fixed:
 
 ```text
-Placement Resolution owns:
-  dataset -> DataSource
-
-Backend owns:
-  DataSource type -> Renderer + DriverFactory
-
-Renderer owns:
-  physical SQL dialect + source SQL rendering
-
-Composer owns:
-  CompositionPlan -> local physical composition
+Placement Resolution: dataset -> DataSource
+Backend:              DataSource type -> Renderer + DriverFactory
+Renderer:             source SQL dialect + rendering
+Composer:             CompositionPlan -> local physical composition
 ```
 
-Metis MUST NOT introduce a second runtime `DialectResolver` for execution.
+Metis MUST NOT add a second runtime `DialectResolver`.
 
-A source fragment carries placement and a renderer-neutral fragment plan, but MUST NOT carry an independently selected SQL dialect:
+A `SourceFragment` carries placement and a renderer-independent fragment intent, but MUST NOT carry an independently selected SQL dialect:
 
 ```go
 type SourceFragment struct {
@@ -356,59 +270,26 @@ type SourceFragment struct {
 }
 ```
 
-Execution resolves the route first:
+The route is resolved once and reused for both compile and execution:
 
 ```go
 route, err := runtime.ResolveDataSource(fragment.DataSource)
-if err != nil {
-    return err
-}
+if err != nil { return err }
 
-renderer := route.Backend.Renderer
-compiled, err := compileFragment(fragment.Plan, renderer)
-if err != nil {
-    return err
-}
+compiled, err := compileFragment(fragment.Plan, route.Backend.Renderer)
+if err != nil { return err }
 
-result, err := runtime.ExecuteResolved(ctx, route, compiled, options)
+// execution uses the same route
 ```
 
-The core invariant is:
+This makes inconsistent states such as Doris DataSource + ClickHouse dialect + Doris Driver structurally impossible.
 
-> **A SourceFragment MUST NOT carry an independently selected SQL dialect. Its dialect is derived exclusively from the Renderer bound to its resolved Backend.**
+## Physical execution plans
 
-Therefore an inconsistent state such as:
-
-```text
-DataSource = doris-prod
-Dialect    = CLICKHOUSE
-Driver     = Doris
-```
-
-is structurally impossible rather than merely rejected by convention.
-
-DuckDB composition follows a different authority path. Embedded DuckDB is not a third placement chosen for source data:
-
-```text
-CompositionPlan
-      ↓
-DuckDB Composer
-      ↓
-controlled DuckDB physical lowering
-      ↓
-query-scoped composition
-```
-
-Source dialect selection and Composer dialect selection are separate concerns and neither is caller-controlled.
-
-## Physical execution plan
-
-The Physical Planner produces one of two plan families.
+Conceptually:
 
 ```go
-type ExecutionPlan interface {
-    isExecutionPlan()
-}
+type ExecutionPlan interface { isExecutionPlan() }
 
 type DirectPlan struct {
     DataSource string
@@ -421,273 +302,125 @@ type FederatedPlan struct {
 }
 ```
 
-### DirectPlan
+`DirectPlan` preserves current behavior.
 
-Selected when every required dataset resolves to one DataSource. It uses the existing exact Backend/Renderer/Runner path.
-
-### FederatedPlan
-
-Example:
+A `FederatedPlan` contains maximal source-local fragments plus remaining composition work:
 
 ```text
-FederatedPlan
-│
-├── f0 @ doris-prod
-│     orders
-│     filter last_30_days
-│     aggregate revenue by customer_id
-│
-├── f1 @ clickhouse-prod
-│     customers
-│     project customer_id, region
-│
-└── CompositionPlan
-      join f0.customer_id = f1.customer_id
-      aggregate revenue by region
-      order revenue desc
+f0 @ Doris
+  filter last_30_days
+  aggregate revenue by customer_id
+
+f1 @ ClickHouse
+  project customer_id, region
+
+Composition
+  join f0.customer_id = f1.customer_id
+  aggregate revenue by region
+  order revenue desc
 ```
 
-## Fragmentation and pushdown
+## Fragmentation and semantic correctness
 
-The Physical Planner creates maximal source-local fragments.
+The Physical Planner keeps a subtree source-local when all required datasets resolve to one DataSource and the source Backend/Renderer can lower it safely. A cross-source edge introduces a federation boundary.
 
-A subtree stays source-local when all required datasets resolve to one DataSource and the source Backend/Renderer can lower it safely.
-
-A cross-source edge introduces a federation boundary.
-
-```text
-Doris fragment ──────────┐
-                         ├── CompositionPlan -> DuckDB
-ClickHouse fragment ─────┘
-```
-
-The primary optimization objective is:
+Primary objective:
 
 > **Maximize source pushdown, minimize federation boundary cardinality.**
 
-For example:
-
-```text
-Doris orders: 1,000,000,000 rows
-        ↓
-WHERE last_30_days
-        ↓
-GROUP BY customer_id
-SUM(revenue)
-        ↓
-42,000 rows
-        ↓
-Arrow
-```
-
-is preferred over shipping one billion raw rows into Metis.
-
-Pushdown may include:
-
-- source-local filters;
-- projection;
-- source-local joins;
-- semantically safe aggregation;
-- decomposable metric partials;
-- ordering/limits only when global semantics remain correct.
-
 Only fields required by downstream composition cross the boundary.
 
-### Aggregation and fan-out safety
+Existing semantic correctness rules remain authoritative. Federation MUST reuse aggregation/fan-out evidence rather than invent a parallel metric system.
 
-Existing semantic correctness rules remain authoritative.
+Rules include:
 
-Pre-aggregation below a federation boundary is allowed only when relationship cardinality, grain, aggregation algebra, and join keys prove semantic equivalence.
+- distributive metrics such as `SUM` may merge partials when grain is preserved;
+- `AVG` requires explicit partial state such as `SUM` + `COUNT`; average-of-averages is invalid;
+- exact `COUNT DISTINCT` and other holistic metrics remain source-local or fail closed unless exact merge semantics are proven;
+- `ORDER BY` / `LIMIT` are not pushed below a federation boundary if doing so can change the global answer;
+- cumulative, semi-additive, window, conversion, attribution, and similar shapes remain source-local unless equivalence of decomposition is proven;
+- unsafe/ambiguous many-to-many shapes fail closed.
 
-Unsafe or ambiguous many-to-many shapes MUST fail closed in v1 rather than return a plausible but incorrect result.
+## Source fragment execution and typed intermediate results
 
-## Source fragment execution
+Federation SHOULD reuse Runner as the authority for DataSource resolution, secrets, Driver/runtime lifecycle, admission/concurrency, timeout/cancellation, row/byte ceilings, observation, and error redaction. It MUST NOT introduce a second Driver stack.
 
-Federation reuses the existing Runner for every source fragment.
+However, current `Runner.ExecuteResolved` intentionally normalizes results to the stable Agent-facing representation. Decimal values may become text and temporal values may become formatted strings. That representation is correct for the public result contract but MUST NOT become the canonical federation intermediate representation.
 
-```go
-route, err := runtime.ResolveDataSource(fragment.DataSource)
-if err != nil {
-    return err
-}
+A future implementation therefore needs a narrow **type-preserving internal fragment boundary** before public normalization. The exact API is intentionally deferred. It may be a bounded internal Runner mode or result sink, but it should preserve the current Driver SPI where practical and keep Runner's limits/lifecycle authoritative.
 
-compiled, err := compileFragment(fragment.Plan, route.Backend.Renderer)
-if err != nil {
-    return err
-}
-
-result, err := runtime.ExecuteResolved(ctx, route, compiled, options)
-```
-
-This preserves existing ownership of:
-
-- secret resolution;
-- Driver lifecycle;
-- timeout and cancellation;
-- row and byte limits;
-- per-DataSource concurrency;
-- result normalization;
-- public error redaction;
-- execution observability.
-
-Federation MUST NOT introduce a second Driver stack.
-
-## Federation interchange
-
-V1 keeps the current Driver SPI compatible:
+Conceptually:
 
 ```text
 Driver ResultStream
        ↓
-Runner normalization
+Runner-owned admission / timeout / row+byte accounting
        ↓
-bounded fragment ResultSet
+type-preserving fragment boundary
        ↓
 Arrow Bridge
        ↓
 Arrow RecordBatch
        ↓
-DuckDB relation
+query-scoped DuckDB relation
 ```
 
-This may temporarily double-buffer bounded fragment results, so federation limits are mandatory.
-
-A later additive fast path may expose Arrow batches directly from capable Backends. Native Arrow support remains optional.
+Public Agent-facing normalization happens only after final composition.
 
 ## Type behavior
 
-Metis should follow DuckDB logical types for physical federation instead of rebuilding DuckDB's coercion engine.
+Arrow is the federation interchange format, not a new Metis semantic type system.
 
-Examples:
-
-```text
-Doris BIGINT       -> Arrow Int64  -> DuckDB BIGINT
-ClickHouse UInt64  -> Arrow UInt64 -> DuckDB UBIGINT
-String/VARCHAR     -> Arrow UTF8   -> DuckDB VARCHAR
-DATE               -> Arrow Date   -> DuckDB DATE
-```
-
-Exact Decimal values MUST remain exact. Converting exact numerics to `float64` is prohibited.
-
-Metis still owns semantic-loss validation for:
+The bridge must preserve sufficient physical evidence for exact composition, including:
 
 - Decimal precision/scale;
-- signed/unsigned overflow;
-- timestamp vs timestamp-with-time-zone meaning;
-- wall-clock vs absolute instant semantics;
-- incompatible entity-key representations;
-- unsupported nested/vendor types required by composition.
+- integer range and signedness where relevant;
+- nullability;
+- date/time/timestamp representation;
+- timezone meaning;
+- entity-key compatibility.
+
+Exact numerics MUST NOT be routed through `float64`.
+
+DuckDB may perform ordinary physical coercion only after Metis proves that the semantic operation is compatible/lossless. Permissive DuckDB casts do not override Metis semantic correctness.
+
+Unsupported high-precision or vendor/nested types required by composition fail closed.
 
 ## Embedded DuckDB Composer
 
-DuckDB is an internal physical composition engine, not a semantic authority.
+DuckDB is an internal physical composition engine, not a semantic authority and not a third placement target for source data.
 
-It receives only bounded fragment outputs and a Metis-generated `CompositionPlan`.
+It receives only bounded fragment outputs and a Metis-generated `CompositionPlan`. It may perform JOIN, UNION, final aggregation, scalar calculations, projection, ordering, bounded windows, and final LIMIT.
 
-It may execute:
+The Composer MUST NOT receive source credentials, Agent SQL, arbitrary `ATTACH`, caller filesystem paths, or caller network endpoints.
 
-- JOIN;
-- UNION / UNION ALL;
-- final aggregation;
-- arithmetic/scalar expressions;
-- projection;
-- ordering;
-- bounded window operations;
-- final LIMIT.
+Every federated query MUST have an isolated query-scoped Composer session/connection and relation namespace. Intermediate relations from one query MUST NOT be visible to another. A process-scoped provider may be reused, but query memory, cancellation, relation state, and cleanup are isolated.
 
-Fragment Arrow outputs are registered as query-scoped relations such as:
+Default federation state is ephemeral. No persistent customer-data store is required.
 
-```text
-f0 -> __metis_f0
-f1 -> __metis_f1
-```
+## Cross-source consistency model
 
-The Composer MUST NOT receive:
+Independent databases do not provide Metis a global transaction or shared snapshot.
 
-- source credentials;
-- Agent-provided SQL;
-- arbitrary DataSource names;
-- caller-provided `ATTACH` commands;
-- arbitrary filesystem paths;
-- caller-provided network endpoints.
+Each fragment observes the consistency/snapshot semantics of its own DataSource when it executes. Concurrent execution reduces time skew but does not create cross-source snapshot isolation.
 
-Default federation state is ephemeral and query-scoped. No persistent customer data store is required.
+The public contract MUST NOT claim point-in-time atomicity across heterogeneous sources. Coordinated `AS OF` semantics would require an explicit capability supported by every participating Backend and is outside the baseline design.
 
-## Composer SPI
+One fragment failure cancels sibling work. Partial federated results are never returned. Retrying the whole query may observe newer source data.
 
-Metis Core depends on a narrow internal SPI:
+## Security and data-movement governance
 
-```go
-type Composer interface {
-    Name() string
-    Available() bool
+Federation adds a new physical action: intermediate data leaves a source database and enters the Metis process. Permission to query a semantic asset MUST NOT automatically imply permission to export arbitrary intermediate rows.
 
-    Compose(
-        ctx context.Context,
-        plan CompositionPlan,
-        inputs []FragmentResult,
-        limits Limits,
-    ) (*ResultSet, error)
+A future implementation MUST define an explicit deployment-owned federation data-movement policy/capability. When the policy is absent or denies movement, execution fails before source fragments start. This is execution/governance configuration, not a new semantic-model concept.
 
-    Close() error
-}
-```
-
-DuckDB/Arrow concrete dependencies MUST NOT leak into Semantic Core public contracts.
-
-## Compile-time capability model
-
-Default build:
-
-```bash
-CGO_ENABLED=0 go build ./cmd/metis
-```
-
-Federation build:
-
-```bash
-CGO_ENABLED=1 \
-  go build \
-  -tags='federation_duckdb duckdb_arrow' \
-  ./cmd/metis
-```
-
-DuckDB DataSource build:
-
-```bash
-CGO_ENABLED=1 go build -tags='duckdb' ./cmd/metis
-```
-
-Full build:
-
-```bash
-CGO_ENABLED=1 \
-  go build \
-  -tags='duckdb federation_duckdb duckdb_arrow' \
-  ./cmd/metis
-```
-
-The desired pluggability is compile-time provider composition. This RFC does not use Go's runtime `plugin` package.
-
-## Capability and failure behavior
-
-A default build can host Projects with multiple DataSources and execute every query that produces a `DirectPlan`.
-
-If a query requires federation but no Composer is compiled in, Metis fails **before any source fragment starts**:
-
-```text
-FEDERATION_NOT_AVAILABLE
-
-The semantic query requires multiple DataSources, but this Metis build does not include a federation runtime.
-```
-
-Capability discovery MUST NOT open Drivers, resolve secrets, or initialize DuckDB.
+All row/column/data-access constraints that can execute source-locally MUST be applied before data crosses the boundary. Fragments emit only fields required by composition. Intermediate Arrow metadata MUST NOT contain credentials or secret material.
 
 ## Resource guardrails
 
-Federation is bounded single-node composition, not arbitrary remote fact shuffling.
+Federation is bounded single-node composition, not arbitrary fact shuffling.
 
-Required controls include:
+The future runtime must enforce explicit limits such as:
 
 ```yaml
 federation:
@@ -699,139 +432,84 @@ federation:
   query_timeout: 30s
 ```
 
-Existing DataSource limits remain authoritative and may be stricter.
+Exact defaults are implementation-time decisions. Existing per-DataSource policy may be stricter and remains authoritative.
 
-When a limit is exceeded, execution fails closed. Metis MUST NOT silently attempt an unbounded fact-to-fact join merely because DuckDB can execute one.
+Limit breaches fail closed and never return partial results. Temporary spill, if ever added, must be explicitly enabled, bounded, query-scoped, and cleaned up; it MUST NOT become a persistent Metis Store.
 
-Temporary spill, if added later, must be explicit, bounded, query-scoped, and cleaned up. It MUST NOT evolve into a persistent Metis Store.
+## Compile-time capability model
 
-## End-to-end query lifecycle
-
-For a normal cross-source semantic query:
+Federation is opt-in. The durable build contract is:
 
 ```text
-1. Agent/User submits semantic intent
+normal Metis build
+  -> CGO-free
+  -> direct execution only
+
+federation build
+  -> explicitly CGO-enabled
+  -> embedded DuckDB + Arrow composition available
+```
+
+The existing optional DuckDB DataSource Backend remains distinct from the internal federation Composer.
+
+Exact future Go build-tag names and DuckDB Arrow switches are implementation details, not a long-lived public API. Metis does not use Go runtime `.so` plugins for this feature.
+
+A build without federation may host a multi-DataSource Project and execute any direct query. If a query requires federation and no Composer is available, Metis fails before any fragment starts with a stable `FEDERATION_NOT_AVAILABLE` class.
+
+## End-to-end lifecycle
+
+```text
+1. Agent/User submits ordinary semantic intent
 2. authorize Project and semantic assets
-3. Semantic Planner resolves renderer-neutral SemanticPlan
-4. Physical Planner resolves dataset placement
-5. Physical Planner fragments the plan and computes pushdown
+3. resolve semantic identities, dependencies, correctness evidence, and policy intent
+4. resolve dataset placement
+5. fragment the query and compute safe pushdown
 6. produce DirectPlan or FederatedPlan
 7. for each SourceFragment:
-      DataSource -> resolved Backend
-      Backend -> exact Renderer + DriverFactory
-      Renderer -> exact source SQL dialect
+      resolve DataSource route
+      derive exact Backend Renderer + DriverFactory
+      bind target-specific expressions
       compile source SQL
-      Runner executes against that same resolved route
-8. bounded source results cross through Arrow
-9. DuckDB Composer lowers CompositionPlan and joins/aggregates results
-10. Metis normalizes the final result against governed output schema
+      execute under Runner-owned limits
+8. convert bounded typed fragment outputs to Arrow
+9. execute CompositionPlan in isolated embedded DuckDB session
+10. normalize the final result against the governed output schema
 11. return one QueryMetricsResult through REST/MCP
-12. Agent/User receives semantic result, not physical execution details
 ```
 
-The Agent/User MUST NOT need to know or choose:
+The Agent/User does not choose or need to know DataSource names, dialects, Renderers, Drivers, Arrow, DuckDB, or credentials. A future governed `EXPLAIN` may expose bounded physical diagnostics separately.
 
-- DataSource names;
-- SQL dialects;
-- Renderer names;
-- Driver types;
-- Arrow;
-- DuckDB;
-- credentials.
+## Observability and errors
 
-The final public result does not expose credentials or internal physical routing. A separate governed `EXPLAIN` surface may expose bounded physical diagnostics in the future.
+Federated execution should expose low-cardinality observations for plan mode, fragment count/backend family, fragment duration, intermediate row/byte totals, Arrow conversion, composition duration, and bounded failure classes.
 
-## Concurrency, cancellation, and errors
+Metrics MUST NOT label by Project name, DataSource identity, table, semantic ref, SQL text, credentials, values, or arbitrary error text.
 
-Independent fragments MAY execute concurrently under both federation-level and per-DataSource limits.
+Failure classes should distinguish at least federation unavailable, unsupported semantic shape, fragment limit, fragment execution, type incompatibility, policy denial, and composition failure.
 
-Parent cancellation cancels:
+## Compatibility and non-goals
 
-1. source fragments;
-2. Arrow conversion still in progress;
-3. DuckDB composition.
+Existing single-source Projects and direct queries require no API/configuration changes.
 
-One fragment failure cancels siblings in v1. Partial federated results are not returned.
+Existing model-level multi-DataSource placement remains valid. Dataset placement is additive and future-only.
 
-Errors should remain bounded and categorized, for example:
+RFC-0063 remains scoped to DuckDB as a user-configured DataSource Backend. Federation MUST NOT reuse a user's DuckDB database file as implicit scratch storage.
 
-- federation unavailable;
-- unsupported semantic federation shape;
-- fragment limit exceeded;
-- fragment execution failed;
-- type incompatibility;
-- composition failed.
+This RFC does not provide:
 
-Raw credentials, query values, or arbitrary Driver errors MUST NOT leak to callers.
-
-## Observability
-
-Federated execution should expose low-cardinality observations for:
-
-- direct vs federated plan count;
-- fragment count;
-- Backend family per fragment;
-- fragment execution duration;
-- intermediate row/byte totals through typed non-label sinks;
-- Arrow conversion duration;
-- composition duration;
-- federation limit failures;
-- federation-unavailable failures.
-
-Metrics MUST NOT label by Project, DataSource name, table name, semantic ref, SQL text, credentials, values, or raw errors.
-
-## Security
-
-Federation does not broaden caller authority.
-
-Placement comes from deployment/model state. Source credentials are resolved only by the existing execution runtime. The embedded Composer receives only controlled intermediate data and a generated composition plan.
-
-Arbitrary DuckDB extension installation/loading, caller SQL, arbitrary `ATTACH`, arbitrary filesystem access, and arbitrary network access are outside this RFC.
-
-## Package boundaries
-
-Target layout:
-
-```text
-execution/
-  federation/
-    plan.go
-    physical_planner.go
-    executor.go
-    limits.go
-    composer.go
-
-    arrowbridge/
-      schema.go
-      convert.go
-
-    duckdbcomposer/
-      composer.go
-      relation.go
-      runtime.go
-
-cmd/metis/
-  federation_default.go
-  federation_duckdb.go
-```
-
-Semantic planning packages MUST NOT import DuckDB/Arrow concrete runtime packages.
-
-## Compatibility
-
-Existing single-source Projects require no API/configuration changes.
-
-Existing model-level multi-DataSource placement remains valid. Dataset placement is additive.
-
-RFC-0063 remains scoped to DuckDB as a user-configured DataSource Backend. The federation Composer MUST NOT implicitly reuse a user's DuckDB database file as scratch storage.
-
-Default builds remain CGO-free and retain existing direct execution behavior.
+- cross-Model semantic composition;
+- arbitrary caller-provided federated SQL;
+- distributed federation workers/shuffle;
+- persistent Metis federation storage;
+- automatic creation of source materializations/MVs;
+- unbounded raw fact-to-fact federation;
+- replacement for Trino or source-native federation engines.
 
 ## Alternatives
 
 ### Require Trino for all federation
 
-Rejected as a mandatory dependency for bounded semantic joins. Trino remains a valid future delegated execution target for large federation.
+Not selected as a mandatory dependency for bounded local composition. A configured federation engine remains a valid future full-plan delegation target.
 
 ### Build a Metis Store / workers
 
@@ -839,7 +517,7 @@ Rejected because it creates a second data plane and duplicates mature analytical
 
 ### Implement relational operators directly in Go
 
-Rejected because it recreates mature vectorized execution, type coercion, memory management, sorting, and spill behavior already provided by DuckDB.
+Rejected because it recreates vectorized execution, type coercion, sorting, memory management, and spill behavior already supplied by DuckDB.
 
 ### Route every query through DuckDB
 
@@ -849,122 +527,75 @@ Rejected because it penalizes the common direct path and bypasses source-native 
 
 Rejected because Backend already owns the exact Renderer and DriverFactory. A second dialect authority can create inconsistent route/dialect/driver combinations.
 
-### Go dynamic plugins
+## Activation criteria
 
-Rejected for v1. Compile-time provider composition supplies the required optionality with less portability and toolchain complexity.
+This RFC is P3 / Future capability. Implementation is intentionally deferred. Work should start only when concrete product/customer evidence satisfies all of the following:
 
-## Rollout
+1. a real governed query requires datasets on multiple physical DataSources and cannot reasonably be solved by normal modeling, ETL/ELT, co-location, or an already-available source-native federation engine;
+2. required semantics fit within one Ossie `SemanticModel` and do not depend on unresolved cross-Model composition;
+3. expected intermediate data is demonstrably bounded for single-node local composition;
+4. deployment governance explicitly permits intermediate data movement into the Metis process;
+5. the workload justifies the added CGO/DuckDB/Arrow operational surface;
+6. the direct semantic execution roadmap is not displaced by higher-value correctness, dialect, governance, or reliability work.
 
-### Phase 1: planning contracts
+Absent this evidence, the correct implementation state is **not implemented**. Existing multi-DataSource Project placement continues through independent direct queries.
+
+## Future implementation outline (non-commitment)
+
+These stages describe dependency order, not scheduled milestones.
+
+### Stage 1: correctness contracts
 
 - dataset-level placement;
-- renderer-neutral `SemanticPlan` boundary;
-- Physical Planner with deterministic Placement Resolution;
+- separation of semantic identity/correctness from placement-dependent expression binding;
+- Physical Planner + Placement Resolution;
 - Backend-derived Renderer/dialect authority;
-- `DirectPlan` and `FederatedPlan`;
-- federation capability/error contract;
+- data-movement policy and consistency contracts;
+- DirectPlan/FederatedPlan definitions;
 - no DuckDB composition yet.
 
-### Phase 2: two-source bounded composition
+### Stage 2: bounded two-source composition
 
-- Composer SPI;
+- type-preserving fragment result boundary;
+- Composer SPI with query-scoped isolation;
 - Arrow bridge;
-- `federation_duckdb` build flavor;
-- two source fragments;
-- safe equi-join;
-- final projection/order;
+- opt-in DuckDB federation build;
+- safe two-source equi-join;
 - direct-path regression coverage.
 
-### Phase 3: general bounded composition
+### Stage 3: broader bounded composition
 
 - multiple fragments;
 - UNION / UNION ALL;
-- safe final aggregation;
-- calculations;
+- proven-safe final aggregation/calculations;
 - broader type conformance;
-- bounded concurrent fragment execution;
-- observability.
+- bounded concurrency and observability.
 
-### Phase 4: advanced optimization
+### Stage 4: advanced optimization
 
-Only after correctness evidence exists:
+Only after correctness evidence exists: streaming Arrow, native Arrow fast paths, more aggressive proven-safe pushdown, explicitly bounded temporary spill, or full-plan delegation to a configured federation engine.
 
-- streaming Arrow bridge;
-- native Arrow fast paths;
-- more aggressive safe pushdown;
-- optional bounded temporary spill;
-- optional full-plan delegation to a configured federation-capable Backend such as Trino.
+## Future implementation gates
 
-## Test and acceptance criteria
+These are gates for a future implementation, not current-quarter deliverables.
 
-### Direct path
-
-- one-source plans always produce `DirectPlan`;
-- direct execution does not initialize Composer;
-- direct execution does not convert results to Arrow;
-- existing exact Renderer + Runner behavior remains unchanged.
-
-### Placement and authority
-
+- one-source plans preserve direct execution and never initialize Composer;
 - model-level placement remains backward compatible;
-- dataset placement overrides model placement deterministically;
-- placement to an unapplied DataSource fails bootstrap;
-- Agents cannot control physical placement;
-- a SourceFragment cannot carry an independently selected SQL dialect;
-- source dialect identity equals `resolvedBackend.Renderer.SQLDialect()`;
-- compile and execute use the same resolved DataSource route.
-
-### Federation
-
-- Doris + ClickHouse can answer a governed cross-source semantic join;
-- source-local filters and safe aggregations are pushed down;
+- dataset placement is deterministic and cannot name an unapplied DataSource;
+- Agent callers cannot control physical placement/dialect/Renderer;
+- fragment dialect equals `resolvedBackend.Renderer.SQLDialect()` and compile/execute share the same route;
+- public Agent-facing normalization is not the canonical typed intermediate representation;
+- source-local filters and proven-safe aggregations are pushed down;
 - only required fields cross the federation boundary;
-- fragment failure cancels sibling work;
-- parent cancellation cancels source and composition work;
-- federation limits fail closed;
-- final output is normalized against the governed semantic output schema.
-
-### Type conformance
-
-Tests cover at least:
-
-- signed integers;
-- signed/unsigned compatibility where lossless;
-- exact Decimal values;
-- strings;
-- booleans;
-- dates;
-- timestamps/timezones;
-- NULL values;
-- unsupported precision/type rejection.
-
-No exact numeric conformance test may rely on float conversion.
-
-### Build behavior
-
-- `CGO_ENABLED=0 go build ./cmd/metis` succeeds without federation runtime;
-- `CGO_ENABLED=1 -tags='federation_duckdb duckdb_arrow'` builds federation flavor;
-- existing `-tags='duckdb'` behavior remains separate;
-- enabling both DuckDB DataSource and federation Composer works in one binary.
-
-### Infrastructure behavior
-
-- no DuckDB server is required;
-- no persistent Metis Store is created;
-- no worker service is required;
-- query-scoped resources close on success, failure, timeout, and cancellation;
-- deployments that never use federation pay no DuckDB runtime cost in the default build.
+- data-movement denial prevents all fragment execution;
+- heterogeneous-source consistency limitations are documented;
+- fragment/parent cancellation and limits fail closed without partial results;
+- exact Decimal/integer/temporal semantics survive the Arrow/DuckDB boundary;
+- default build remains CGO-free;
+- no DuckDB server, persistent Metis Store, or worker service is required.
 
 ## Documentation updates
 
-Implementation must update authoritative documentation for:
+Any future implementation must update authoritative documentation for runtime bootstrap/build flavor, dataset placement, semantic execution architecture, data-movement governance, consistency semantics, limits/observability, federation extension points, and glossary terms.
 
-- runtime bootstrap and build flavors;
-- model/dataset placement;
-- semantic query execution architecture;
-- capability discovery;
-- execution limits and observability;
-- federation extension points;
-- glossary definitions for fragment, federation boundary, Physical Planner, Placement Resolution, and Composer.
-
-RFC-0063 remains scoped to DuckDB as a user-configured execution Backend and must not be conflated with the internal federation Composer introduced here.
+RFC-0063 remains scoped to DuckDB as a user-configured execution Backend and must not be conflated with the internal federation Composer described here.
