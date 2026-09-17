@@ -24,6 +24,7 @@ Only engine, semantic-model, query-interface, and developer-tool designs are inc
 - [RFC-0067: Governed Dimension Value Discovery](execution/0067-governed-dimension-value-discovery.md) — Implemented
 - [RFC-0069: Runtime Capability and Result Diagnostics](execution/0069-runtime-capability-and-result-diagnostics.md) — Implemented
 - [RFC-0081: Execution Backend Resilience Conformance](execution/0081-execution-backend-resilience-conformance.md) — Implemented
+- [RFC-0086: Federated Semantic Query Execution](execution/0086-federated-semantic-query-execution.md) — Draft
 
 ## Interfaces
 
