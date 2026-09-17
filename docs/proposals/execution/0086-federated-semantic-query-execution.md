@@ -39,38 +39,45 @@ Semantic Query
     Result
 ```
 
-Only a query whose required datasets span multiple DataSources enters federation mode:
+Planning for both direct and federated execution is organized as:
 
 ```text
-                     Semantic Query
-                           │
-                           ▼
-                    Semantic Planner
-                           │
-                           ▼
-                    Placement Planner
-                           │
-                           ▼
-                 Federated Physical Plan
-                           │
-          ┌────────────────┼────────────────┐
-          ▼                ▼                ▼
-       Doris           ClickHouse        DuckDB
-          │                │                │
-    source SQL A      source SQL B      source SQL C
-          │                │                │
-          ▼                ▼                ▼
-      Result A          Result B          Result C
-          │                │                │
-          └──────── Arrow boundary ─────────┘
-                           │
-                           ▼
-                   Embedded DuckDB
-                           │
-                  JOIN / UNION / CALC
-                           │
-                           ▼
-                        Result
+Semantic Query
+      ↓
+Semantic Planner
+      ↓
+Physical Planner
+      │
+      └── Placement Resolution
+      ↓
+DirectPlan / FederatedPlan
+```
+
+Placement Resolution is a deterministic input to physical planning, not a separate optimizer. It answers where each semantic dataset physically executes. The Physical Planner then owns fragmentation, pushdown decisions, and any remaining composition plan.
+
+Only a query whose required datasets span multiple DataSources produces a federated plan:
+
+```text
+                 FederatedPlan
+                      │
+      ┌───────────────┼────────────────┐
+      ▼               ▼                ▼
+   Doris          ClickHouse        DuckDB
+      │               │                │
+source SQL A     source SQL B      source SQL C
+      │               │                │
+      ▼               ▼                ▼
+  Result A         Result B          Result C
+      │               │                │
+      └──────── Arrow boundary ─────────┘
+                      │
+                      ▼
+              Embedded DuckDB
+                      │
+             JOIN / UNION / CALC
+                      │
+                      ▼
+                   Result
 ```
 
 The embedded DuckDB runtime is an **optional compile-time capability**. The default Metis build remains CGO-free. A federation build explicitly opts into CGO, DuckDB, and Arrow interoperability.
@@ -249,6 +256,23 @@ Federation therefore requires a planning boundary between semantic resolution an
 
 ## Dataset-aware placement
 
+**Placement is the deterministic binding of a semantic dataset to its physical DataSource.**
+
+It answers a narrow question:
+
+```text
+semantic dataset -> physical DataSource
+```
+
+For example:
+
+```text
+orders    -> doris-prod
+customers -> clickhouse-prod
+```
+
+Placement does not decide how to write SQL, whether to aggregate, how to join, or whether DuckDB should compose results. Those are Physical Planner responsibilities.
+
 Existing model-level placement remains backward compatible.
 
 Federation adds dataset-aware placement:
@@ -281,6 +305,30 @@ Physical placement remains deployment-owned. Agents do not choose DataSources.
 
 A public semantic query may remain model-first in v1. A single semantic model may contain datasets placed on different physical DataSources.
 
+### Placement Resolution is part of Physical Planning
+
+Metis does not introduce a heavyweight standalone `PlacementPlanner` in v1.
+
+The Physical Planner consumes a `SemanticPlan` and performs four closely related tasks:
+
+```text
+SemanticPlan
+     ↓
+Physical Planner
+     ├── Placement Resolution
+     │      dataset -> DataSource
+     ├── Fragmentation
+     │      split at cross-source boundaries
+     ├── Pushdown Analysis
+     │      keep maximal safe work at sources
+     └── Composition Planning
+            remaining work -> local Composer
+     ↓
+ExecutionPlan
+```
+
+Placement Resolution SHOULD remain deterministic. A separate cost-based Placement Planner is only justified later if one semantic dataset or complete plan has multiple viable execution locations and Metis must choose among them.
+
 ## Two-phase semantic lowering
 
 ### Phase A: renderer-neutral semantic resolution
@@ -302,7 +350,7 @@ Do not permanently bind the whole query to one dialect Renderer.
 
 ### Phase B: fragment-specific physical lowering
 
-After placement and fragmentation:
+After placement resolution and fragmentation:
 
 ```text
 Fragment A -> Doris      -> Doris Renderer      -> CompiledQuery A
@@ -313,7 +361,7 @@ Compilation and execution for a fragment MUST use the same resolved DataSource r
 
 ## Physical execution plan
 
-Metis lowers a semantic plan into one of two plan families.
+The Physical Planner lowers a `SemanticPlan` into one of two execution plan families.
 
 ```go
 type ExecutionPlan interface {
@@ -335,7 +383,21 @@ type FederatedPlan struct {
 
 `FederatedPlan` describes source fragments plus local composition.
 
-Example:
+The boundary is intentionally simple:
+
+```text
+Semantic Planner
+      ↓
+SemanticPlan
+      ↓
+Physical Planner
+      │
+      └── Placement Resolution
+      ↓
+DirectPlan / FederatedPlan
+```
+
+Example federated plan:
 
 ```text
 FederatedPlan
@@ -358,9 +420,9 @@ FederatedPlan
 
 ## Fragmentation
 
-The planner walks the semantic plan and computes source placement.
+The Physical Planner walks the semantic plan and resolves source placement.
 
-If an operation and all required children can execute on one DataSource, the planner keeps the operation source-local whenever the Backend can represent it.
+If an operation and all required children can execute on one DataSource, the Physical Planner keeps the operation source-local whenever the Backend can represent it.
 
 If children cross DataSources, Metis creates a federation boundary.
 
@@ -401,7 +463,7 @@ Fragments SHOULD return only required join keys, dimensions, partial metrics, an
 
 Aggregation may only be pushed below a federation boundary when semantic equivalence can be proven.
 
-The planner uses existing semantic evidence such as relationship cardinality, aggregation algebra, grain, required join keys, and fan-out safety.
+The Physical Planner uses existing semantic evidence such as relationship cardinality, aggregation algebra, grain, required join keys, and fan-out safety.
 
 A many-to-one lookup may allow source-side pre-aggregation. An ambiguous many-to-many cross-source shape MUST fail closed in v1 rather than silently return a wrong answer.
 
@@ -409,7 +471,7 @@ Correctness takes precedence over federation coverage.
 
 ## Direct execution
 
-When placement analysis finds exactly one physical DataSource, Metis uses the existing route unchanged:
+When the Physical Planner's placement resolution finds exactly one physical DataSource, Metis uses the existing route unchanged:
 
 ```text
 resolve route
@@ -423,7 +485,7 @@ No Arrow conversion occurs and no Composer is initialized.
 
 ## Federated execution
 
-When placement analysis finds more than one physical DataSource:
+When the Physical Planner's placement resolution finds more than one physical DataSource:
 
 ```text
 FederatedPlan
@@ -720,7 +782,7 @@ A target layout is:
 execution/
   federation/
     plan.go
-    planner.go
+    physical_planner.go
     executor.go
     limits.go
     composer.go
@@ -804,7 +866,7 @@ Implementation should proceed in phases.
 ### Phase 1: planning contracts
 
 - dataset-level placement;
-- renderer-neutral placement analysis;
+- Physical Planner with deterministic Placement Resolution;
 - `DirectPlan` and `FederatedPlan`;
 - existing execution remains `DirectPlan`;
 - federation capability/error behavior;
@@ -853,6 +915,7 @@ Only after correctness evidence exists:
 
 ### Placement and planning
 
+- Placement is a deterministic dataset-to-DataSource binding, not a standalone cost-based planner in v1;
 - model-level placement remains backward compatible;
 - dataset placement overrides model placement deterministically;
 - placement to an unapplied DataSource fails bootstrap;
