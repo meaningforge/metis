@@ -3,11 +3,11 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 WORK="$(mktemp -d "${TMPDIR:-/tmp}/metis-samples.XXXXXX")"
-BIN="$WORK/s2s"
+BIN="$WORK/metis"
 trap 'rm -rf "$WORK"' EXIT
 
 cd "$ROOT"
-go build -o "$BIN" ./cmd/s2s
+go build -o "$BIN" ./cmd/metis
 
 mapfile_compat() {
   while IFS= read -r line; do
@@ -29,7 +29,7 @@ fi
 
 for model in "${SAMPLE_FILES[@]}"; do
   echo "[sample] validate $model"
-  "$BIN" validate-model --model "$model" >/dev/null
+  "$BIN" model validate --model "$model" >/dev/null
 done
 
 MODEL="examples/sales.ossie.yaml"
@@ -37,7 +37,7 @@ MODEL="examples/sales.ossie.yaml"
 run_case() {
   local name="$1" dialect="$2" request="$3"
   local out="$WORK/${name}.${dialect}.json"
-  "$BIN" gen-sql --model "$MODEL" --dialect "$dialect" --request-json "$request" >"$out"
+  "$BIN" query compile --model "$MODEL" --dialect "$dialect" --request-json "$request" >"$out"
   test -s "$out"
   echo "PASS sample/$dialect/$name"
 }

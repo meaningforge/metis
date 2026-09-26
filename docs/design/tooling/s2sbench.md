@@ -1,8 +1,8 @@
 # S2SBench architecture
 
 S2SBench is the community benchmark and validation CLI shipped from
-`cmd/s2sbench`. It is separate from `s2s`: `s2s` compiles and inspects Ossie
-models offline, while S2SBench coordinates benchmark workloads, installed
+`cmd/s2sbench`. It is separate from the offline `metis` commands: `metis`
+compiles and inspects Ossie models, while S2SBench coordinates benchmark workloads, installed
 Agents, evidence, and reports.
 
 The executable is assembled in `cmd/s2sbench/command`. Runtime types and

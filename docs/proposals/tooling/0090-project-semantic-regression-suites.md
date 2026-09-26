@@ -21,7 +21,7 @@ The new commands, suite schema, and report below are proposed interfaces.
 
 ## Motivation
 
-`s2s diff-project` reports semantic asset changes. Internal conformance verifies
+`metis project diff` reports semantic asset changes. Internal conformance verifies
 Metis's supported semantics across engines. Neither gives an adopting team a
 small, supported way to express "this revenue definition must still produce this
 answer for these rows" or "this model change must not remove this output column."
@@ -36,11 +36,11 @@ is not an independent oracle; automatic baseline approval can preserve mistakes.
 
 ```sh
 # Proposed offline command: no connections or secret resolution.
-s2s test-project --project sales --config ./project.yaml \
+metis project test --mode compile --project sales --config ./project.yaml \
   --suite ./checks/compile.yaml --dialect DORIS --output ./reports/compile.json
 
 # Proposed local runtime command: configured services and bindings.
-metis test-project --config ./metis.yaml --project sales \
+metis project test --mode runtime --config ./metis.yaml --project sales \
   --suite ./checks/results.yaml --output ./reports/results.json
 ```
 
@@ -236,7 +236,7 @@ parameter values, or bindings with regexes.
 Expected files record their schema and supported compiler version/dialect scope.
 An engine upgrade, model change, or query edit can require deliberate baseline
 review. A changed SQL snapshot must not automatically update result expectations.
-No source or result baseline is modified by `test-project`.
+No source or result baseline is modified by `metis project test`.
 
 ### Limits, reports, and CI semantics
 
@@ -320,7 +320,7 @@ without changing model or runtime state.
   optional DuckDB uses the same assertion contract in its supported build.
 - Run the CLI outside a Metis checkout; no `tests/**` imports or relative repository
   runtime paths are required.
-- Existing `s2s` commands remain offline, and runtime tests never accept a source
+- Existing offline `metis` commands remain offline, and runtime tests never accept a source
   override, raw SQL, or suite-supplied policy/Principal.
 - JSON and JUnit report identical pass/fail/not-run totals, and missing fixture or
   unsupported capability produces a nonzero exit.

@@ -28,7 +28,7 @@ two Agent-facing interfaces:
    compiled physical query.
 
 The framework remains entirely under `tests/agentbench`. It is not part of the
-`s2s` CLI or Metis production runtime.
+offline `metis` CLI or Metis production runtime.
 
 ## Frame
 

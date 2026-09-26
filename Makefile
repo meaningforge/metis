@@ -1,4 +1,4 @@
-.PHONY: check release-check golden-path docs-check ci-contract-check test test-unit test-samples test-conformance test-e2e test-duckdb-backend test-engine-clickhouse test-engine-clickhouse-container test-engine-doris test-engine-doris-container semantic-correctness-coverage semantic-target-evidence okf-readiness-conformance fmt fmt-check vet validate ossie-sync smoke docker-build s2s-build s2s-smoke s2sbench-build s2sbench-boundary-check ossie-conformance clickhouse-conformance reference-conformance
+.PHONY: check release-check golden-path docs-check ci-contract-check test test-unit test-samples test-conformance test-e2e test-duckdb-backend test-engine-clickhouse test-engine-clickhouse-container test-engine-doris test-engine-doris-container semantic-correctness-coverage semantic-target-evidence okf-readiness-conformance fmt fmt-check vet validate ossie-sync smoke docker-build metis-build metis-smoke s2sbench-build s2sbench-boundary-check ossie-conformance clickhouse-conformance reference-conformance
 
 # Standard developer/CI correctness gate. Keep the release-facing quickstart
 # executable here so README/CLI/path drift is caught on ordinary pull requests.
@@ -123,8 +123,8 @@ clickhouse-conformance:
 reference-conformance:
 	go test ./tests/conformance/reference -count=1
 
-s2s-build:
-	go build -o bin/s2s ./cmd/s2s
+metis-build:
+	go build -o bin/metis ./cmd/metis
 
 s2sbench-build:
 	CGO_ENABLED=1 go build -tags duckdb -o bin/s2sbench ./cmd/s2sbench
@@ -133,7 +133,7 @@ s2sbench-boundary-check:
 	go test ./tools/ci/s2sbenchboundary
 	go run ./tools/ci/s2sbenchboundary
 
-s2s-smoke: test-samples
+metis-smoke: test-samples
 
 docker-build:
 	docker build -t metis:dev .

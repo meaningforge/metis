@@ -198,6 +198,8 @@ A compile-only result (`SQLExplainResult`) combining stable semantic evidence
 optional compilation warnings. Metis Explain is not database SQL `EXPLAIN` and
 does not expose raw planner graphs, SQLPlan, or renderer-private state.
 
-## s2s
+## Metis offline CLI
 
-The canonical name of the local/offline Semantic-to-SQL compiler CLI. The public command vocabulary is `s2s gen-sql`, `s2s validate-model`, and `s2s inspect`.
+The `metis` executable owns local Semantic-to-SQL compilation and source tools.
+Its offline command groups are `metis query`, `metis model`, and `metis project`.
+They do not open database connections or resolve secrets.

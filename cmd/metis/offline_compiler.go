@@ -22,7 +22,7 @@ import (
 	"github.com/meaningforge/metis/resolver"
 )
 
-const OfflineProject = "s2s"
+const OfflineProject = "metis_offline"
 
 type Filter struct {
 	Field string `json:"field"`

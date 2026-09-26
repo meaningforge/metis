@@ -37,6 +37,8 @@ func main() {
 		os.Exit(2)
 	}
 	switch os.Args[1] {
+	case "model", "project", "query":
+		os.Exit(runOffline(os.Args[1:]))
 	case "validate":
 		validate(os.Args[2:])
 	case "inspect":
@@ -47,6 +49,8 @@ func main() {
 		mcpCommand(os.Args[2:])
 	case "version":
 		printVersion()
+	case "help", "-h", "--help":
+		usage()
 	default:
 		usage()
 		os.Exit(2)
@@ -54,7 +58,7 @@ func main() {
 }
 
 func commandLogWriter(args []string) io.Writer {
-	if len(args) > 1 && args[1] == "mcp" {
+	if len(args) > 1 && (args[1] == "mcp" || args[1] == "model" || args[1] == "project" || args[1] == "query") {
 		return os.Stderr
 	}
 	return os.Stdout
@@ -428,6 +432,7 @@ func requestLogger() gin.HandlerFunc {
 
 func usage() {
 	fmt.Fprintln(os.Stderr, "Metis Semantic Engine")
+	offlineUsage()
 	fmt.Fprintln(os.Stderr, "  metis validate --project <name> <model.ossie.yaml>")
 	fmt.Fprintln(os.Stderr, "  metis inspect --project <name> --file <model.ossie.yaml> --model <name>")
 	fmt.Fprintln(os.Stderr, "  metis version")
