@@ -23,6 +23,14 @@ are validated against the assembled Project, including cross-document references
 
 ## Validation and quality
 
+For business expectations beyond structural validation, authors can keep a
+[project regression suite](../testing/project-compile-regression.md) beside their
+models and run `metis project test` locally or in existing CI. Compile mode checks
+the compilation contract without a database; runtime mode checks metric results
+against an externally prepared fixture. Review expected values independently of
+the model implementation. These checks do not test custom host authorization or
+replace Metis's own conformance suite.
+
 `ValidateProject` returns a structured `ValidationResult`. Structural and
 semantic validity are separate from the quality report's `publishable` flag.
 That flag means findings are below the configured quality threshold; it does

@@ -1,5 +1,20 @@
 # Project regression suites
 
+## Purpose and ownership
+
+`metis project test` is developer tooling for a project's authored business
+definitions, intended for local use and the author's existing CI. It is not a
+general test framework or an engine capability. Internal conformance tests
+verify Metis itself; host integration tests verify custom authorization; neither
+is replaced by project suites. See [testing ownership](architecture.md).
+
+The CLI stays a thin entry point into `app/tooling/regression`, which reuses
+existing services. Fixture preparation, environments, scheduling, and permission
+matrices remain external. Comparison/attribution snapshots and host-managed
+policy assertions are outside the scoped v1, not committed follow-up phases.
+
+## Offline compilation
+
 `metis project test --mode compile` checks a complete semantic project's
 compilation contract without connecting to a database, resolving secrets, or
 running SQL. It uses the project's normal source loader and `CompileService`
@@ -94,7 +109,7 @@ declared_only`: neither choice proves immutability or opens a snapshot transacti
 Runtime suites support only `operation: query_metrics`. Every successful case
 requires `output_schema`, `row_count`, and complete `rows`; SQL snapshots are not
 allowed. Comparison and attribution suites, host-managed policy testing, and
-baseline approval are not yet implemented.
+baseline approval are outside the scoped v1 and are not supported.
 
 Rows use tagged cells. `integer`, `decimal`, and `float` values must be quoted
 finite decimal strings (no binary floating-point conversion). `string`, `date`,
@@ -127,3 +142,23 @@ JUnit maps failed cases to failures and not-run cases to errors, never successfu
 skips. Outputs are independently atomic, not a two-file transaction. Exit 2 can
 therefore leave a valid JSON report if writing JUnit fails. Use distinct paths;
 existing outputs require `--overwrite`. CI must check the command exit status.
+
+## Investigating a business regression
+
+The [runtime example](../../../examples/regression/README.md) deliberately has a
+small independently calculated answer: APAC has amounts 50 and 70, so its revenue
+is 120; EMEA has amount 80, so its revenue is 80. Prepare this fixture externally
+and keep it unchanged throughout the check.
+
+If an author accidentally changes `total_revenue` from `SUM(orders.amount)` to
+`AVG(orders.amount)`, the model can still compile with the same Decimal schema.
+The runtime suite should fail because APAC becomes 60 rather than 120. A compile
+schema check alone cannot establish that the business definition is correct.
+The default report identifies a result mismatch without recording either value.
+
+Investigate the model diff and fixture rather than copying current output into
+the expectation. When the reviewed definition is total revenue, restore the
+`SUM` expression and rerun with a fresh report path (or explicit `--overwrite`).
+Keep the independently reviewed 120/80 expectations unchanged. If the business
+definition intentionally changes instead, review the new model and hand-derived
+expectations together in Git. There is no automatic baseline-approval command.

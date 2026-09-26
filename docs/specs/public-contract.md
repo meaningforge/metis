@@ -6,6 +6,12 @@ This specification defines which Metis names and interfaces are intended to be s
 
 The v0.1 compatibility surface is intentionally narrower than the set of exported Go identifiers in the repository.
 
+`metis project test` is a project-author developer tool, not an additional query
+or analytics operation. Its [suite and report contract](testing/project-compile-regression.md)
+covers offline compilation and runtime metric-result checks. It does not expose
+fixture management, arbitrary assertions, or host-policy testing. Internal engine
+tests and existing public analytics services remain separate contracts.
+
 The following are user-facing contracts and changes to them require an explicit compatibility decision:
 
 - Metis manifest fields and their serialized names;
