@@ -46,6 +46,8 @@ func runOffline(args []string) int {
 			return inspectProject(args[2:])
 		case "diff":
 			return diffProject(args[2:])
+		case "test":
+			return testProject(args[2:])
 		}
 	case "query":
 		if args[1] == "compile" {
@@ -311,4 +313,5 @@ func offlineUsage() {
 	fmt.Fprintln(os.Stderr, "  metis project validate --project <id> --config <project.yaml>")
 	fmt.Fprintln(os.Stderr, "  metis project inspect --project <id> --config <project.yaml>")
 	fmt.Fprintln(os.Stderr, "  metis project diff --project <id> --base-config <project.yaml> --candidate-config <project.yaml>")
+	fmt.Fprintln(os.Stderr, "  metis project test --mode compile --project <id> --config <project.yaml> --suite <suite.yaml> --dialect <dialect> --output <report.json>")
 }
