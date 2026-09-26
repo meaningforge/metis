@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/meaningforge/metis/app/auth"
-	service "github.com/meaningforge/metis/app/service/semantic"
+	"github.com/meaningforge/metis/app/service/semantic"
 	"github.com/meaningforge/metis/query"
 	"github.com/meaningforge/metis/serrors"
 )
@@ -69,7 +69,7 @@ data_sources:
 	}
 
 	ctx := auth.WithPrincipal(context.Background(), &auth.Principal{Scopes: []string{auth.ScopeSemanticExecute}})
-	_, err = runtime.QueryMetrics.QueryMetrics(ctx, service.QueryMetricsRequest{Query: query.SemanticQuery{
+	_, err = runtime.QueryMetrics.QueryMetrics(ctx, semantic.QueryMetricsRequest{Query: query.SemanticQuery{
 		Project: "analytics", Model: "sales", Metrics: []query.MetricRef{{Name: "total_revenue"}},
 	}})
 	var semanticErr *serrors.Error
