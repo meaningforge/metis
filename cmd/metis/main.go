@@ -21,8 +21,8 @@ import (
 	"github.com/meaningforge/metis/app/hosting"
 	"github.com/meaningforge/metis/app/mcp"
 	"github.com/meaningforge/metis/app/observability"
-	runtimeservice "github.com/meaningforge/metis/app/service/runtime"
-	service "github.com/meaningforge/metis/app/service/semantic"
+	"github.com/meaningforge/metis/app/service/runtime"
+	"github.com/meaningforge/metis/app/service/semantic"
 	"github.com/meaningforge/metis/execution/runner"
 	"github.com/meaningforge/metis/manifest"
 	"github.com/meaningforge/metis/ossie"
@@ -364,19 +364,19 @@ func runStdioMCP(ctx context.Context, configPath string, shutdownTimeout time.Du
 	return errors.Join(runErr, shutdownErr)
 }
 
-func configureRuntimeObservation(runtime *bootstrap.Runtime, recorder *observability.Recorder, tracing *observability.Tracing) {
-	runtime.Generations.Configure(func(generation *runtimeservice.Generation) {
+func configureRuntimeObservation(serveRuntime *bootstrap.Runtime, recorder *observability.Recorder, tracing *observability.Tracing) {
+	serveRuntime.Generations.Configure(func(generation *runtime.Generation) {
 		generation.Compile.WithObservability(recorder, tracing)
 		generation.AttributeMetric.WithObservability(recorder)
 		generation.CompareMetrics.WithObservability(recorder)
 	})
-	runtime.Compile.WithObservability(recorder, tracing)
-	runtime.AttributeMetric.WithObservability(recorder)
-	runtime.CompareMetrics.WithObservability(recorder)
-	if runtime.Execution != nil {
-		runtime.Execution.WithObserver(recorder)
+	serveRuntime.Compile.WithObservability(recorder, tracing)
+	serveRuntime.AttributeMetric.WithObservability(recorder)
+	serveRuntime.CompareMetrics.WithObservability(recorder)
+	if serveRuntime.Execution != nil {
+		serveRuntime.Execution.WithObserver(recorder)
 	}
-	runtime.WithProjectAuthorizationObserver(service.ProjectAuthorizationObserverFunc(func(ctx context.Context, audit service.ProjectAuthorizationAudit) {
+	serveRuntime.WithProjectAuthorizationObserver(semantic.ProjectAuthorizationObserverFunc(func(ctx context.Context, audit semantic.ProjectAuthorizationAudit) {
 		slog.InfoContext(ctx, "project authorization decision",
 			"tenant_id", audit.TenantID,
 			"subject_id", audit.SubjectID,
@@ -405,7 +405,7 @@ func loadServeRuntime(configPath string) (*bootstrap.Runtime, error) {
 	return bootstrap.LoadRuntime(configPath,
 		bootstrap.WithBackendRegistry(backends),
 		bootstrap.WithSecretResolver(runner.NewEnvSecretResolver()),
-		bootstrap.WithProjectAuthorizer(service.ScopeProjectAuthorizer{}),
+		bootstrap.WithProjectAuthorizer(semantic.ScopeProjectAuthorizer{}),
 	)
 }
 

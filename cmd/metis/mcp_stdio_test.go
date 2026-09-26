@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	appmcp "github.com/meaningforge/metis/app/mcp"
+	"github.com/meaningforge/metis/app/mcp"
 	mcpsdk "github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -153,21 +153,21 @@ func assertStdioToolsAndAuthorization(t *testing.T, ctx context.Context, session
 		t.Fatal(err)
 	}
 	wantTools := map[string]bool{
-		appmcp.ToolSearchOntologyConcepts: false,
-		appmcp.ToolResolveOntologyConcept: false,
-		appmcp.ToolListProjects:           false,
-		appmcp.ToolListModels:             false,
-		appmcp.ToolGetModel:               false,
-		appmcp.ToolListMetrics:            false,
-		appmcp.ToolGetMetric:              false,
-		appmcp.ToolGetDimensions:          false,
-		appmcp.ToolGetDimension:           false,
-		appmcp.ToolCompile:                false,
-		appmcp.ToolQueryMetrics:           false,
-		appmcp.ToolGetDimensionValues:     false,
-		appmcp.ToolGetRelationships:       false,
-		appmcp.ToolAttributeMetric:        false,
-		appmcp.ToolCompareMetrics:         false,
+		mcp.ToolSearchOntologyConcepts: false,
+		mcp.ToolResolveOntologyConcept: false,
+		mcp.ToolListProjects:           false,
+		mcp.ToolListModels:             false,
+		mcp.ToolGetModel:               false,
+		mcp.ToolListMetrics:            false,
+		mcp.ToolGetMetric:              false,
+		mcp.ToolGetDimensions:          false,
+		mcp.ToolGetDimension:           false,
+		mcp.ToolCompile:                false,
+		mcp.ToolQueryMetrics:           false,
+		mcp.ToolGetDimensionValues:     false,
+		mcp.ToolGetRelationships:       false,
+		mcp.ToolAttributeMetric:        false,
+		mcp.ToolCompareMetrics:         false,
 	}
 	if len(tools.Tools) != len(wantTools) {
 		t.Fatalf("stdio tools/list count = %d, want %d", len(tools.Tools), len(wantTools))
@@ -183,7 +183,7 @@ func assertStdioToolsAndAuthorization(t *testing.T, ctx context.Context, session
 		}
 	}
 
-	projects, err := session.CallTool(ctx, &mcpsdk.CallToolParams{Name: appmcp.ToolListProjects})
+	projects, err := session.CallTool(ctx, &mcpsdk.CallToolParams{Name: mcp.ToolListProjects})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -8,10 +8,10 @@ import (
 	"testing"
 
 	"github.com/meaningforge/metis/app/auth"
-	service "github.com/meaningforge/metis/app/service/semantic"
+	"github.com/meaningforge/metis/app/service/semantic"
 	"github.com/meaningforge/metis/query"
 	duckdbfixture "github.com/meaningforge/metis/tests/engine/duckdb/fixture"
-	enginefixture "github.com/meaningforge/metis/tests/engine/fixture"
+	"github.com/meaningforge/metis/tests/engine/fixture"
 	"github.com/meaningforge/metis/tests/engine/harness"
 )
 
@@ -22,13 +22,13 @@ func TestLoadServeRuntimeExecutesAnalyticsWorkflowsThroughProductionDuckDBBacken
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := fixtureBackend.PrepareFixture(context.Background(), enginefixture.AnalyticsWorkflows); err != nil {
+	if err := fixtureBackend.PrepareFixture(context.Background(), fixture.AnalyticsWorkflows); err != nil {
 		t.Fatal(err)
 	}
 	if err := fixtureBackend.Close(context.Background()); err != nil {
 		t.Fatal(err)
 	}
-	writeServeFile(t, filepath.Join(dir, "analytics.ossie.yaml"), enginefixture.AnalyticsModelYAML)
+	writeServeFile(t, filepath.Join(dir, "analytics.ossie.yaml"), fixture.AnalyticsModelYAML)
 	writeServeFile(t, filepath.Join(dir, "project.yaml"), "semantic_sources:\n  analytics:\n    path: ./analytics.ossie.yaml\n")
 	writeServeFile(t, filepath.Join(dir, "datasources.yaml"), `
 duckdb-local:
@@ -65,8 +65,8 @@ data_sources:
 		t.Fatalf("production DuckDB route = %#v, %v", resolved, err)
 	}
 	ctx := auth.WithPrincipal(context.Background(), &auth.Principal{Scopes: []string{auth.ScopeSemanticExecute}})
-	result, err := runtime.QueryMetrics.QueryMetrics(ctx, service.QueryMetricsRequest{Query: query.SemanticQuery{
-		Project: enginefixture.AnalyticsProject, Model: enginefixture.AnalyticsModel, Metrics: []query.MetricRef{{Name: "total_revenue"}},
+	result, err := runtime.QueryMetrics.QueryMetrics(ctx, semantic.QueryMetricsRequest{Query: query.SemanticQuery{
+		Project: fixture.AnalyticsProject, Model: fixture.AnalyticsModel, Metrics: []query.MetricRef{{Name: "total_revenue"}},
 	}})
 	if err != nil {
 		t.Fatal(err)
@@ -74,8 +74,8 @@ data_sources:
 	if result.Count != 1 || len(result.Rows) != 1 || len(result.Rows[0]) != 1 || result.Rows[0][0] != "12.5" {
 		t.Fatalf("query_metrics DuckDB result = %#v", result)
 	}
-	values, err := runtime.DimensionValues.GetDimensionValues(ctx, service.DimensionValuesQuery{
-		ProjectID: enginefixture.AnalyticsProject,
+	values, err := runtime.DimensionValues.GetDimensionValues(ctx, semantic.DimensionValuesQuery{
+		ProjectID: fixture.AnalyticsProject,
 		Dimension: "dimension:workflow.events.region",
 	})
 	if err != nil {
