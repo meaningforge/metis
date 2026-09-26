@@ -37,20 +37,23 @@ type CompileOptions struct {
 }
 
 type Report struct {
-	SchemaVersion     int            `json:"schema_version"`
-	Mode              string         `json:"mode"`
-	Project           string         `json:"project"`
-	Dialect           sql.SQLDialect `json:"dialect"`
-	Status            string         `json:"status"`
-	SuiteDigest       string         `json:"suite_digest"`
-	ExpectationDigest string         `json:"expectation_digest"`
-	CandidateDigest   string         `json:"candidate_digest,omitempty"`
-	MetisVersion      string         `json:"metis_version"`
-	Authorization     string         `json:"authorization"`
-	Passed            int            `json:"passed"`
-	Failed            int            `json:"failed"`
-	NotRun            int            `json:"not_run"`
-	Cases             []CaseReport   `json:"cases"`
+	SchemaVersion       int            `json:"schema_version"`
+	Mode                string         `json:"mode"`
+	Project             string         `json:"project"`
+	Dialect             sql.SQLDialect `json:"dialect,omitempty"`
+	Status              string         `json:"status"`
+	SuiteDigest         string         `json:"suite_digest"`
+	ExpectationDigest   string         `json:"expectation_digest"`
+	CandidateDigest     string         `json:"candidate_digest,omitempty"`
+	MetisVersion        string         `json:"metis_version"`
+	Authorization       string         `json:"authorization"`
+	Fixture             *Fixture       `json:"fixture,omitempty"`
+	FixtureVerification string         `json:"fixture_verification,omitempty"`
+	Backends            []string       `json:"backends,omitempty"`
+	Passed              int            `json:"passed"`
+	Failed              int            `json:"failed"`
+	NotRun              int            `json:"not_run"`
+	Cases               []CaseReport   `json:"cases"`
 }
 
 type CaseReport struct {
@@ -75,6 +78,9 @@ func RunCompile(ctx context.Context, suite Suite, suiteDigest string, options Co
 	}
 	if err := suite.validate(); err != nil {
 		return Report{}, err
+	}
+	if suite.Fixture != nil {
+		return Report{}, fmt.Errorf("compile mode does not accept a runtime fixture")
 	}
 	if options.Project != suite.Project || options.Config == "" || options.Dialect == "" {
 		return Report{}, fmt.Errorf("project, config, and dialect are required; project must match the suite")

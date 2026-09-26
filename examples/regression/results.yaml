@@ -1,0 +1,25 @@
+schema_version: 1
+project: regression
+fixture: {id: sales-small-v1, kind: externally_prepared}
+cases:
+  - id: revenue_by_region
+    operation: query_metrics
+    request:
+      query:
+        project: regression
+        model: sales
+        metrics: [{name: total_revenue}]
+        dimensions: [{name: region}]
+    expect:
+      outcome: success
+      output_schema:
+        columns:
+          - {name: region, kind: dimension, datatype: String}
+          - {name: total_revenue, kind: metric, datatype: Decimal}
+      warnings: []
+      row_count: 2
+      rows:
+        mode: unordered
+        values:
+          - [{type: string, value: APAC}, {type: decimal, value: "120.00"}]
+          - [{type: string, value: EMEA}, {type: decimal, value: "80.00"}]

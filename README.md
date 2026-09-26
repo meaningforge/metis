@@ -167,6 +167,7 @@ driver. Values are never interpolated into SQL text.
 | `metis project validate`, `metis project inspect` | Load and check a complete semantic project. |
 | `metis project diff` | Compare two local semantic project inputs. |
 | `metis project test --mode compile` | Check project-owned compile expectations in CI without connecting to a database. |
+| `metis project test --mode runtime` | Assert metric results against an externally prepared database fixture; emit JSON and optional JUnit. |
 | `metis model format` | Format a model file. |
 
 ```sh
@@ -184,9 +185,10 @@ bin/metis project test --mode compile --project demo \
   --dialect DORIS --output ./compile-report.json
 ```
 
-See the [compile-suite contract](docs/specs/testing/project-compile-regression.md)
-for assertion syntax, limits, and exit codes. Runtime result suites are not yet
-implemented.
+See the [regression-suite contract](docs/specs/testing/project-compile-regression.md)
+for assertion syntax, limits, and exit codes, and the
+[runtime fixture example](examples/regression/README.md) for Doris/ClickHouse setup.
+Both modes support `--junit-output`; runtime currently supports `query_metrics`.
 
 ## Execute queries
 

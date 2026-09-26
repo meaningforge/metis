@@ -25,22 +25,27 @@ const (
 	MaxCases           = 100
 )
 
-// Suite is the strict, versioned compile-only input. Runtime operations are
-// rejected until the runtime phase of the contract is implemented.
+// Suite is the strict, versioned compile or metric-result input.
 type Suite struct {
-	SchemaVersion int    `json:"schema_version" yaml:"schema_version"`
-	Project       string `json:"project" yaml:"project"`
-	Cases         []Case `json:"cases" yaml:"cases"`
+	SchemaVersion int      `json:"schema_version" yaml:"schema_version"`
+	Project       string   `json:"project" yaml:"project"`
+	Cases         []Case   `json:"cases" yaml:"cases"`
+	Fixture       *Fixture `json:"fixture,omitempty" yaml:"fixture"`
+}
+
+type Fixture struct {
+	ID   string `json:"id" yaml:"id"`
+	Kind string `json:"kind" yaml:"kind"`
 }
 
 type Case struct {
-	ID        string         `json:"id" yaml:"id"`
-	Operation string         `json:"operation" yaml:"operation"`
-	Request   CompileRequest `json:"request" yaml:"request"`
-	Expect    Expectation    `json:"expect" yaml:"expect"`
+	ID        string       `json:"id" yaml:"id"`
+	Operation string       `json:"operation" yaml:"operation"`
+	Request   QueryRequest `json:"request" yaml:"request"`
+	Expect    Expectation  `json:"expect" yaml:"expect"`
 }
 
-type CompileRequest struct {
+type QueryRequest struct {
 	Query QueryInput `json:"query" yaml:"query"`
 }
 
@@ -85,6 +90,8 @@ type Expectation struct {
 	SQLRenderResult *ExpectedSQL    `json:"sql_render_result,omitempty" yaml:"sql_render_result"`
 	Code            string          `json:"code,omitempty" yaml:"code"`
 	CallerAction    string          `json:"caller_action,omitempty" yaml:"caller_action"`
+	RowCount        *int64          `json:"row_count,omitempty" yaml:"row_count"`
+	Rows            *ExpectedRows   `json:"rows,omitempty" yaml:"rows"`
 }
 
 type ExpectedSchema struct {
@@ -206,14 +213,21 @@ func (s Suite) validate() error {
 	if len(s.Cases) == 0 || len(s.Cases) > MaxCases {
 		return fmt.Errorf("suite must contain 1 to %d cases", MaxCases)
 	}
+	operation := "compile_sql"
+	if s.Fixture != nil {
+		if strings.TrimSpace(s.Fixture.ID) == "" || (s.Fixture.Kind != "externally_prepared" && s.Fixture.Kind != "live") {
+			return fmt.Errorf("runtime fixture requires id and kind externally_prepared or live")
+		}
+		operation = "query_metrics"
+	}
 	ids := make(map[string]bool, len(s.Cases))
 	for _, c := range s.Cases {
 		if strings.TrimSpace(c.ID) == "" || ids[c.ID] {
 			return fmt.Errorf("case ID must be nonempty and unique: %q", c.ID)
 		}
 		ids[c.ID] = true
-		if c.Operation != "compile_sql" {
-			return fmt.Errorf("case %q: only compile_sql is supported in offline mode", c.ID)
+		if c.Operation != operation {
+			return fmt.Errorf("case %q: expected %s operation for this suite", c.ID, operation)
 		}
 		if c.Request.Query.Project != s.Project || strings.TrimSpace(c.Request.Query.Model) == "" {
 			return fmt.Errorf("case %q: request project must match suite and model is required", c.ID)
@@ -224,6 +238,13 @@ func (s Suite) validate() error {
 		if err := c.Expect.validate(); err != nil {
 			return fmt.Errorf("case %q: %w", c.ID, err)
 		}
+		if s.Fixture == nil {
+			if c.Expect.Rows != nil || c.Expect.RowCount != nil {
+				return fmt.Errorf("case %q: compile suites cannot assert result rows", c.ID)
+			}
+		} else if err := validateRuntimeCase(c); err != nil {
+			return fmt.Errorf("case %q: %w", c.ID, err)
+		}
 	}
 	return nil
 }
@@ -232,10 +253,10 @@ func (e Expectation) validate() error {
 	switch e.Outcome {
 	case "success":
 		if e.OutputSchema == nil || len(e.OutputSchema.Columns) == 0 {
-			return fmt.Errorf("successful compile requires a nonempty exact output_schema")
+			return fmt.Errorf("success requires a nonempty exact output_schema")
 		}
 		if e.Code != "" || e.CallerAction != "" {
-			return fmt.Errorf("successful compile cannot expect an error")
+			return fmt.Errorf("success cannot expect an error")
 		}
 		for _, col := range e.OutputSchema.Columns {
 			if col.Name == "" || (col.Kind != string(artifact.OutputDimension) && col.Kind != string(artifact.OutputMetric)) || col.Datatype == "" {
@@ -260,8 +281,8 @@ func (e Expectation) validate() error {
 			}
 		}
 	case "semantic_error":
-		if e.OutputSchema != nil || e.Warnings != nil || e.SQLRenderResult != nil {
-			return fmt.Errorf("semantic_error cannot include successful compile assertions")
+		if e.OutputSchema != nil || e.Warnings != nil || e.SQLRenderResult != nil || e.Rows != nil || e.RowCount != nil {
+			return fmt.Errorf("semantic_error cannot include success assertions")
 		}
 		if e.Code == "" || e.CallerAction == "" || e.Code == string(serrors.ErrProjectAccessDenied) || e.Code == string(serrors.ErrDataAccessDenied) {
 			return fmt.Errorf("semantic_error requires an allowed stable code and caller_action")

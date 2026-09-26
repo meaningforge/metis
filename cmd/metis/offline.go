@@ -314,4 +314,5 @@ func offlineUsage() {
 	fmt.Fprintln(os.Stderr, "  metis project inspect --project <id> --config <project.yaml>")
 	fmt.Fprintln(os.Stderr, "  metis project diff --project <id> --base-config <project.yaml> --candidate-config <project.yaml>")
 	fmt.Fprintln(os.Stderr, "  metis project test --mode compile --project <id> --config <project.yaml> --suite <suite.yaml> --dialect <dialect> --output <report.json>")
+	fmt.Fprintln(os.Stderr, "  metis project test --mode runtime --project <id> --config <metis.yaml> --suite <suite.yaml> --output <report.json> [--junit-output <report.xml>]")
 }
