@@ -19,42 +19,48 @@ type multiFlag []string
 func (m *multiFlag) String() string     { return strings.Join(*m, ",") }
 func (m *multiFlag) Set(v string) error { *m = append(*m, v); return nil }
 
-func main() {
-	os.Exit(run(os.Args[1:]))
-}
-
-func run(args []string) int {
-	if len(args) == 0 {
-		usage()
+func runOffline(args []string) int {
+	if len(args) < 2 {
+		offlineUsage()
 		return 2
+	}
+	if args[1] == "help" || args[1] == "-h" || args[1] == "--help" {
+		offlineUsage()
+		return 0
 	}
 	switch args[0] {
-	case "gen-sql", "generate-sql":
-		return genSQL(args[1:])
-	case "validate-model":
-		return validateModel(args[1:])
-	case "inspect", "list-meta":
-		return inspectModel(args[1:])
-	case "validate-project":
-		return validateProject(args[1:])
-	case "inspect-project":
-		return inspectProject(args[1:])
-	case "diff-project":
-		return diffProject(args[1:])
-	case "format-model":
-		return formatModel(args[1:])
-	case "help", "-h", "--help":
-		usage()
-		return 0
+	case "model":
+		switch args[1] {
+		case "validate":
+			return validateModel(args[2:])
+		case "inspect":
+			return inspectModel(args[2:])
+		case "format":
+			return formatModel(args[2:])
+		}
+	case "project":
+		switch args[1] {
+		case "validate":
+			return validateProject(args[2:])
+		case "inspect":
+			return inspectProject(args[2:])
+		case "diff":
+			return diffProject(args[2:])
+		}
+	case "query":
+		if args[1] == "compile" {
+			return genSQL(args[2:])
+		}
 	default:
-		fmt.Fprintf(os.Stderr, "unknown command %q\n", args[0])
-		usage()
-		return 2
+		// The executable has no compatibility aliases for the retired CLI.
 	}
+	fmt.Fprintf(os.Stderr, "unknown command %q for metis %s\n", args[1], args[0])
+	offlineUsage()
+	return 2
 }
 
 func genSQL(args []string) int {
-	fs := flag.NewFlagSet("gen-sql", flag.ContinueOnError)
+	fs := flag.NewFlagSet("metis query compile", flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
 	modelFile := fs.String("model", "", "Apache Ossie YAML/JSON model file")
 	semanticModel := fs.String("semantic-model", "", "semantic model name when the file contains multiple models")
@@ -69,10 +75,13 @@ func genSQL(args []string) int {
 	fs.Var(&dimensions, "dimension", "dimension name; may be specified multiple times")
 	fs.Var(&filters, "filter", "filter expression such as \"order_month > '2026-01-01'\"; may be repeated")
 	if err := fs.Parse(args); err != nil {
+		if err == flag.ErrHelp {
+			return 0
+		}
 		return 2
 	}
 	if *modelFile == "" || *dialect == "" {
-		fmt.Fprintln(os.Stderr, "s2s gen-sql: --model and --dialect are required")
+		fmt.Fprintln(os.Stderr, "metis query compile: --model and --dialect are required")
 		return 2
 	}
 
@@ -147,14 +156,17 @@ func genSQL(args []string) int {
 }
 
 func validateModel(args []string) int {
-	fs := flag.NewFlagSet("validate-model", flag.ContinueOnError)
+	fs := flag.NewFlagSet("metis model validate", flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
 	modelFile := fs.String("model", "", "Apache Ossie YAML/JSON model file")
 	if err := fs.Parse(args); err != nil {
+		if err == flag.ErrHelp {
+			return 0
+		}
 		return 2
 	}
 	if *modelFile == "" {
-		fmt.Fprintln(os.Stderr, "s2s validate-model: --model is required")
+		fmt.Fprintln(os.Stderr, "metis model validate: --model is required")
 		return 2
 	}
 	doc, err := LoadDocument(*modelFile)
@@ -167,15 +179,18 @@ func validateModel(args []string) int {
 }
 
 func inspectModel(args []string) int {
-	fs := flag.NewFlagSet("inspect", flag.ContinueOnError)
+	fs := flag.NewFlagSet("metis model inspect", flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
 	modelFile := fs.String("model", "", "Apache Ossie YAML/JSON model file")
 	semanticModel := fs.String("semantic-model", "", "semantic model name")
 	if err := fs.Parse(args); err != nil {
+		if err == flag.ErrHelp {
+			return 0
+		}
 		return 2
 	}
 	if *modelFile == "" {
-		fmt.Fprintln(os.Stderr, "s2s inspect: --model is required")
+		fmt.Fprintln(os.Stderr, "metis model inspect: --model is required")
 		return 2
 	}
 	doc, err := LoadDocument(*modelFile)
@@ -287,14 +302,13 @@ func renderOutput(result *Result) (string, error) {
 	return string(data) + "\n", nil
 }
 
-func usage() {
-	fmt.Fprintln(os.Stderr, "s2s — offline semantic-to-SQL compiler")
-	fmt.Fprintln(os.Stderr, "usage:")
-	fmt.Fprintln(os.Stderr, "  s2s gen-sql --model <ossie.yaml> --dialect <dialect> [query flags]")
-	fmt.Fprintln(os.Stderr, "  s2s validate-model --model <ossie.yaml>")
-	fmt.Fprintln(os.Stderr, "  s2s inspect --model <ossie.yaml>")
-	fmt.Fprintln(os.Stderr, "  s2s validate-project --project <id> --config <project.yaml>")
-	fmt.Fprintln(os.Stderr, "  s2s inspect-project --project <id> --config <project.yaml>")
-	fmt.Fprintln(os.Stderr, "  s2s diff-project --project <id> --base-config <project.yaml> --candidate-config <project.yaml>")
-	fmt.Fprintln(os.Stderr, "  s2s format-model --model <ossie.yaml> --output <formatted.yaml>")
+func offlineUsage() {
+	fmt.Fprintln(os.Stderr, "offline commands:")
+	fmt.Fprintln(os.Stderr, "  metis query compile --model <ossie.yaml> --dialect <dialect> [query flags]")
+	fmt.Fprintln(os.Stderr, "  metis model validate --model <ossie.yaml>")
+	fmt.Fprintln(os.Stderr, "  metis model inspect --model <ossie.yaml>")
+	fmt.Fprintln(os.Stderr, "  metis model format --model <ossie.yaml> --output <formatted.yaml>")
+	fmt.Fprintln(os.Stderr, "  metis project validate --project <id> --config <project.yaml>")
+	fmt.Fprintln(os.Stderr, "  metis project inspect --project <id> --config <project.yaml>")
+	fmt.Fprintln(os.Stderr, "  metis project diff --project <id> --base-config <project.yaml> --candidate-config <project.yaml>")
 }

@@ -2,8 +2,9 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd)"
-WORK="${TMPDIR:-/tmp}/metis-ossie-conformance"
-BIN="$WORK/s2s"
+WORK="$(mktemp -d "${TMPDIR:-/tmp}/metis-ossie-conformance.XXXXXX")"
+trap 'rm -rf "$WORK"' EXIT
+BIN="$WORK/metis"
 OSSIE_REF="88e0011148283302c9a04cd0287e00e0b9d87354"
 OSSIE_RAW="https://raw.githubusercontent.com/apache/ossie/${OSSIE_REF}"
 OSSIE_BASE="${OSSIE_RAW}/examples"
@@ -19,11 +20,10 @@ fetch_official() {
   fi
 }
 
-rm -rf "$WORK"
 mkdir -p "$WORK/official/converters" "$WORK/fixtures" "$WORK/requests" "$WORK/out"
 
-echo "[conformance] build s2s"
-go build -o "$BIN" "$ROOT/cmd/s2s"
+echo "[conformance] build metis"
+go build -o "$BIN" "$ROOT/cmd/metis"
 
 echo "[conformance] fetch pinned Apache Ossie official examples @ $OSSIE_REF"
 fetch_official "examples/tpcds_semantic_model.yaml" "$WORK/official/tpcds_semantic_model.yaml"
@@ -37,12 +37,12 @@ fetch_official "converters/gooddata/tests/fixtures/osi_tpcds.yaml" "$WORK/offici
 fetch_official "converters/gsf/tests/fixtures/sales.ossie.yaml" "$WORK/official/converters/gsf.yaml"
 
 echo "[conformance] validate official Core and ontology examples"
-"$BIN" validate-model --model "$WORK/official/tpcds_semantic_model.yaml" >/dev/null
-FLIGHTS_VALIDATE="$($BIN validate-model --model "$WORK/official/flights.yaml")"
+"$BIN" model validate --model "$WORK/official/tpcds_semantic_model.yaml" >/dev/null
+FLIGHTS_VALIDATE="$($BIN model validate --model "$WORK/official/flights.yaml")"
 grep -q 'ontology_concepts=' <<<"$FLIGHTS_VALIDATE"
 grep -q 'ontology_mappings=' <<<"$FLIGHTS_VALIDATE"
 for fixture in "$WORK"/official/converters/*.yaml; do
-  "$BIN" validate-model --model "$fixture" >/dev/null
+  "$BIN" model validate --model "$fixture" >/dev/null
 done
 
 cat >"$WORK/fixtures/enums.yaml" <<'YAML'
@@ -71,7 +71,7 @@ semantic_model:
         datatype: Integer
         expression: {dialects: [{dialect: ANSI_SQL, expression: COUNT(values_table.f_string)}]}
 YAML
-"$BIN" validate-model --model "$WORK/fixtures/enums.yaml" >/dev/null
+"$BIN" model validate --model "$WORK/fixtures/enums.yaml" >/dev/null
 
 cat >"$WORK/fixtures/composite.yaml" <<'YAML'
 version: "0.2.0.dev0"
@@ -105,7 +105,7 @@ semantic_model:
         datatype: Decimal
         expression: {dialects: [{dialect: ANSI_SQL, expression: SUM(order_lines.amount)}]}
 YAML
-"$BIN" validate-model --model "$WORK/fixtures/composite.yaml" >/dev/null
+"$BIN" model validate --model "$WORK/fixtures/composite.yaml" >/dev/null
 cat >"$WORK/requests/composite.json" <<'JSON'
 {"model":"composite_model","metrics":["total_amount"],"dimensions":["category"],"limit":10}
 JSON
@@ -129,7 +129,7 @@ semantic_model:
         datatype: Decimal
         expression: {dialects: [{dialect: ANSI_SQL, expression: SUM(events.amount)}]}
 YAML
-"$BIN" validate-model --model "$WORK/fixtures/time-role.yaml" >/dev/null
+"$BIN" model validate --model "$WORK/fixtures/time-role.yaml" >/dev/null
 cat >"$WORK/requests/implicit-time.json" <<'JSON'
 {"model":"time_role_model","metrics":["total_amount"],"dimensions":[{"name":"occurred_on","grain":"month"}]}
 JSON
@@ -174,10 +174,10 @@ JSON
 run_case() {
   local dialect="$1" name="$2" model="$3" request="$4"
   local first="$WORK/out/${name}.${dialect}.json"
-  "$BIN" gen-sql --model "$model" --dialect "$dialect" --request-json "$request" >"$first"
+  "$BIN" query compile --model "$model" --dialect "$dialect" --request-json "$request" >"$first"
   for i in 2 3 4 5; do
     local again="$WORK/out/${name}.${dialect}.${i}.json"
-    "$BIN" gen-sql --model "$model" --dialect "$dialect" --request-json "$request" >"$again"
+    "$BIN" query compile --model "$model" --dialect "$dialect" --request-json "$request" >"$again"
     cmp -s "$first" "$again" || { echo "FAIL determinism: $name invocation $i differs" >&2; diff -u "$first" "$again" >&2 || true; exit 1; }
   done
   python3 - "$first" "$WORK/out/${name}.${dialect}.sql" "$name" <<'PYJSON'
@@ -194,9 +194,9 @@ file_sha256() { local file="$1"; if command -v sha256sum >/dev/null 2>&1; then s
 
 run_error_case() {
   local name="$1" expected="$2"; shift 2; local first="$WORK/out/${name}.err"
-  if "$BIN" gen-sql "$@" >"$WORK/out/${name}.sql" 2>"$first"; then echo "FAIL expected error: $name" >&2; exit 1; fi
+  if "$BIN" query compile "$@" >"$WORK/out/${name}.sql" 2>"$first"; then echo "FAIL expected error: $name" >&2; exit 1; fi
   grep -q "$expected" "$first"
-  for i in 2 3 4 5; do local again="$WORK/out/${name}.${i}.err"; if "$BIN" gen-sql "$@" >"$WORK/out/${name}.${i}.sql" 2>"$again"; then echo "FAIL expected error: $name invocation $i" >&2; exit 1; fi; cmp -s "$first" "$again" || { echo "FAIL error determinism: $name invocation $i differs" >&2; diff -u "$first" "$again" >&2 || true; exit 1; }; done
+  for i in 2 3 4 5; do local again="$WORK/out/${name}.${i}.err"; if "$BIN" query compile "$@" >"$WORK/out/${name}.${i}.sql" 2>"$again"; then echo "FAIL expected error: $name invocation $i" >&2; exit 1; fi; cmp -s "$first" "$again" || { echo "FAIL error determinism: $name invocation $i differs" >&2; diff -u "$first" "$again" >&2 || true; exit 1; }; done
   echo "PASS error/$name sha256=$(file_sha256 "$first")"
 }
 
@@ -221,7 +221,7 @@ run_suite() {
 run_suite doris
 run_suite duckdb
 
-if "$BIN" gen-sql --model "$WORK/fixtures/time-role.yaml" --dialect doris --request-json "$WORK/requests/explicit-nontime.json" >"$WORK/out/explicit-nontime.sql" 2>"$WORK/out/explicit-nontime.err"; then echo "FAIL explicit is_time=false accepted a time grain" >&2; exit 1; fi
+if "$BIN" query compile --model "$WORK/fixtures/time-role.yaml" --dialect doris --request-json "$WORK/requests/explicit-nontime.json" >"$WORK/out/explicit-nontime.sql" 2>"$WORK/out/explicit-nontime.err"; then echo "FAIL explicit is_time=false accepted a time grain" >&2; exit 1; fi
 grep -q 'time grain can only be applied to a time dimension' "$WORK/out/explicit-nontime.err"
 
 run_error_case omni-count 'metric dataset cannot be determined' --model "$WORK/official/converters/omni.yaml" --dialect duckdb --semantic-model sales --metric order_count

@@ -213,8 +213,9 @@ Embedders may replace one Project's semantic generation through the
 [Manager API](operations/semantic-runtime-activation.md). Core provides no
 runtime administration HTTP endpoint.
 
-`s2s` provides offline model/project validation, inspection, formatting, and
-semantic comparison. `s2s gen-sql` emits a query object with `dialect`, `sql`,
+`metis model`, `metis project`, and `metis query` provide offline model/project
+validation, inspection, formatting, comparison, and compilation.
+`metis query compile` emits a query object with `dialect`, `sql`,
 and optional `parameters`. Parameter values remain separate from SQL text.
 The standard database drivers bind them at execution time. See the
 [CLI overview](../../README.md) and

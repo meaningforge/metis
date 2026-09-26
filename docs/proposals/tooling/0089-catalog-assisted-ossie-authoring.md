@@ -48,19 +48,19 @@ such as revenue, uniqueness, and additivity require explicit author decisions.
 
 ```sh
 # New online authoring command: reads metadata only.
-metis inspect-source --config ./metis.yaml --project sales \
+metis source inspect --config ./metis.yaml --project sales \
   --data-source warehouse --relations ./authoring/relations.json \
   --output ./authoring/catalog.json
 
 # New offline command: reproducible from checked-in inputs.
-s2s init-project --catalog ./authoring/catalog.json \
+metis project init --catalog ./authoring/catalog.json \
   --mapping ./authoring/model-map.yaml --output ./candidate-sales
 
 # Existing validation command; optional online validation is RFC-0088.
-s2s validate-project --project sales --config ./candidate-sales/project.yaml
+metis project validate --project sales --config ./candidate-sales/project.yaml
 ```
 
-`inspect-source` can run before a semantic model exists. Given the explicit
+`metis source inspect` can run before a semantic model exists. Given the explicit
 Project ID, the authoring service first authorizes Project `author`, before it
 consults Project registration, DataSource/Backend inventory, secrets, or catalog
 state. A denied request performs none of those lookups or online operations and
@@ -104,7 +104,7 @@ is not a dependency of the offline generator. Do not introduce another connectio
 profile, pool, secret resolver, SQL executor, or physical placement authority.
 
 Catalog schema version 1 binds the Project ID and logical DataSource name selected
-by `inspect-source` to the backend family. Every inspected relation retains the
+by `metis source inspect` to the backend family. Every inspected relation retains the
 unique selector ID, requested structured identifier parts, resolved physical
 identity when available, a closed inspection outcome, and whether its column
 inventory is complete. Found relations contain column identifiers, native types
@@ -245,7 +245,7 @@ was produced, even when authoring is incomplete; it never means ready to deploy.
 The report directs authors to run optional RFC-0088 online validation against
 the eventual target, followed by an explicitly authorized test query if they
 need evidence that its execution role can read data. Neither step is performed
-implicitly by `init-project`.
+implicitly by `metis project init`.
 
 ### File and error behavior
 
@@ -253,7 +253,7 @@ Refuse an existing output directory; V1 has no force/merge/in-place update mode.
 Stage all files privately on the same filesystem, validate them, then atomically
 rename the directory. A failure leaves no advertised partial project. Use
 owner-only file permissions. Re-running into a different directory and using
-the existing `s2s diff-project` is the supported review workflow.
+the existing `metis project diff` is the supported review workflow.
 
 Unknown schema versions/fields, invalid mappings, identifier collisions, missing
 selected relations/columns, and unsupported types have stable authoring diagnostic
@@ -264,7 +264,7 @@ secret values are redacted centrally. Do not derive actions by parsing messages.
 Generation exits 0 on a validated candidate with a complete report, 1 on a
 generation/inspection finding that prevents output, and 2 on command/input/I/O
 failure. Pending author review is visible in the report and does not silently
-activate the candidate. Normal `validate-project` eligibility semantics still
+activate the candidate. Normal `metis project validate` eligibility semantics still
 apply before an author adopts it.
 
 A managed host may import generated files into its existing mutable Draft or
@@ -288,9 +288,9 @@ Core validation result or catalog digest as a host publication approval.
 
 ## Rollout and migration
 
-1. Implement offline `init-project` from versioned catalog fixtures and explicit
+1. Implement offline `metis project init` from versioned catalog fixtures and explicit
    maps; it can ship before online inspection.
-2. Reuse the shared catalog capability for Doris/ClickHouse `inspect-source`.
+2. Reuse the shared catalog capability for Doris/ClickHouse `metis source inspect`.
 3. Add complete Doris and ClickHouse tutorials using small disposable datasets,
    environment-based credentials, a first business metric, compilation, and query.
 4. Verify optional DuckDB support in its existing build flavor.

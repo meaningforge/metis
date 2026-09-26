@@ -9,7 +9,7 @@
 - **Owners:** Metis maintainers
 - **Created:** 2026-08-14
 - **Last updated:** 2026-08-14
-- **Scope:** `compiler/`, `planner/`, `execution/`, `app/service/semantic/`, REST, MCP, `cmd/s2s/`
+- **Scope:** `compiler/`, `planner/`, `execution/`, `app/service/semantic/`, REST, MCP, `cmd/metis/`
 - **Supersedes:** None
 
 ## Summary
@@ -66,7 +66,7 @@ result normalization remains the execution tool's responsibility.
 
 `execution.CompiledQuery` exposes the schema as top-level `output_schema`
 beside `execution` and `sql_render_result`. REST and MCP serialize the same shared
-service value. The offline `s2s` compiler retains the same schema in its Go
+service value. The offline `metis` compiler retains the same schema in its Go
 result even though its default CLI presentation remains SQL text.
 
 Nullability is deliberately excluded. Outer joins, offsets, and physical

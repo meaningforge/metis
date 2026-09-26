@@ -29,7 +29,7 @@ SQL and parameter types. Concrete Renderers supply dialect-specific behavior;
 the shared package does not select Renderers or execute queries. A
 `compiler/artifact.CompiledQuery` combines that query with its output schema.
 
-SQL values remain parameterized. Both API responses and `s2s gen-sql` export
+SQL values remain parameterized. Both API responses and `metis query compile` export
 SQL together with parameters. Executors pass values to database drivers;
 Metis does not scan SQL text to interpolate placeholders.
 

@@ -12,15 +12,18 @@ import (
 )
 
 func validateProject(args []string) int {
-	fs := flag.NewFlagSet("validate-project", flag.ContinueOnError)
+	fs := flag.NewFlagSet("metis project validate", flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
 	project := fs.String("project", "", "stable project ID")
 	config := fs.String("config", "", "semantic project manifest")
 	if err := fs.Parse(args); err != nil {
+		if err == flag.ErrHelp {
+			return 0
+		}
 		return 2
 	}
 	if strings.TrimSpace(*project) == "" || strings.TrimSpace(*config) == "" {
-		fmt.Fprintln(os.Stderr, "s2s validate-project: --project and --config are required")
+		fmt.Fprintln(os.Stderr, "metis project validate: --project and --config are required")
 		return 2
 	}
 	result := source.ValidateProject(*project, *config)
@@ -35,15 +38,18 @@ func validateProject(args []string) int {
 }
 
 func inspectProject(args []string) int {
-	fs := flag.NewFlagSet("inspect-project", flag.ContinueOnError)
+	fs := flag.NewFlagSet("metis project inspect", flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
 	project := fs.String("project", "", "stable project ID")
 	config := fs.String("config", "", "semantic project manifest")
 	if err := fs.Parse(args); err != nil {
+		if err == flag.ErrHelp {
+			return 0
+		}
 		return 2
 	}
 	if strings.TrimSpace(*project) == "" || strings.TrimSpace(*config) == "" {
-		fmt.Fprintln(os.Stderr, "s2s inspect-project: --project and --config are required")
+		fmt.Fprintln(os.Stderr, "metis project inspect: --project and --config are required")
 		return 2
 	}
 	candidate, err := source.LoadProject(*project, *config)
@@ -95,16 +101,19 @@ func inspectProject(args []string) int {
 }
 
 func diffProject(args []string) int {
-	fs := flag.NewFlagSet("diff-project", flag.ContinueOnError)
+	fs := flag.NewFlagSet("metis project diff", flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
 	project := fs.String("project", "", "stable project ID")
 	baseConfig := fs.String("base-config", "", "base semantic project manifest")
 	candidateConfig := fs.String("candidate-config", "", "candidate semantic project manifest")
 	if err := fs.Parse(args); err != nil {
+		if err == flag.ErrHelp {
+			return 0
+		}
 		return 2
 	}
 	if strings.TrimSpace(*project) == "" || strings.TrimSpace(*baseConfig) == "" || strings.TrimSpace(*candidateConfig) == "" {
-		fmt.Fprintln(os.Stderr, "s2s diff-project: --project, --base-config, and --candidate-config are required")
+		fmt.Fprintln(os.Stderr, "metis project diff: --project, --base-config, and --candidate-config are required")
 		return 2
 	}
 	base, err := source.LoadProject(*project, *baseConfig)
@@ -130,15 +139,18 @@ func diffProject(args []string) int {
 }
 
 func formatModel(args []string) int {
-	fs := flag.NewFlagSet("format-model", flag.ContinueOnError)
+	fs := flag.NewFlagSet("metis model format", flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
 	model := fs.String("model", "", "Apache Ossie YAML/JSON model file")
 	output := fs.String("output", "", "new path for deterministic formatted output")
 	if err := fs.Parse(args); err != nil {
+		if err == flag.ErrHelp {
+			return 0
+		}
 		return 2
 	}
 	if strings.TrimSpace(*model) == "" || strings.TrimSpace(*output) == "" {
-		fmt.Fprintln(os.Stderr, "s2s format-model: --model and --output are required")
+		fmt.Fprintln(os.Stderr, "metis model format: --model and --output are required")
 		return 2
 	}
 	body, err := os.ReadFile(*model)

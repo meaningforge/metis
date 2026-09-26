@@ -3,14 +3,14 @@
 - **Status:** Draft
 - **Owners:** TBD during review
 - **Created:** 2026-09-25
-- **Last updated:** 2026-09-25
+- **Last updated:** 2026-09-26
 - **Scope:** Core authoring CLI, application validation services, bounded backend inspection
 - **Supersedes:** None
 - **Numbering:** Proposed; retain 0086 for the closed federation proposal and 0087 for historical platform work.
 
 ## Summary
 
-Add an explicit `metis validate-runtime` authoring command that verifies an
+Add an explicit `metis runtime validate` authoring command that verifies an
 Ossie project's physical dependencies and compiles and prepares selected
 semantic queries against their configured databases. Return a versioned report
 that distinguishes offline validity, catalog compatibility, and engine acceptance.
@@ -21,7 +21,7 @@ the existing optional CGO build and must report unsupported until implemented.
 
 ## Motivation
 
-Current `s2s validate-project` performs deterministic loading, semantic validation,
+Current `metis project validate` performs deterministic loading, semantic validation,
 and quality diagnostics. Those rules intentionally do not query databases.
 `CompileService.Explain` renders SQL but does not run database EXPLAIN.
 Production execution checks complete result contracts, but users currently
@@ -36,7 +36,7 @@ observed time; it is not a proof of numerical correctness or a future guarantee.
 ### Command and input
 
 ```sh
-metis validate-runtime --config ./metis.yaml --project sales \
+metis runtime validate --config ./metis.yaml --project sales \
   --queries ./checks/queries.json --output ./reports/runtime-validation.json
 ```
 
@@ -252,7 +252,7 @@ failure report, but never a partial success report.
 
 ## Alternatives
 
-- Extend `s2s validate-project` to connect automatically: mixes deterministic
+- Extend `metis project validate` to connect automatically: mixes deterministic
   offline authoring with credentialed operations and changes existing behavior.
 - Treat compile success as database validation: misses missing tables/columns,
   privileges, and engine-version differences.
@@ -266,7 +266,7 @@ failure report, but never a partial success report.
 1. Land typed catalog/probe evidence and bounded Runner operations with fake-driver
    tests; existing binaries and APIs retain their behavior.
 2. Add Doris and ClickHouse implementations and declare tested version/method
-   coverage. Expose `metis validate-runtime` only with explicit command help.
+   coverage. Expose `metis runtime validate` only with explicit command help.
 3. Add sample query inventories, failure examples, and an opt-in CI recipe.
 4. Consider optional DuckDB coverage after both remote backends pass.
 

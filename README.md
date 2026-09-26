@@ -45,10 +45,9 @@ same runtime services that Go applications can embed directly.
 
 | Tool or interface | Use it to |
 | --- | --- |
-| [`metis`](#run-from-source) | Validate models and run the standalone semantic runtime. |
+| [`metis`](#run-from-source) | Validate and compile semantic models offline, manage local projects, or run the standalone semantic runtime. |
 | [MCP](#connect-an-mcp-client) | Give an agent tools for semantic discovery, SQL compilation, and bounded analytics over stdio or HTTP. |
 | [REST](#serve-mcp-and-rest-over-http) | Integrate semantic discovery, compilation, explanation, and analytics into applications. |
-| [`s2s`](#s2s-semantic-to-sql) | Compile semantic requests into SQL locally and validate, inspect, compare, or format model files. |
 | [`s2sbench`](#s2sbench-agent-analytics-benchmarks) | Run repeatable agent analytics experiments and inspect correctness, readiness, and execution evidence. |
 | [Go packages](#embed-in-a-go-application) | Compose a runtime with your own configuration, policies, and database integrations. |
 
@@ -140,15 +139,17 @@ shape and returns `SQLExplainResult`: semantic planning evidence, the same
 `sql_render_result` and `output_schema` as Compile, and any compilation warnings.
 Explain generates SQL without executing it.
 
-## `s2s`: Semantic-to-SQL
+## Offline tools
 
-`s2s` is the offline CLI for the Metis semantic compiler. Use it to test a model,
-inspect semantic metadata, or generate SQL in a script without starting a server
-or connecting to a database.
+The `metis model`, `metis project`, and `metis query` commands work offline. Use
+them to validate and inspect models, compare projects, or generate SQL without
+starting a server, connecting to a database, or resolving secrets.
+The former standalone `s2s` executable is removed; no compatibility alias is
+provided.
 
 ```sh
-go build -o bin/s2s ./cmd/s2s
-bin/s2s gen-sql \
+go build -o bin/metis ./cmd/metis
+bin/metis query compile \
   --model examples/demo/models/sales.ossie.yaml \
   --dialect DUCKDB --metric total_revenue --dimension region
 ```
@@ -157,21 +158,21 @@ Use `--dialect DORIS`, `CLICKHOUSE`, or `DUCKDB` to select a target. Add repeata
 `--metric`, `--dimension`, and `--filter` flags, or pass a structured request with
 `--request-json`.
 
-`gen-sql` outputs JSON containing `dialect`, `sql`, and optional `parameters`.
+`metis query compile` outputs JSON containing `dialect`, `sql`, and optional `parameters`.
 SQL retains its placeholders; pass parameter values in order to your database
 driver. Values are never interpolated into SQL text.
 
 | Command | Purpose |
 | --- | --- |
-| `gen-sql` | Compile a semantic request into SQL and parameters as JSON. |
-| `validate-model`, `inspect` | Validate an Ossie document or inspect its metadata. |
-| `validate-project`, `inspect-project` | Load and check a complete semantic project. |
-| `diff-project` | Compare two local semantic project inputs. |
-| `format-model` | Format a model file. |
+| `metis query compile` | Compile a semantic request into SQL and parameters as JSON. |
+| `metis model validate`, `metis model inspect` | Validate an Ossie document or inspect its metadata. |
+| `metis project validate`, `metis project inspect` | Load and check a complete semantic project. |
+| `metis project diff` | Compare two local semantic project inputs. |
+| `metis model format` | Format a model file. |
 
 ```sh
-bin/s2s validate-project --project demo --config examples/demo/project.yaml
-bin/s2s inspect --model examples/demo/models/sales.ossie.yaml
+bin/metis project validate --project demo --config examples/demo/project.yaml
+bin/metis model inspect --model examples/demo/models/sales.ossie.yaml
 ```
 
 ## Execute queries
@@ -252,7 +253,7 @@ Agent benchmark runs are separate from the standard correctness tests.
 2. Add your Ossie model files under `models/`.
 3. Update `project.yaml` to select those files and register your project in
    `metis.yaml`.
-4. Validate the project with `s2s validate-project`, then start `metis serve` or
+4. Validate the project with `metis project validate`, then start `metis serve` or
    `metis mcp` with your runtime configuration.
 
 Model paths are resolved relative to the project manifest. A runtime can register

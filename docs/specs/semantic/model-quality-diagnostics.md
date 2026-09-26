@@ -57,7 +57,7 @@ machine values rather than formatted prose.
 `valid` and `publishable` are distinct. A candidate that passes structural and
 semantic validation remains valid when it has advisory findings. It is not
 publishable when at least one finding meets its configured publication
-threshold. `s2s validate-project` always emits the structured result and exits
+threshold. `metis project validate` always emits the structured result and exits
 non-zero when either value is false.
 
 ## Registered diagnostics
@@ -148,8 +148,8 @@ change. This package does not create persistent publication state.
 
 ## Surfaces and conformance
 
-`source.ValidateProject` and `s2s validate-project` return byte-equivalent JSON
-for the same input. `s2s inspect-project` includes the complete quality report.
+`source.ValidateProject` and `metis project validate` return byte-equivalent JSON
+for the same input. `metis project inspect` includes the complete quality report.
 No quality-scanning MCP tool exists. Primary Agent discovery MAY expose a
 bounded already-computed warning for a selected asset in a future additive
 projection, but MUST NOT independently reimplement the rules.

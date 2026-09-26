@@ -14,13 +14,13 @@
 
 ## Summary
 
-This RFC proposes promoting S2SBench from repository-local test machinery into a first-class community CLI alongside `s2s`.
+This RFC proposes promoting S2SBench from repository-local test machinery into a first-class community CLI alongside `metis`.
 
 The target ownership model is:
 
 ```text
 cmd/
-├── s2s/
+├── metis/
 └── s2sbench/
     ├── main.go
     ├── command/
@@ -90,7 +90,7 @@ Metis exposes two community-oriented CLIs with distinct responsibilities:
 
 | CLI | Responsibility |
 | --- | --- |
-| `s2s` | Offline Ossie-to-SQL compilation and inspection |
+| `metis` | Offline Ossie-to-SQL compilation and inspection, plus runtime services |
 | `s2sbench` | Benchmark execution, local validation, result analysis, and deeper end-to-end evaluation |
 
 S2SBench is a benchmark and validation tool. Its output MUST NOT be presented as an official TPC-DS certification result.
