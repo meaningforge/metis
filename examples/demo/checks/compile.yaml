@@ -1,0 +1,18 @@
+schema_version: 1
+project: demo
+cases:
+  - id: revenue_by_region
+    operation: compile_sql
+    request:
+      query:
+        project: demo
+        model: sales
+        metrics: [{name: total_revenue}]
+        dimensions: [{name: region}]
+    expect:
+      outcome: success
+      output_schema:
+        columns:
+          - {name: region, kind: dimension, datatype: String}
+          - {name: total_revenue, kind: metric, datatype: Decimal}
+      warnings: []

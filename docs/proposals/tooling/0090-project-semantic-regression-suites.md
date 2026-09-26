@@ -17,7 +17,13 @@ and attribution services that applications and Agents consume.
 
 This is a deterministic project-testing interface. Existing engine conformance
 continues to test Metis itself; S2SBench continues to evaluate Agent behavior.
-The new commands, suite schema, and report below are proposed interfaces.
+The full command set, suite schema, and report below describe the proposed
+end state.
+
+The first offline compile-only slice is implemented as documented in the
+[current compile-suite contract](../../specs/testing/project-compile-regression.md).
+Runtime result suites, JUnit output, and the remaining assertions in this RFC
+are still proposals; this RFC remains Draft for those phases.
 
 ## Motivation
 

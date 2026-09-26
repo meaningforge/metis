@@ -166,12 +166,27 @@ driver. Values are never interpolated into SQL text.
 | `metis model validate`, `metis model inspect` | Validate an Ossie document or inspect its metadata. |
 | `metis project validate`, `metis project inspect` | Load and check a complete semantic project. |
 | `metis project diff` | Compare two local semantic project inputs. |
+| `metis project test --mode compile` | Check project-owned compile expectations in CI without connecting to a database. |
 | `metis model format` | Format a model file. |
 
 ```sh
 bin/metis project validate --project demo --config examples/demo/project.yaml
 bin/metis model inspect --model examples/demo/models/sales.ossie.yaml
 ```
+
+Run the [demo compile suite](examples/demo/checks/compile.yaml) against a complete
+project. The command writes a private JSON report and exits nonzero on a failed
+or incomplete case:
+
+```sh
+bin/metis project test --mode compile --project demo \
+  --config examples/demo/project.yaml --suite examples/demo/checks/compile.yaml \
+  --dialect DORIS --output ./compile-report.json
+```
+
+See the [compile-suite contract](docs/specs/testing/project-compile-regression.md)
+for assertion syntax, limits, and exit codes. Runtime result suites are not yet
+implemented.
 
 ## Execute queries
 
