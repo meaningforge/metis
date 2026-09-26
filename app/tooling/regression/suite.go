@@ -10,7 +10,10 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"math/big"
 	"os"
+	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/meaningforge/metis/compiler/artifact"
@@ -24,6 +27,8 @@ const (
 	MaxSuiteBytes      = 1 << 20
 	MaxCases           = 100
 )
+
+var numericFilterLiteral = regexp.MustCompile(`^[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?$`)
 
 // Suite is the strict, versioned compile or metric-result input.
 type Suite struct {
@@ -144,6 +149,9 @@ func LoadSuite(path string) (Suite, string, error) {
 }
 
 func ParseSuite(data []byte) (Suite, string, error) {
+	if len(data) > MaxSuiteBytes {
+		return Suite{}, "", fmt.Errorf("suite exceeds %d bytes", MaxSuiteBytes)
+	}
 	var node yaml.Node
 	if err := yaml.Unmarshal(data, &node); err != nil {
 		return Suite{}, "", fmt.Errorf("decode suite: %w", err)
@@ -152,6 +160,9 @@ func ParseSuite(data []byte) (Suite, string, error) {
 		return Suite{}, "", fmt.Errorf("suite must be one mapping document")
 	}
 	if err := validateYAMLNode(&node); err != nil {
+		return Suite{}, "", err
+	}
+	if err := validateFilterLiterals(node.Content[0]); err != nil {
 		return Suite{}, "", err
 	}
 	decoder := yaml.NewDecoder(bytes.NewReader(data))
@@ -360,6 +371,15 @@ func (q QueryInput) semanticQuery() (query.SemanticQuery, error) {
 		if err != nil {
 			return query.SemanticQuery{}, err
 		}
+		var original any
+		decoder := json.NewDecoder(bytes.NewReader(encoded))
+		decoder.UseNumber()
+		if err := decoder.Decode(&original); err != nil {
+			return query.SemanticQuery{}, err
+		}
+		if err := checkFilterNumbers(original); err != nil {
+			return query.SemanticQuery{}, err
+		}
 		var checked query.Filter
 		if err := json.Unmarshal(encoded, &checked); err != nil {
 			return query.SemanticQuery{}, err
@@ -367,4 +387,99 @@ func (q QueryInput) semanticQuery() (query.SemanticQuery, error) {
 		out.Filters = append(out.Filters, checked)
 	}
 	return out, nil
+}
+
+// Public filter decoding currently uses float64. Do not change that API here:
+// refuse literals whose decimal value changes through its JSON round trip.
+func checkFilterNumber(text string) error {
+	if !json.Valid([]byte(text)) {
+		return fmt.Errorf("filter numbers require JSON decimal syntax without YAML base prefixes or leading zeros")
+	}
+	want, err := exactNumber(text)
+	if err != nil {
+		return fmt.Errorf("filter numbers require bounded finite decimal literals")
+	}
+	number, err := strconv.ParseFloat(text, 64)
+	if err != nil {
+		return fmt.Errorf("filter number is outside the supported range")
+	}
+	if want.IsInt() && want.Cmp(new(big.Rat).SetFloat64(number)) != 0 {
+		return fmt.Errorf("integer filter loses precision in the query API")
+	}
+	encoded, err := json.Marshal(number)
+	if err != nil {
+		return fmt.Errorf("filter number must be finite")
+	}
+	got, err := exactNumber(string(encoded))
+	if err != nil || want.Cmp(got) != 0 {
+		return fmt.Errorf("filter number loses precision in the query API; use a supported exact value")
+	}
+	return nil
+}
+
+func checkFilterNumbers(value any) error {
+	switch v := value.(type) {
+	case json.Number:
+		return checkFilterNumber(string(v))
+	case []any:
+		for _, item := range v {
+			if err := checkFilterNumbers(item); err != nil {
+				return err
+			}
+		}
+	case map[string]any:
+		for _, item := range v {
+			if err := checkFilterNumbers(item); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// Inspect original YAML/JSON tokens before YAML decoding could itself round a
+// decimal. Only numeric filter values are subject to this public-API boundary.
+func validateFilterLiterals(root *yaml.Node) error {
+	field := func(n *yaml.Node, name string) *yaml.Node {
+		if n == nil || n.Kind != yaml.MappingNode {
+			return nil
+		}
+		for i := 0; i < len(n.Content); i += 2 {
+			if n.Content[i].Value == name {
+				return n.Content[i+1]
+			}
+		}
+		return nil
+	}
+	var check func(*yaml.Node) error
+	check = func(n *yaml.Node) error {
+		if n == nil {
+			return nil
+		}
+		if n.Kind == yaml.ScalarNode && (n.Tag == "!!int" || n.Tag == "!!float" || (n.Tag == "!!str" && n.Style == 0 && numericFilterLiteral.MatchString(n.Value))) {
+			return checkFilterNumber(n.Value)
+		}
+		for _, child := range n.Content {
+			if err := check(child); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	cases := field(root, "cases")
+	if cases == nil {
+		return nil
+	}
+	for i, c := range cases.Content {
+		filters := field(field(field(c, "request"), "query"), "filters")
+		if filters == nil {
+			continue
+		}
+		for j, f := range filters.Content {
+			if err := check(field(f, "value")); err != nil {
+				return fmt.Errorf("case %d filter %d: %w", i, j, err)
+			}
+		}
+	}
+	return nil
 }

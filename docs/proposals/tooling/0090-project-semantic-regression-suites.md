@@ -124,6 +124,18 @@ bytes per case, 30 seconds per case, and 10 minutes per suite. Configured query
 ceilings can be stricter and are never relaxed. Results are complete or fail;
 truncation cannot turn a failure into a pass.
 
+Precision safety covers request inputs as well as result expectations. The tool
+must reject numeric filter literals that lose precision through the current
+public query decoder; it must not silently change a request to make it executable.
+Time expectations beyond the supported nine fractional-second digits fail rather
+than truncate. These guards do not redefine public REST/MCP request semantics.
+
+Report outputs cannot alias the suite or configuration. Explicit overwrite only
+permits recognizable Metis reports, never arbitrary model/source files. Stable
+error codes and safe diagnostic categories must survive redaction so users can
+distinguish a timeout, execution limit, or database failure without exposing raw
+errors, credentials, endpoints, or result values.
+
 Statuses are `passed`, `failed`, and `not_run`. Exit 0 requires all cases to pass;
 1 denotes a failed or incomplete suite; 2 denotes invalid input or report I/O.
 Cancellation produces an incomplete/failing run, not a successful skip. Reports

@@ -31,6 +31,7 @@ type ExpectedRows struct {
 
 var decimalText = regexp.MustCompile(`^[+-]?[0-9]+(?:\.[0-9]+)?(?:[eE][+-]?[0-9]{1,3})?$`)
 var integerText = regexp.MustCompile(`^[+-]?[0-9]+$`)
+var fractionalSeconds = regexp.MustCompile(`[.,]([0-9]+)`)
 
 func exactNumber(text string) (*big.Rat, error) {
 	if len(text) > 256 || !decimalText.MatchString(text) {
@@ -100,6 +101,9 @@ func canonicalScalar(s Scalar, datatype string) (string, error) {
 		}
 		return s.Type + ":" + n.RatString(), nil
 	case "date", "time", "datetime", "datetime_tz":
+		if fraction := fractionalSeconds.FindStringSubmatch(text); len(fraction) > 1 && len(fraction[1]) > 9 {
+			return "", fmt.Errorf("time literals support at most nine fractional-second digits")
+		}
 		layouts := map[string]string{"date": "2006-01-02", "time": "15:04:05.999999999", "datetime": "2006-01-02T15:04:05.999999999", "datetime_tz": time.RFC3339Nano}
 		instant, err := time.Parse(layouts[s.Type], text)
 		if err != nil {
