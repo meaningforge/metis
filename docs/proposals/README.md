@@ -92,4 +92,6 @@ Only engine, semantic-model, query-interface, and developer-tool designs are inc
 - [RFC-0073: S2SBench Oracle Authority and Validation Tiers](tooling/0073-s2sbench-oracle-authority-and-validation.md) — Draft
 - [RFC-0074: S2SBench diagnostic fidelity and token efficiency](tooling/0074-s2sbench-diagnostic-fidelity-and-token-efficiency.md) — Implemented
 - [RFC-0082: Promote S2SBench to a Community CLI](tooling/0082-s2sbench-community-cli.md) — Implemented
+- [RFC-0088: Online Semantic Validation](tooling/0088-online-semantic-validation.md) — Draft
+- [RFC-0089: Catalog-assisted Ossie Authoring](tooling/0089-catalog-assisted-ossie-authoring.md) — Draft
 - [RFC-0090: Project Semantic Regression Suites](tooling/0090-project-semantic-regression-suites.md) — Draft
