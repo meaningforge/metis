@@ -108,9 +108,14 @@ dependency cannot be determined is an incomplete check, not a silent omission.
 The report distinguishes `catalog_checked`, `compile_checked`, and
 `engine_prepared`. A successful EXPLAIN does not prove result values, complete
 output type metadata, function side-effect freedom, or bounded engine planning
-cost. Use an appropriately restricted validation database role and the existing
-runtime deadlines. The backend support declaration documents precisely what
-its preparation method checks for each supported server version.
+cost. Online checks use the configured DataSource credentials and the existing
+runtime deadlines; they do not introduce a separate, more privileged validation
+identity. Opening a connection proves reachability, not access to any
+particular relation. Catalog and preparation results report only what their
+backend methods actually checked. Even a successful preparation does not
+guarantee that a later production SELECT will succeed; the database enforces
+permissions again when the query runs. The backend support declaration documents
+precisely what its preparation method checks for each supported server version.
 
 ### Catalog and driver boundary
 
@@ -281,6 +286,9 @@ adoption; it never mutates a running generation or warehouse data.
   REST/MCP decoding behavior.
 - Missing relation/column, incompatible native type, unknown expression metadata,
   permission denial, and unsupported preparation produce distinguishable outcomes.
+- Connection success alone never establishes relation access. Reports do not
+  claim that catalog or preparation success guarantees a later SELECT; database
+  permission errors during online checks remain failures, not missing objects.
 - Partial, duplicate, or extra per-relation responses cannot convert a missing
   object or column into a successful check; incomplete column metadata remains
   unknown, and raw driver errors never determine mismatch classifications.
