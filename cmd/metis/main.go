@@ -15,7 +15,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/meaningforge/metis/app/auth"
 	"github.com/meaningforge/metis/app/bootstrap"
 	"github.com/meaningforge/metis/app/hosting"
@@ -407,27 +406,6 @@ func loadServeRuntime(configPath string) (*bootstrap.Runtime, error) {
 		bootstrap.WithSecretResolver(runner.NewEnvSecretResolver()),
 		bootstrap.WithProjectAuthorizer(semantic.ScopeProjectAuthorizer{}),
 	)
-}
-
-func registerMetricsRoute(router gin.IRoutes, handler http.Handler) {
-	if router == nil || handler == nil {
-		return
-	}
-	router.GET("/metrics", gin.WrapH(handler))
-}
-
-func requestLogger() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		start := time.Now()
-		c.Next()
-		slog.Info("http request",
-			"method", c.Request.Method,
-			"path", c.Request.URL.Path,
-			"status", c.Writer.Status(),
-			"latency_ms", time.Since(start).Milliseconds(),
-			"client_ip", c.ClientIP(),
-		)
-	}
 }
 
 func usage() {

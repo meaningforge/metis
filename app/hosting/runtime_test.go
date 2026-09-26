@@ -54,3 +54,45 @@ func TestStandaloneRuntimeHasNoPlatformSurfaces(t *testing.T) {
 		}
 	}
 }
+
+func TestMetricsOperatorRoute(t *testing.T) {
+	runtime, err := bootstrap.LoadRuntime("../../examples/demo/metis.yaml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer runtime.Close(context.Background())
+	verifier, err := auth.NewStaticAPIKeyVerifier("runtime-test")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	withoutMetrics, err := hosting.NewHTTPHandler(runtime, hosting.HTTPOptions{Verifier: verifier})
+	if err != nil {
+		t.Fatal(err)
+	}
+	response := httptest.NewRecorder()
+	withoutMetrics.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/metrics", nil))
+	if response.Code != http.StatusNotFound {
+		t.Fatalf("disabled metrics status = %d, want %d", response.Code, http.StatusNotFound)
+	}
+
+	metrics := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("operator_metric 1\n"))
+	})
+	withMetrics, err := hosting.NewHTTPHandler(runtime, hosting.HTTPOptions{Verifier: verifier, Metrics: metrics})
+	if err != nil {
+		t.Fatal(err)
+	}
+	response = httptest.NewRecorder()
+	withMetrics.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/metrics", nil))
+	if response.Code != http.StatusOK || response.Body.String() != "operator_metric 1\n" {
+		t.Fatalf("operator metrics response = %d %q", response.Code, response.Body.String())
+	}
+
+	response = httptest.NewRecorder()
+	withMetrics.ServeHTTP(response, httptest.NewRequest(http.MethodPost, "/v1/compile-sql", nil))
+	if response.Code != http.StatusUnauthorized {
+		t.Fatalf("protected route without token status = %d, want %d", response.Code, http.StatusUnauthorized)
+	}
+}
