@@ -3,7 +3,7 @@
 - **Status:** Draft
 - **Owners:** TBD during review
 - **Created:** 2026-09-25
-- **Last updated:** 2026-09-25
+- **Last updated:** 2026-09-26
 - **Scope:** Core offline tooling, governed execution services, project-owned CI assertions
 - **Supersedes:** None
 - **Numbering:** Proposed, subject to repository review.
@@ -39,7 +39,7 @@ is not an independent oracle; automatic baseline approval can preserve mistakes.
 s2s test-project --project sales --config ./project.yaml \
   --suite ./checks/compile.yaml --dialect DORIS --output ./reports/compile.json
 
-# Proposed online command: configured production services and bindings.
+# Proposed local runtime command: configured services and bindings.
 metis test-project --config ./metis.yaml --project sales \
   --suite ./checks/results.yaml --output ./reports/results.json
 ```
@@ -48,6 +48,10 @@ Offline suites support `compile_sql` only and use an explicit compile dialect.
 Runtime suites support `query_metrics`, `compare_metrics`, and `attribute_metric`.
 A mismatched operation/mode is an input error, not a skip. Runtime mode accepts
 no dialect/source override: Project/model placement selects its sole Backend.
+The standalone runtime CLI tests semantic behavior with a fixed local Principal
+holding only `semantic:execute` scope and the documented unrestricted data-policy
+compatibility mode. It does not claim to exercise a deployment's custom
+authorization or data policy.
 
 Suites are versioned strict YAML/JSON. They contain IDs, existing operation request
 DTOs, and a small closed assertion grammar. They are not a new query or analytics
@@ -79,8 +83,8 @@ cases:
       outcome: success
       row_count: 2
       columns:
-        - {name: region, datatype: String}
-        - {name: total_revenue, datatype: Decimal}
+        - {name: region, kind: dimension, datatype: String}
+        - {name: total_revenue, kind: metric, datatype: Decimal}
       rows:
         mode: unordered
         values:
@@ -94,10 +98,20 @@ actual compiler OutputSchema rather than inferred from metric labels. The exampl
 describes the proposed test schema; implementers must validate all executable
 examples against the current DTOs before shipping them.
 
-Expected failures use a specific stable code plus caller_action. An unrelated
-failure, timeout, or denied credential never satisfies an expected semantic error.
-Tests that intend to check policies use an embedder-controlled authenticated
-Principal; suites cannot supply arbitrary identities or entitlement predicates.
+`expect.outcome` is `success`, `semantic_error`, or `policy_denied`. The two
+failure outcomes require a specific stable code plus `caller_action`. An
+unrelated failure, timeout, or credential error never satisfies an expected
+semantic error.
+
+An expected policy denial is a separate assertion category: it passes only when
+the exact denial code and `caller_action` match under a trusted host-supplied
+Principal and policy composition. V1 admits `PROJECT_ACCESS_DENIED` and
+`DATA_ACCESS_DENIED` for this category; an ordinary not-found response does not
+by itself prove asset-visibility enforcement. Any other denial fails the case.
+The offline and standalone runtime CLIs reject policy-denial expectations as
+unsupported input rather than allowing an unrestricted local run to produce a
+misleading result. Suites cannot supply identities, scopes, entitlements, or
+policy predicates.
 
 ### First-release assertion contract
 
@@ -113,6 +127,13 @@ and merely accepting an HTTP success are invalid. Analytics expectation shapes
 follow the existing typed result DTOs; no free-form JSONPath or arbitrary assertion
 language is added. Provide named assertions for reconciliation and shared-grain
 comparison, implemented from returned evidence rather than a second evaluator.
+
+An exact column-schema assertion compares the complete ordered `OutputSchema`:
+column name, semantic `kind`, declared `datatype`, and the presence and value of
+`grain`. A missing optional field in an expected column asserts its absence in
+the actual column; it is not a wildcard. The example above intentionally omits
+`grain` because neither column has a time grain. A future subset-schema assertion
+would need a separately named mode; V1 does not silently use partial matching.
 
 Numeric values use tagged scalars. Integers remain exact; Decimals are parsed as
 arbitrary-precision decimal strings. String "1", integer 1, and decimal 1 are
@@ -138,13 +159,25 @@ must not alter inclusive/exclusive behavior to fit its fixtures.
 
 ### Execution and architectural ownership
 
-The test coordinator loads one immutable candidate generation, prepares the
-supported services through bootstrap, and invokes the same authorized service
+Each test host loads one immutable candidate generation and prepares supported
+services through bootstrap. The coordinator invokes the same authorized service
 methods used by REST/MCP. Each operation retains normal visibility/data-policy
 preflight, exact Renderer selection, full compiled artifact, Runner normalization,
 limits, and complete-result semantics. No raw database executor is introduced.
 
-The local test host tightens a private copy of DataSource execution ceilings before
+There are two runtime compositions. The standalone CLI constructs a trusted local
+Principal with `semantic:execute` scope and uses the explicit
+`NoRestrictionDataAccessPolicy` compatibility mode. It verifies semantic results,
+not tenant or row-policy behavior. A trusted embedder may instead invoke the
+reusable suite coordinator with an authenticated Principal and a candidate
+runtime assembled with its actual Project authorizer, asset-visibility policy,
+and data-access adapter. The coordinator must preserve these host-owned adapters
+and must not replace them with local defaults. Only this host-managed composition
+may run policy-denial assertions. The suite and CLI cannot impersonate a caller
+or select a policy. Report the composition as `local_unrestricted` or
+`host_managed`; this label is provenance, not proof that any policy was enforced.
+
+Each test host tightens a private copy of DataSource execution ceilings before
 bootstrap; it never edits the input configuration or relaxes its limits. Suite and
 case context deadlines bound whole analytical operations as well as each physical
 query. Result-size assertions additionally bound total workflow evidence; exceeding
@@ -218,8 +251,10 @@ Versioned JSON is the primary report. A JUnit projection exposes the same status
 for existing CI tools; it has no independent pass logic. Report per-case expected
 and actual outcome, comparison category, and bounded differences, along with
 candidate/suite/expectation digests, Metis/backend version evidence, fixture mode,
-and scope. Case ordering and typed comparison findings are deterministic for the
-same inputs/results; timing/run metadata stays outside stable digests.
+authorization composition, and scope. Do not report Principal identity, scopes,
+or policy decisions beyond a case's expected/actual stable error code and
+`caller_action`. Case ordering and typed comparison findings are deterministic
+for the same inputs/results; timing/run metadata stays outside stable digests.
 
 Statuses are `passed`, `failed`, and `not_run`. A required not-run case makes the
 suite fail. There is no default skip, expected-failure quarantine, or auto-retry
@@ -253,7 +288,10 @@ dataset's handling rules. Assertion values are never metric labels or traces.
 3. Ship comparison and attribution assertions through their public services.
    Until supported, those operations fail explicitly; do not claim the full RFC
    implemented after only metric tests ship.
-4. Add an optional affected-case suggestion based on existing semantic diffs only
+4. Add host-managed policy-denial assertions through the reusable coordinator,
+   with trusted Principal and policy injection. Until then, the standalone CLI
+   rejects policy-denial expectations and no policy coverage is claimed.
+5. Add an optional affected-case suggestion based on existing semantic diffs only
    after full-suite execution is dependable. Initially all cases run.
 
 Suites are additive files. Existing models, REST/MCP interfaces, internal benchmark
@@ -269,8 +307,15 @@ without changing model or runtime state.
   handle duplicate rows, and reject ambiguous approximate unordered matching.
 - Verify comparison delta/percentage states and attribution reconciliation through
   complete production workflows, including zero/negative and unsupported cases.
-- Denied policy, schema mismatch, timeout, connection failure, partial stream, and
-  oversized result cannot yield a passing case or leak permits/data.
+- An unexpected policy denial, schema mismatch, timeout, connection failure,
+  partial stream, or oversized result cannot yield a passing case or leak
+  permits/data. An expected policy denial passes only with its exact stable code
+  and `caller_action` under a trusted host-managed Principal and policy runtime.
+- Standalone CLI reports identify unrestricted local policy composition and reject
+  policy-denial expectations; host-managed reports identify their composition
+  without exposing Principal attributes or policy decisions.
+- Exact column-schema assertions detect changed semantic `kind` and `grain` as
+  well as column names, datatypes, order, and optional-field presence.
 - Identical fixtures on Doris and ClickHouse use shared logical expectations;
   optional DuckDB uses the same assertion contract in its supported build.
 - Run the CLI outside a Metis checkout; no `tests/**` imports or relative repository
