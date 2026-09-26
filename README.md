@@ -144,8 +144,6 @@ Explain generates SQL without executing it.
 The `metis model`, `metis project`, and `metis query` commands work offline. Use
 them to validate and inspect models, compare projects, or generate SQL without
 starting a server, connecting to a database, or resolving secrets.
-The former standalone `s2s` executable is removed; no compatibility alias is
-provided.
 
 ```sh
 go build -o bin/metis ./cmd/metis
