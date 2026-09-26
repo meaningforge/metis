@@ -1,0 +1,13 @@
+regression-db:
+  type: doris
+  config:
+    host: "${METIS_REGRESSION_DORIS_HOST}"
+    port: "${METIS_REGRESSION_DORIS_PORT}"
+    username: "${METIS_REGRESSION_USERNAME}"
+    password: "${METIS_REGRESSION_PASSWORD}"
+    database: metis_regression
+  policy:
+    query_timeout: 10s
+    max_rows: 100
+    max_bytes: 65536
+    max_concurrency: 1

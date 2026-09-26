@@ -1,11 +1,11 @@
-# Project compile regression suite
+# Project regression suites
 
 `metis project test --mode compile` checks a complete semantic project's
 compilation contract without connecting to a database, resolving secrets, or
 running SQL. It uses the project's normal source loader and `CompileService`
 with an explicit Renderer dialect. It does not test result values, database
-permissions, or a deployment's host authorization policy. Runtime result suites
-and JUnit output proposed by RFC-0090 are not implemented.
+permissions, or a deployment's host authorization policy. Runtime metric-result
+suites are available separately with `--mode runtime`.
 
 ```sh
 metis project test --mode compile --project demo \
@@ -67,3 +67,63 @@ created atomically; an existing path is refused unless `--overwrite` is set.
 Exit 0 means every case passed, 1 means a completed failing or incomplete
 suite, and 2 means invalid input or report I/O failure. The whole suite has a
 10-minute deadline and each case has a 30-second deadline.
+
+## Runtime metric results
+
+`--mode runtime` takes a **deployment** configuration, not a project manifest.
+It calls the normal `query_metrics` service with the Project/model's configured
+Backend. No dialect, connection, SQL, credential, or policy override is accepted
+in the suite. Use a dedicated read-only database account with access to the fixture
+tables. Database permissions still apply. The local runtime uses a fixed local
+Principal with `semantic:execute` and unrestricted compatibility policies; it
+does not validate custom host authorization or tenant isolation.
+
+```sh
+metis project test --mode runtime --project regression \
+  --config ./examples/regression/metis-doris.yaml \
+  --suite ./examples/regression/results.yaml \
+  --output ./results.json --junit-output ./results.xml
+```
+
+See [the Doris/ClickHouse fixture example](../../../examples/regression/README.md)
+for setup. The suite runner never creates, resets, or seeds a database. Runtime
+suites require `fixture: {id: ..., kind: externally_prepared}` (claimed frozen
+data) or `kind: live` (mutable data). Reports record `fixture_verification:
+declared_only`: neither choice proves immutability or opens a snapshot transaction.
+
+Runtime suites support only `operation: query_metrics`. Every successful case
+requires `output_schema`, `row_count`, and complete `rows`; SQL snapshots are not
+allowed. Comparison and attribution suites, host-managed policy testing, and
+baseline approval are not yet implemented.
+
+Rows use tagged cells. `integer`, `decimal`, and `float` values must be quoted
+finite decimal strings (no binary floating-point conversion). `string`, `date`,
+`time`, `datetime`, and `datetime_tz` also use strings; `bool` uses a boolean;
+`{type: null}` is distinct from zero, false, and empty text. Tags must match the
+declared schema. Dates use `YYYY-MM-DD`, times `HH:MM:SS[.fraction]`, local datetimes
+`YYYY-MM-DDTHH:MM:SS[.fraction]`, and zoned datetimes RFC3339. Zoned values compare
+as UTC instants; local values receive no timezone inference. Numeric scale alone
+does not affect equality. Numeric literals are limited to 256 characters and a
+three-digit exponent; nonfinite and unsupported values fail closed.
+
+`rows.mode: unordered` compares exact multisets, including duplicate counts.
+Optional `tolerances: {total_revenue: {abs: "0.01", rel: "0.001"}}` applies only to
+numeric non-key columns using `abs(actual - expected) <= max(abs, rel * abs(expected))`.
+Unordered tolerance matching requires exact, unique `key_columns`; ambiguous
+duplicates fail instead of being greedily paired. `ordered` compares by position;
+multiple rows require unique `key_columns` and an explicit `order_by` covering
+every key using its output name. Key uniqueness is checked on both sides.
+
+The private runtime tightens, never relaxes, configured limits to at most 1,000
+rows, 1 MiB, and 30 seconds per query. The suite still has a 10-minute deadline.
+Full normalized rows are additionally size-checked; limits and incomplete results
+fail, not truncate-to-pass. Runtime load failures leave cases `not_run`; query
+outages, cancellation, schema/normalization failures and limits cannot satisfy
+expected semantic errors. Reports include Backend types but no endpoints or row
+values. Differences identify bounded row/column positions, not data.
+
+Both modes accept optional `--junit-output`. JSON remains the canonical report;
+JUnit maps failed cases to failures and not-run cases to errors, never successful
+skips. Outputs are independently atomic, not a two-file transaction. Exit 2 can
+therefore leave a valid JSON report if writing JUnit fails. Use distinct paths;
+existing outputs require `--overwrite`. CI must check the command exit status.

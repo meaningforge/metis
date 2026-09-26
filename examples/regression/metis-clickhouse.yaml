@@ -1,0 +1,7 @@
+version: 1
+projects:
+  regression:
+    path: ./project.yaml
+    data_source: regression-db
+data_sources:
+  path: ./datasources-clickhouse.yaml

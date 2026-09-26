@@ -1,0 +1,13 @@
+regression-db:
+  type: clickhouse
+  config:
+    scheme: http
+    address: "${METIS_REGRESSION_CLICKHOUSE_ADDRESS}"
+    username: "${METIS_REGRESSION_USERNAME}"
+    password: "${METIS_REGRESSION_PASSWORD}"
+    database: metis_regression
+  policy:
+    query_timeout: 10s
+    max_rows: 100
+    max_bytes: 65536
+    max_concurrency: 1

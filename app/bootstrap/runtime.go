@@ -9,6 +9,7 @@ import (
 	"reflect"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/meaningforge/metis/app/service/policy"
 	runtimeservice "github.com/meaningforge/metis/app/service/runtime"
@@ -51,6 +52,19 @@ type runtimeOptions struct {
 	projectAuthorizer        service.ProjectAuthorizer
 	authorizationObserver    service.ProjectAuthorizationObserver
 	assetVisibilityPolicy    service.AssetVisibilityPolicy
+	executionCeilings        *ExecutionCeilings
+}
+
+// ExecutionCeilings optionally tighten a host's private execution configuration.
+// Zero leaves a ceiling unchanged; positive values never relax deployment limits.
+type ExecutionCeilings struct {
+	MaxRows      int64
+	MaxBytes     int64
+	QueryTimeout time.Duration
+}
+
+func WithExecutionCeilings(ceilings ExecutionCeilings) RuntimeOption {
+	return func(options *runtimeOptions) { options.executionCeilings = &ceilings }
 }
 
 // WithProjectAuthorizer supplies the transport-neutral project/action policy.
@@ -155,6 +169,39 @@ func LoadRuntime(configPath string, options ...RuntimeOption) (*Runtime, error) 
 }
 
 func assembleConfiguredRuntime(ctx context.Context, config *DeploymentConfig, configs map[string]*execution.ProjectConfig, projects map[string]runtimeservice.InitialProject, dataSources *datasource.DataSourceRegistry, runtimeOptions *runtimeOptions) (*Runtime, error) {
+	if limits := runtimeOptions.executionCeilings; limits != nil {
+		if limits.MaxRows < 0 || limits.MaxBytes < 0 || limits.QueryTimeout < 0 {
+			return nil, fmt.Errorf("execution ceilings must be nonnegative")
+		}
+		if dataSources != nil {
+			sources := make(map[string]datasource.DataSource)
+			for _, name := range dataSources.Names() {
+				entry, err := dataSources.Resolve(name)
+				if err != nil {
+					return nil, err
+				}
+				if limits.MaxRows > 0 && *entry.Policy.MaxRows > limits.MaxRows {
+					*entry.Policy.MaxRows = limits.MaxRows
+				}
+				if limits.MaxBytes > 0 && *entry.Policy.MaxBytes > limits.MaxBytes {
+					*entry.Policy.MaxBytes = limits.MaxBytes
+				}
+				timeout, err := time.ParseDuration(entry.Policy.QueryTimeout)
+				if err != nil {
+					return nil, err
+				}
+				if limits.QueryTimeout > 0 && timeout > limits.QueryTimeout {
+					entry.Policy.QueryTimeout = limits.QueryTimeout.String()
+				}
+				sources[name] = entry
+			}
+			var err error
+			dataSources, err = datasource.NewDataSourceRegistry(sources)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
 	if runtimeOptions.assetVisibilityPolicySet && isNilAssetVisibilityPolicy(runtimeOptions.assetVisibilityPolicy) {
 		return nil, invalidDeploymentConfig("explicit asset visibility policy must not be nil", nil)
 	}

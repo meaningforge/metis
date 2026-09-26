@@ -36,6 +36,9 @@ type Generation struct {
 	activatedAt   time.Time
 }
 
+// ContentDigest identifies the immutable source bundle assembled for this generation.
+func (g *Generation) ContentDigest() string { return g.contentDigest }
+
 type InitialProject struct {
 	Manifest      *manifest.SemanticManifest
 	ContentDigest string

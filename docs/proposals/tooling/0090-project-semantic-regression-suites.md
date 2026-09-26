@@ -20,10 +20,12 @@ continues to test Metis itself; S2SBench continues to evaluate Agent behavior.
 The full command set, suite schema, and report below describe the proposed
 end state.
 
-The first offline compile-only slice is implemented as documented in the
-[current compile-suite contract](../../specs/testing/project-compile-regression.md).
-Runtime result suites, JUnit output, and the remaining assertions in this RFC
-are still proposals; this RFC remains Draft for those phases.
+Offline compilation, runtime `query_metrics` result suites, and JSON/JUnit output
+are implemented as documented in the
+[current regression-suite contract](../../specs/testing/project-compile-regression.md).
+Comparison/attribution assertions and host-managed policy composition remain
+proposals; this RFC remains Draft for those phases. The current contract is
+authoritative for shipped syntax; later sections describe the proposed end state.
 
 ## Motivation
 
@@ -88,9 +90,10 @@ cases:
     expect:
       outcome: success
       row_count: 2
-      columns:
-        - {name: region, kind: dimension, datatype: String}
-        - {name: total_revenue, kind: metric, datatype: Decimal}
+      output_schema:
+        columns:
+          - {name: region, kind: dimension, datatype: String}
+          - {name: total_revenue, kind: metric, datatype: Decimal}
       rows:
         mode: unordered
         values:

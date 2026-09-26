@@ -1,0 +1,18 @@
+version: "0.2.0.dev0"
+semantic_model:
+  - name: sales
+    datasets:
+      - name: orders
+        source: metis_regression.orders
+        fields:
+          - name: region
+            datatype: String
+            expression: {dialects: [{dialect: ANSI_SQL, expression: orders.region}]}
+            dimension: {}
+          - name: amount
+            datatype: Decimal
+            expression: {dialects: [{dialect: ANSI_SQL, expression: orders.amount}]}
+    metrics:
+      - name: total_revenue
+        datatype: Decimal
+        expression: {dialects: [{dialect: ANSI_SQL, expression: SUM(orders.amount)}]}
