@@ -4,6 +4,19 @@ Metis treats tests as part of the public extension contract for community contri
 
 ## Directory contract
 
+Project-owned business regression suites are a separate developer-tooling layer.
+`metis project test` answers whether an authored model matches the project's
+reviewed expectations; it does not establish Metis engine conformance. Its thin
+CLI calls `app/tooling/regression`, which imports existing services but never
+repository test or benchmark packages. Compiler and execution services do not
+depend on suite parsing or assertions.
+
+Fixture provisioning and CI scheduling remain external. Custom authorization and
+tenant-policy matrices belong to host/application integration tests. The current
+project command supports compile and metric-result checks only; adding analytics
+snapshot grammars or host-policy testing is not required by scoped RFC-0090.
+See the [project suite contract](project-compile-regression.md).
+
 ```text
 tests/
 ├── conformance/

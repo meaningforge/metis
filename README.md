@@ -190,6 +190,10 @@ for assertion syntax, limits, and exit codes, and the
 [runtime fixture example](examples/regression/README.md) for Doris/ClickHouse setup.
 Both modes support `--junit-output`; runtime currently supports `query_metrics`.
 
+These commands test your project's business definitions, not Metis engine
+conformance or custom authorization. Fixture setup and CI orchestration stay
+external; the CLI is not a general-purpose testing framework.
+
 ## Execute queries
 
 To enable execution, reference a named DataSource from your project registration
