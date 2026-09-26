@@ -273,23 +273,6 @@ DataSource permissions, concurrency checks, review, publication approval, and
 Deployment activation are separate from Core generation. It must not treat a
 Core validation result or catalog digest as a host publication approval.
 
-## Prior art and chosen boundary
-
-Cube's developer scaffolder uses selected tables and a named DataSource to
-produce editable model files. Its assisted product workflow can also suggest
-dimensions, measures, and relationships and ask an author to review and test the
-result. V1 borrows selected-object scaffolding and reviewability, but not
-full-database crawling, automatic business definitions, or generation-time
-query execution.
-
-MetricFlow anchors semantic models to explicit dbt models and keeps entities,
-dimensions, and metrics authored in the project. Its validation separates
-parsing/semantic checks from data-platform checks. Metis has no required dbt
-model node to serve as that anchor, so the catalog snapshot carries its own
-Project, logical source, selector ID, and physical-reference provenance. The
-offline generator remains distinct from optional online validation and from
-the eventual query execution role.
-
 ## Alternatives
 
 - Infer business metrics and relationships with an LLM: useful as a separate
@@ -298,9 +281,10 @@ the eventual query execution role.
   balances, prices, ratios, and snapshots.
 - Expose all columns as dimensions: bypasses deliberate semantic publication and
   may disclose technical or sensitive fields. Require an explicit selection.
-- Import every dbt/Cube format in the first release: expands the compatibility
-  problem before the native authoring workflow is proven. Future importers should
-  feed the same reviewed Ossie candidate boundary with explicit loss reports.
+- Import external semantic-model formats in the first release: expands the
+  compatibility problem before the native authoring workflow is proven. Future
+  importers should feed the same reviewed Ossie candidate boundary with explicit
+  loss reports.
 
 ## Rollout and migration
 
@@ -369,10 +353,6 @@ implementation time. Keep this Draft linked in the RFC index during review.
 - [Runtime placement](../../specs/operations/runtime-bootstrap.md)
 - [Current Ossie validation](../../../ossie/validate.go)
 - [Current sales example](../../../examples/demo/models/sales.ossie.yaml)
-- [Cube data model scaffolding](https://github.com/cube-js/cube/blob/master/packages/cubejs-server-core/src/core/DevServer.ts)
-- [Cube assisted onboarding](https://cube.dev/blog/whats-new-in-cube-january-2026-product-updates)
-- [dbt semantic models](https://docs.getdbt.com/docs/build/semantic-models)
-- [MetricFlow validation](https://docs.getdbt.com/docs/build/validation)
 
 The first release includes `row_count` only when the author explicitly asks for
 it; the safe default remains no generated metrics. Backend type mappings and
