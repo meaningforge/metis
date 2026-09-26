@@ -1,10 +1,13 @@
 package regression
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/meaningforge/metis/query"
 )
 
 const validSuite = `schema_version: 1
@@ -41,6 +44,49 @@ func TestParseSuiteAcceptsStrictYAMLAndJSON(t *testing.T) {
 				t.Fatalf("suite = %#v, digest = %q", suite, digest)
 			}
 		})
+	}
+}
+
+func TestSuiteRejectsLossyFilterLiteralsBeforeExecution(t *testing.T) {
+	for _, literal := range []string{"9007199254740993", "-9007199254740993", "1000000000000000100", "0.10000000000000000001", "[1, 9007199254740993]", "[0.1, 0.10000000000000000001]", "1e400", "1e99999", ".nan", "012", "0x10", "1_000", "+12"} {
+		input := strings.Replace(validSuite, "model: sales", "model: sales\n        filters: [{field: amount, operator: eq, value: "+literal+"}]", 1)
+		if _, _, err := ParseSuite([]byte(input)); err == nil {
+			t.Errorf("accepted lossy YAML filter %s", literal)
+		}
+	}
+	for _, literal := range []string{"9007199254740993", "0.10000000000000000001", "[1, 9007199254740993]"} {
+		suite, _, err := ParseSuite([]byte(validSuite))
+		if err != nil {
+			t.Fatal(err)
+		}
+		suite.Cases[0].Request.Query.Filters = []FilterInput{{Field: "amount", Operator: query.FilterEQ, Value: json.RawMessage(literal)}}
+		data, err := json.Marshal(suite)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, _, err := ParseSuite(data); err == nil {
+			t.Errorf("accepted lossy JSON filter %s", literal)
+		}
+	}
+	for _, value := range []any{int64(9007199254740993), uint64(18446744073709551615), []any{int64(9007199254740993)}} {
+		_, err := (QueryInput{Filters: []FilterInput{{Field: "amount", Operator: query.FilterEQ, Value: value}}}).semanticQuery()
+		if err == nil {
+			t.Errorf("accepted lossy in-memory filter %#v", value)
+		}
+	}
+}
+
+func TestSuitePreservesSupportedFilterValues(t *testing.T) {
+	for _, literal := range []string{"9007199254740992", "9007199254740994", "0.1", "1.25", "1e3", "[0.1, 2]", "true", "null", "\"9007199254740993\""} {
+		input := strings.Replace(validSuite, "model: sales", "model: sales\n        filters: [{field: amount, operator: eq, value: "+literal+"}]", 1)
+		suite, _, err := ParseSuite([]byte(input))
+		if err != nil {
+			t.Errorf("rejected %s: %v", literal, err)
+			continue
+		}
+		if _, err := suite.Cases[0].Request.Query.semanticQuery(); err != nil {
+			t.Errorf("conversion %s: %v", literal, err)
+		}
 	}
 }
 

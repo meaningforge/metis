@@ -12,6 +12,7 @@ import (
 	"github.com/meaningforge/metis/app/auth"
 	"github.com/meaningforge/metis/app/bootstrap"
 	"github.com/meaningforge/metis/app/service/semantic"
+	"github.com/meaningforge/metis/app/service/source"
 	"github.com/meaningforge/metis/compiler/artifact"
 	"github.com/meaningforge/metis/execution/backend"
 	"github.com/meaningforge/metis/execution/runner"
@@ -62,6 +63,14 @@ func RunRuntime(ctx context.Context, suite Suite, digest string, options Runtime
 		bootstrap.WithLocalAllAccessProjectAuthorization(), bootstrap.WithExecutionCeilings(bootstrap.ExecutionCeilings{MaxRows: maxResultRows, MaxBytes: maxResultBytes, QueryTimeout: caseDeadline}))
 	if err != nil {
 		markNotRun(&report, "runtime_load_failed")
+		var loadErr *source.LoadError
+		for i := range report.Cases {
+			setRuntimeError(&report.Cases[i], err, nil)
+			if errors.As(err, &loadErr) {
+				report.Cases[i].Code = string(loadErr.Code)
+				report.Cases[i].CallerAction = ""
+			}
+		}
 		return report, nil
 	}
 	defer runtime.Close(context.Background())
@@ -90,6 +99,9 @@ func RunRuntime(ctx context.Context, suite Suite, digest string, options Runtime
 		if ctx.Err() != nil {
 			for j := i; j < len(report.Cases); j++ {
 				report.Cases[j].Category = "suite_deadline_exceeded"
+				if errors.Is(ctx.Err(), context.Canceled) {
+					report.Cases[j].Category = "suite_cancelled"
+				}
 			}
 			break
 		}
@@ -122,7 +134,9 @@ func evaluateRuntime(c Case, result *semantic.QueryMetricsResult, queryErr, ctxE
 		if ctxErr == nil && errors.As(queryErr, &semanticErr) && !runtimeFailureCode(string(semanticErr.Code)) && serrors.CallerActionOf(semanticErr.Code) != serrors.CallerActionReportDefect {
 			return evaluateCompile(c, nil, queryErr, nil)
 		}
-		return CaseReport{ID: c.ID, Status: "failed", ExpectedOutcome: c.Expect.Outcome, ActualOutcome: "incomplete", Category: "runtime_unavailable"}
+		report := CaseReport{ID: c.ID, Status: "failed", ExpectedOutcome: c.Expect.Outcome, ActualOutcome: "incomplete", Category: "runtime_unavailable"}
+		setRuntimeError(&report, queryErr, ctxErr)
+		return report
 	}
 	// Shared schema and stable-warning assertions; runtime suites forbid SQL snapshots.
 	report := evaluateCompile(c, &artifact.CompiledQuery{OutputSchema: result.Schema, Warnings: result.Warnings}, nil, nil)
@@ -168,4 +182,47 @@ func evaluateRuntime(c Case, result *semantic.QueryMetricsResult, queryErr, ctxE
 		report.Status, report.Category = "failed", "runtime_assertion_mismatch"
 	}
 	return report
+}
+
+// Keep only registered stable codes and closed categories, never error text,
+// Details, driver strings, or endpoints. These failures cannot satisfy an oracle.
+func setRuntimeError(report *CaseReport, err, ctxErr error) {
+	var semanticErr *serrors.Error
+	if errors.As(err, &semanticErr) {
+		for _, code := range serrors.Codes() {
+			if semanticErr.Code == code {
+				report.Code = string(code)
+				report.CallerAction = string(serrors.CallerActionOf(code))
+				break
+			}
+		}
+	}
+	if report.Category == "runtime_load_failed" {
+		return
+	}
+	switch {
+	case errors.Is(ctxErr, context.Canceled) || errors.Is(err, context.Canceled):
+		report.Code = string(serrors.ErrQueryExecutionCancelled)
+	case errors.Is(ctxErr, context.DeadlineExceeded) || errors.Is(err, context.DeadlineExceeded):
+		report.Code = string(serrors.ErrQueryExecutionTimeout)
+	}
+	if report.Code != "" {
+		report.CallerAction = string(serrors.CallerActionOf(serrors.ErrorCode(report.Code)))
+	}
+	switch serrors.ErrorCode(report.Code) {
+	case serrors.ErrQueryExecutionTimeout:
+		report.Category = "execution_timeout"
+	case serrors.ErrQueryExecutionCancelled:
+		report.Category = "execution_cancelled"
+	case serrors.ErrQueryExecutionLimit:
+		report.Category = "execution_limit_exceeded"
+	case serrors.ErrQueryExecutionBusy:
+		report.Category = "execution_busy"
+	case serrors.ErrQueryExecutionFailed:
+		report.Category = "execution_failed"
+	case serrors.ErrQueryResultSchemaMismatch:
+		report.Category = "result_schema_mismatch"
+	case serrors.ErrProjectAccessDenied, serrors.ErrDataAccessDenied:
+		report.Category = "access_denied"
+	}
 }

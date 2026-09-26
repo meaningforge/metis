@@ -151,6 +151,9 @@ func RunCompile(ctx context.Context, suite Suite, suiteDigest string, options Co
 		if err := ctx.Err(); err != nil {
 			for j := i; j < len(report.Cases); j++ {
 				report.Cases[j].Category = "suite_deadline_exceeded"
+				if errors.Is(err, context.Canceled) {
+					report.Cases[j].Category = "suite_cancelled"
+				}
 			}
 			break
 		}
@@ -189,6 +192,9 @@ func evaluateCompile(c Case, compiled *artifact.CompiledQuery, compileErr, caseC
 	if caseCtxErr != nil {
 		result.ActualOutcome = "incomplete"
 		result.Category = "case_deadline_exceeded"
+		if errors.Is(caseCtxErr, context.Canceled) {
+			result.Category = "case_cancelled"
+		}
 		return result
 	}
 	if compileErr != nil {

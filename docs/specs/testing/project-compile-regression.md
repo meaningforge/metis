@@ -34,6 +34,17 @@ level, duplicate keys or case IDs, multiple documents, YAML aliases, unsupported
 operations, or more than 100 cases are rejected. The suite is limited to 1 MiB.
 The CLI Project and every request Project must match the suite Project.
 
+Numeric filter literals must survive the existing query API's `float64` boundary
+without changing their decimal round-trip value; integer literals must also be
+exactly representable. Lossy values such as `9007199254740993` or
+`0.10000000000000000001` are rejected before execution, including inside arrays.
+Normal literals such as `0.1` and `1.25` remain supported. This tool-layer check
+does not change REST/MCP decoding or introduce a new numeric filter type. Quoted
+values remain strings, not a workaround that coerces strings into exact numbers.
+Filter numbers use bounded JSON decimal syntax (up to 256 characters and a
+three-digit exponent); YAML base prefixes, leading zeros, digit separators,
+and other unsupported numeric forms are rejected rather than reinterpreted.
+
 ```yaml
 schema_version: 1
 project: demo
@@ -79,6 +90,11 @@ diagnostic categories. Schema mismatches include column positions and up to 100
 expected and actual column descriptions. It does not include SQL text, parameter values, source
 data, credentials, or raw driver errors. Output files are owner-only and
 created atomically; an existing path is refused unless `--overwrite` is set.
+Even with `--overwrite`, an existing file must be a recognizable Metis report
+of the requested format (JSON schema version 1 or Metis JUnit), at most 16 MiB.
+Other files, malformed reports, and symbolic-link outputs are refused. JSON and
+JUnit paths cannot alias the suite or configuration, including through hard
+links or directory aliases. Non-report model/source files cannot be overwritten.
 Exit 0 means every case passed, 1 means a completed failing or incomplete
 suite, and 2 means invalid input or report I/O failure. The whole suite has a
 10-minute deadline and each case has a 30-second deadline.
@@ -120,6 +136,9 @@ declared schema. Dates use `YYYY-MM-DD`, times `HH:MM:SS[.fraction]`, local date
 as UTC instants; local values receive no timezone inference. Numeric scale alone
 does not affect equality. Numeric literals are limited to 256 characters and a
 three-digit exponent; nonfinite and unsupported values fail closed.
+Fractional seconds support at most nine digits. Longer fractions are rejected,
+even if the extra digits are zeros, rather than silently truncated. This applies
+to both expected and observed time values.
 
 `rows.mode: unordered` compares exact multisets, including duplicate counts.
 Optional `tolerances: {total_revenue: {abs: "0.01", rel: "0.001"}}` applies only to
@@ -136,6 +155,12 @@ fail, not truncate-to-pass. Runtime load failures leave cases `not_run`; query
 outages, cancellation, schema/normalization failures and limits cannot satisfy
 expected semantic errors. Reports include Backend types but no endpoints or row
 values. Differences identify bounded row/column positions, not data.
+Execution failures retain registered stable `code` and `caller_action` values
+and distinguish timeout, cancellation, busy, result-limit, schema, and access
+failures. Unknown errors remain generic; messages and error details are not
+copied into reports. Source-load failures may instead carry the source loader's
+diagnostic code without a query caller action. JUnit includes the same stable
+error code alongside its category while retaining the same outcome totals.
 
 Both modes accept optional `--junit-output`. JSON remains the canonical report;
 JUnit maps failed cases to failures and not-run cases to errors, never successful

@@ -47,14 +47,23 @@ func testProject(args []string) int {
 		fmt.Fprintln(os.Stderr, "metis project test: JSON and JUnit output paths must differ")
 		return 2
 	}
-	for _, path := range []string{*output, *junitOutput} {
+	for index, path := range []string{*output, *junitOutput} {
 		if path == "" {
 			continue
 		}
-		if info, err := os.Lstat(path); err == nil && (!*overwrite || !info.Mode().IsRegular()) {
-			fmt.Fprintln(os.Stderr, "metis project test: output exists or is not a regular file:", path)
-			return 2
-		} else if err != nil && !os.IsNotExist(err) {
+		for _, input := range []string{*suitePath, *config} {
+			same, err := sameProjectTestFile(path, input)
+			if err != nil || same {
+				fmt.Fprintln(os.Stderr, "metis project test: report output conflicts with an input or cannot be checked safely")
+				return 2
+			}
+		}
+		format := "json"
+		if index == 1 {
+			format = "junit"
+		}
+		if err := regression.CheckReportOutput(path, format, *overwrite); err != nil {
+			fmt.Fprintln(os.Stderr, "metis project test:", err)
 			return 2
 		}
 	}
@@ -111,4 +120,32 @@ func canonicalReportPath(path string) (string, error) {
 		return "", err
 	}
 	return filepath.Join(parent, filepath.Base(absolute)), nil
+}
+
+func sameProjectTestFile(left, right string) (bool, error) {
+	leftPath, err := filepath.Abs(left)
+	if err != nil {
+		return false, err
+	}
+	rightPath, err := filepath.Abs(right)
+	if err != nil {
+		return false, err
+	}
+	if leftPath == rightPath {
+		return true, nil
+	}
+	leftCanonical, leftCanonicalErr := canonicalReportPath(left)
+	rightCanonical, rightCanonicalErr := canonicalReportPath(right)
+	if leftCanonicalErr == nil && rightCanonicalErr == nil && leftCanonical == rightCanonical {
+		return true, nil
+	}
+	leftInfo, leftErr := os.Stat(left)
+	rightInfo, rightErr := os.Stat(right)
+	if leftErr != nil && !os.IsNotExist(leftErr) {
+		return false, leftErr
+	}
+	if rightErr != nil && !os.IsNotExist(rightErr) {
+		return false, rightErr
+	}
+	return leftErr == nil && rightErr == nil && os.SameFile(leftInfo, rightInfo), nil
 }

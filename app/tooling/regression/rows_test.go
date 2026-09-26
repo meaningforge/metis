@@ -33,6 +33,31 @@ func TestExactScalarSemantics(t *testing.T) {
 	}
 }
 
+func TestTimeLiteralsRejectUnsupportedPrecision(t *testing.T) {
+	for _, tc := range []struct{ tag, datatype, prefix, suffix string }{
+		{"time", "Time", "12:00:00", ""},
+		{"datetime", "DateTime", "2026-09-26T12:00:00", ""},
+		{"datetime_tz", "DateTimeTz", "2026-09-26T12:00:00", "Z"},
+	} {
+		for _, fraction := range []string{"1234567891", "1234567899", "1234567890", "0000000000"} {
+			s := Scalar{Type: tc.tag, Value: tc.prefix + "." + fraction + tc.suffix}
+			if _, err := canonicalScalar(s, tc.datatype); err == nil {
+				t.Errorf("accepted %s %s", tc.tag, fraction)
+			}
+			if cellMatches(s, s, tc.datatype, Tolerance{}) {
+				t.Errorf("invalid precision compared equal")
+			}
+		}
+		valid := Scalar{Type: tc.tag, Value: tc.prefix + ".123456789" + tc.suffix}
+		if _, err := canonicalScalar(valid, tc.datatype); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := normalizedScalar(tc.prefix+".1234567891"+tc.suffix, tc.datatype); err == nil {
+			t.Fatal("accepted excessive actual precision")
+		}
+	}
+}
+
 func TestRowsPreserveMultiplicityAndMatchToleranceByKey(t *testing.T) {
 	cols := []ExpectedColumn{{Name: "key", Datatype: "String"}, {Name: "value", Datatype: "Decimal"}}
 	row := func(key, value string) []Scalar {
