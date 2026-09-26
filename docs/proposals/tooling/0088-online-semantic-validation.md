@@ -65,28 +65,45 @@ Each query uses the existing `query.SemanticQuery` grammar and must match the
 selected Project. IDs must be unique. Unknown fields, no cases, more than 100
 cases, or a file larger than 1 MiB fail before any database access.
 The tool does not enumerate every possible metric/dimension combination.
+The inventory decoder validates allowed fields at every JSON object level,
+including the nested semantic query, before unmarshalling it. This is a
+command-specific input rule: the shared `SemanticQuery.UnmarshalJSON` currently
+ignores most unknown fields and must not be tightened as a side effect of this
+command, because existing REST/MCP inputs retain their contracts.
 
-A separate explicit `--catalog-only` mode omits query probes. Its report says
-`scope: catalog_only`; it cannot be presented as full runtime validation.
+A separate explicit `--catalog-only` mode rejects `--queries` and omits
+query preparation and engine probes. It inspects the declared direct physical
+relations and fields of every semantic model in the selected Project, including
+direct join and calendar fields. It does not claim coverage of query-specific
+filter, computed-expression, or data-policy dependencies. Its report says
+`scope: catalog_only`, lists the checked models and checkable declarations, and
+cannot be presented as full runtime validation. A declaration whose physical
+dependency cannot be determined is an incomplete check, not a silent omission.
 
 ### Validation stages
 
 1. **Offline candidate:** call the shared source loader and return its validity
    and quality report. Invalid source or a failed configured quality threshold
    stops online work. Offline failures never resolve secrets or open connections.
+   Before publishing source findings, apply the asset-visibility boundary;
+   findings whose asset visibility cannot be established remain generic offline
+   failures without asset identities or source excerpts.
 2. **Placement and preparation:** resolve each complete semantic model to one
-   applied DataSource. Prepare all requested query artifacts with that Backend's
-   exact Renderer and the existing policy preflight before online probes begin.
-   A preparation failure produces zero online query probes; it does not authorize
-   partial workload execution.
-3. **Physical dependency inspection:** use canonical resolved dependencies to
-   identify exact physical relations and direct fields, including filter, join,
-   calendar, and policy dependencies. Read only selected catalog metadata.
-4. **Engine acceptance:** validate every prepared `CompiledQuery`, preserving
-   SQL text and ordered parameters. Use a backend-owned, demonstrated non-executing
-   preparation/EXPLAIN method. Never use EXPLAIN ANALYZE or substitute a SELECT
-   sample. If a backend cannot validate a parameterized shape safely, report
-   unsupported rather than interpolate values or execute the query.
+   applied DataSource. In a full run, prepare all requested query artifacts with
+   that Backend's exact Renderer and the existing policy preflight before online
+   probes begin. A preparation failure produces zero online query probes; it does
+   not authorize partial workload execution. Catalog-only mode skips query
+   preparation.
+3. **Physical dependency inspection:** for a full run, use canonical resolved
+   dependencies to identify exact physical relations and direct fields, including
+   filter, join, calendar, and policy dependencies. In catalog-only mode, use
+   only the declarations defined above. Read only selected catalog metadata.
+4. **Engine acceptance:** in a full run, validate every prepared
+   `CompiledQuery`, preserving SQL text and ordered parameters. Use a
+   backend-owned, demonstrated non-executing preparation/EXPLAIN method. Never
+   use EXPLAIN ANALYZE or substitute a SELECT sample. If a backend cannot
+   validate a parameterized shape safely, report unsupported rather than
+   interpolate values or execute the query.
 
 The report distinguishes `catalog_checked`, `compile_checked`, and
 `engine_prepared`. A successful EXPLAIN does not prove result values, complete
@@ -103,7 +120,7 @@ than adding semantic dependencies to `execution/driver`:
 ```go
 // Proposed shapes; final package naming is decided in implementation review.
 type CatalogInspector interface {
-    DescribeRelations(context.Context, []RelationRef) ([]RelationMetadata, error)
+    DescribeRelations(context.Context, []RelationRef) ([]RelationInspectionResult, error)
 }
 type CompiledQueryValidator interface {
     ValidateCompiled(context.Context, *artifact.CompiledQuery) (ValidationEvidence, error)
@@ -111,10 +128,23 @@ type CompiledQueryValidator interface {
 ```
 
 `RelationRef` contains structured identifier parts, never free-form SQL.
+`RelationInspectionResult` contains its requested reference and a closed outcome:
+`found`, `not_found`, `unsupported`, `inconclusive`, or `unavailable`. `found`
+contains `RelationMetadata` and an explicit statement of whether its column list
+is complete. An absent column is a mismatch only when that list is complete;
+otherwise it is unknown. A response must contain exactly one result per requested
+reference; missing, duplicate, or extra results make the inspection inconclusive.
 `RelationMetadata` contains relation identity/kind, column identity/native type,
 precision/scale where available, and nullability as known/unknown. Metadata must
 preserve quoted identifier case and distinguish catalog, schema, and database
-according to the backend. An unsupported mapping is explicit evidence.
+according to the backend. Unsupported mappings are explicit evidence.
+
+`ValidationEvidence` likewise has a closed outcome: `accepted`, `rejected`,
+`unsupported`, `inconclusive`, or `unavailable`. Drivers classify native results
+within their backend implementation and return bounded, typed reasons; callers
+never parse native error strings. The `error` return is for an unclassified
+operation failure and cannot by itself establish a missing object or a rejected
+query. A failure to classify required evidence makes the run incomplete.
 
 Runner owns lease acquisition, admission, effective timeout, secret resolution,
 cancellation, observations, and cleanup for these operations. Driver SQL for
@@ -147,11 +177,25 @@ This is initially a trusted local authoring command plus an embedding service,
 with no REST/MCP registration. The CLI uses the explicit trusted-local Principal
 mode; its database role determines access to catalog metadata.
 
-An embedder must authorize Project `author` and `compile` before inspecting source
-or catalog state, and must apply asset visibility and the existing data policy
-preflight to every query. These permissions imply no `execute` grant. Any future
-read-execution probe requires `execute` as well and a separate design decision.
-Catalog reports are author/operator artifacts and must not enter Agent discovery.
+An embedder must resolve and authorize Project `author` and `compile` before
+loading source content or consulting semantic inventory, DataSource, Backend,
+secrets, or catalog state. It must apply asset visibility and the existing data
+policy preflight to every query. These permissions imply no `execute` grant.
+Any future read-execution probe requires `execute` as well and a separate design
+decision. Catalog reports are author/operator artifacts and must not enter Agent
+discovery.
+
+For catalog-only inspection, require visibility under both `author` and `compile`
+for every model and authored asset needed to describe its direct physical
+declarations before looking up its physical identity. If any required asset is
+hidden, fail the requested scope as incomplete with a generic finding that is
+indistinguishable from other unavailable catalog coverage; do not probe it,
+name or count it in the report, or silently omit it from coverage. Full-run
+source findings and query assets must satisfy the same two visibility actions
+before their identities enter a report. No query exists in catalog-only mode,
+so the query data-policy preflight is not evaluated and policy-only dependencies
+receive no coverage claim. The trusted-local CLI explicitly selects the local
+all-visible asset policy; an embedder uses its configured visibility policy.
 
 The immutable candidate generation is pinned for the complete run. Sources remain
 independent: multiple sources may be checked in one report, but every query has
@@ -227,9 +271,19 @@ adoption; it never mutates a running generation or warehouse data.
 
 ## Test and acceptance criteria
 
-- Invalid model and denied author/compile access perform zero online operations.
+- Invalid model performs zero online operations. Denied author or compile access
+  performs zero source loads, semantic inventory or DataSource/Backend reads,
+  secret resolutions, lease acquisitions, and online operations.
+- Catalog-only mode neither reveals hidden asset identities nor silently treats
+  hidden or unresolvable declarations as complete; it excludes query-policy
+  evidence from its coverage claim.
+- Unknown inventory fields fail at every nesting level without changing existing
+  REST/MCP decoding behavior.
 - Missing relation/column, incompatible native type, unknown expression metadata,
   permission denial, and unsupported preparation produce distinguishable outcomes.
+- Partial, duplicate, or extra per-relation responses cannot convert a missing
+  object or column into a successful check; incomplete column metadata remains
+  unknown, and raw driver errors never determine mismatch classifications.
 - Bound parameters, unusual quoted identifiers, and Decimal/temporal values are
   preserved; no SQL interpolation or EXPLAIN ANALYZE path exists.
 - Tests prove the online operation uses the same Backend/Renderer and resolved
