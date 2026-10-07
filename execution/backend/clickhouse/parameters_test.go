@@ -21,7 +21,7 @@ func TestServerBindingRewritesOnlyActualPlaceholders(t *testing.T) {
 	if strings.Contains(text, private) || !strings.Contains(text, "x = {metis_param_0:String}") || !strings.Contains(text, "y = {metis_param_1:Int64}") || !strings.Contains(text, "'?' AS literal") || !strings.Contains(text, "/* ? /* ? */ */") {
 		t.Fatalf("changed SQL shape: %s", text)
 	}
-	if parameters["metis_param_0"] != private || parameters["metis_param_1"] != "9007199254740993" {
+	if parameters["metis_param_0"] != escapeParameterString(private) || parameters["metis_param_1"] != "9007199254740993" {
 		t.Fatal("changed parameter values")
 	}
 	if original.Parameters[0].Value != private || strings.Contains(original.SQL, "metis_param") {
@@ -34,7 +34,7 @@ func TestServerParameterClosedDomain(t *testing.T) {
 		value      any
 		kind, text string
 	}{
-		{nil, "Nullable(String)", `\N`}, {true, "Bool", "true"}, {[]byte{0, 255}, "String", string([]byte{0, 255})},
+		{nil, "Nullable(String)", `\N`}, {true, "Bool", "true"}, {[]byte{0, 255}, "String", "\\0" + string([]byte{255})},
 		{json.Number("10.2500"), "Decimal(76,4)", "10.2500"}, {json.Number("9007199254740993"), "Int64", "9007199254740993"},
 		{"2026-01-01T12:34:56.123456Z", "String", "2026-01-01T12:34:56.123456Z"},
 	} {
@@ -47,6 +47,12 @@ func TestServerParameterClosedDomain(t *testing.T) {
 		if _, _, err := serverParameter(value); err == nil {
 			t.Fatalf("accepted unsupported value: %v", value)
 		}
+	}
+}
+
+func TestEscapedStringProtocolPreservesControlsAndNullMarker(t *testing.T) {
+	if actual := escapeParameterString("\\N\t\n\r\x00"); actual != "\\\\N\\t\\n\\r\\0" {
+		t.Fatalf("transport encoding=%q", actual)
 	}
 }
 

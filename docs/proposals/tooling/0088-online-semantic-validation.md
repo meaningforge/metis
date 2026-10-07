@@ -96,10 +96,14 @@ separate parameter values. Production SELECT and validation EXPLAIN share one
 transport adapter: only actual positional placeholder tokens change spelling;
 quoted text, identifiers and comments are preserved. Compiler SQL and ordered
 values remain unchanged. Values never become SQL literals. Scalar IN/BETWEEN
-values and bound row-policy parameters use the same path.
+values and bound row-policy parameters use the same path. HTTP parameter strings
+use Escaped text serialization separately from URL encoding, preserving literal
+backslashes, control bytes and the distinction between a literal null marker and
+SQL NULL. String values are never pasted into SQL.
 
 The closed runtime value domain determines transport types. Strings (including
-dates/timestamps) remain strings and the engine checks contextual conversion;
+dates/timestamps) remain strings and the engine checks contextual conversion using
+its accepted formats. No timezone inference or global parsing setting is added;
 integers retain width/sign, finite floats retain their runtime type, NULL uses
 Nullable(String), and exact json.Number decimal values use Decimal without a
 float conversion. Unsupported exact-number forms and unmanaged placeholder syntax

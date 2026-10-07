@@ -71,11 +71,11 @@ func TestServerParametersRoundTripThroughProductionRunner(t *testing.T) {
 					t.Fatal("integer lost precision")
 				}
 			case ossie.DataTypeDecimal:
-				number, ok := actual.(json.Number)
+				number, ok := actual.(string)
 				if !ok {
 					t.Fatalf("decimal result type %T", actual)
 				}
-				observed, valid := new(big.Rat).SetString(string(number))
+				observed, valid := new(big.Rat).SetString(number)
 				expected, _ := new(big.Rat).SetString(tc.want)
 				if !valid || observed.Cmp(expected) != 0 {
 					t.Fatal("decimal lost precision")

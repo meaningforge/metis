@@ -36,7 +36,10 @@ and validation use one transport adapter that changes only placeholder spelling,
 preserving the compiler artifact and ordered values. It handles strings, integers,
 finite floats, booleans, binary strings, NULL and supported exact JSON numbers.
 Date/time strings retain their original text; the engine validates contextual
-conversion. IN/BETWEEN lists expand to ordered scalar parameters. Policy values
+conversion. Use engine-accepted formats (the pinned ClickHouse DateTime64 range
+example uses `YYYY-MM-DD HH:MM:SS`). No timezone inference or global parsing-setting
+change is performed; invalid or unsupported formats remain failed online checks.
+IN/BETWEEN lists expand to ordered scalar parameters. Policy values
 follow the same path and remain absent from reports. Unsupported parameter forms
 and ambiguous SQL quoting/counts fail pure preflight before credential resolution.
 

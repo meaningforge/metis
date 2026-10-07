@@ -26,7 +26,7 @@ func checkOnlineValidationFailures(t *testing.T, ctx context.Context, binary, wo
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, scenario := range []string{"missing_column", "type_mismatch", "parameter", "parameter_in", "parameter_decimal", "parameter_datetime", "compile_failure"} {
+	for _, scenario := range []string{"missing_column", "type_mismatch", "parameter", "parameter_in", "parameter_decimal", "parameter_datetime", "parameter_example", "compile_failure"} {
 		t.Run("online_"+scenario, func(t *testing.T) {
 			inventory := base
 			inventory.Queries = append([]validation.Case(nil), base.Queries...)
@@ -44,7 +44,12 @@ func checkOnlineValidationFailures(t *testing.T, ctx context.Context, binary, wo
 				inventory.Queries[0].Query.Filters = []query.Filter{{Field: "total_revenue", Operator: query.FilterBetween, Value: []any{0.25, 20.75}}}
 			case "parameter_datetime":
 				body = []byte(strings.Replace(string(reviewed), "expression: orders.order_time}]", "expression: orders.order_time}]\n            dimension: {}", 1))
-				inventory.Queries[0].Query.Filters = []query.Filter{{Field: "orders.order_time", Operator: query.FilterBetween, Value: []any{"2026-01-01T00:00:00Z", "2026-01-03T00:00:00Z"}}}
+				inventory.Queries[0].Query.Filters = []query.Filter{{Field: "orders.order_time", Operator: query.FilterBetween, Value: []any{"2026-01-01 00:00:00", "2026-01-03 00:00:00"}}}
+			case "parameter_example":
+				inventory, err = validation.LoadInventory(filepath.Join(work, "queries-filtered.json"), "sales")
+				if err != nil {
+					t.Fatal(err)
+				}
 			case "compile_failure":
 				inventory.Queries = append(inventory.Queries, validation.Case{ID: "broken", Query: query.SemanticQuery{Project: "sales", Model: "sales", Metrics: []query.MetricRef{{Name: "absent_metric"}}}})
 			}

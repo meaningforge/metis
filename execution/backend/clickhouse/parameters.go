@@ -104,9 +104,9 @@ func serverParameter(value any) (string, string, error) {
 	case nil:
 		return "Nullable(String)", `\N`, nil
 	case string:
-		return "String", v, nil
+		return "String", escapeParameterString(v), nil
 	case []byte:
-		return "String", string(v), nil
+		return "String", escapeParameterString(string(v)), nil
 	case bool:
 		return "Bool", strconv.FormatBool(v), nil
 	case int:
@@ -155,4 +155,10 @@ func serverParameter(value any) (string, string, error) {
 		}
 	}
 	return "", "", fmt.Errorf("unsupported server parameter type")
+}
+
+// HTTP parameter values use the server's Escaped text format independently of
+// URL encoding. Escaping is transport serialization, never SQL interpolation.
+func escapeParameterString(value string) string {
+	return strings.NewReplacer("\\", "\\\\", "\x00", "\\0", "\n", "\\n", "\r", "\\r", "\t", "\\t", "\b", "\\b", "\f", "\\f").Replace(value)
 }
