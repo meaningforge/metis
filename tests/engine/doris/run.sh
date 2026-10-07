@@ -9,19 +9,28 @@ BE_CONTAINER="metis-doris-conformance-be-${RUN_ID}"
 NETWORK="metis-doris-conformance-${RUN_ID}"
 
 cleanup() {
+  local exit_status=$?
+  if [[ "${exit_status}" != 0 ]]; then
+    # Include startup evidence even when failure precedes the readiness loop.
+    docker inspect --format '{{.Name}}: {{.State.Status}} exit={{.State.ExitCode}} error={{.State.Error}}' "${FE_CONTAINER}" "${BE_CONTAINER}" 2>/dev/null || true
+    docker logs --tail 300 "${FE_CONTAINER}" >&2 2>/dev/null || true
+    docker logs --tail 100 "${BE_CONTAINER}" >&2 2>/dev/null || true
+  fi
   # -v removes anonymous volumes declared by the engine images together with
   # the containers. Long-lived self-hosted runners otherwise accumulate those
   # volumes across repeated real-engine conformance runs.
   docker rm -fv "${BE_CONTAINER}" "${FE_CONTAINER}" >/dev/null 2>&1 || true
   docker network rm "${NETWORK}" >/dev/null 2>&1 || true
+  return "${exit_status}"
 }
 
 trap cleanup EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
 
-docker network create "${NETWORK}" >/dev/null
-read -r FE_IP BE_IP <<< "$(metis_container_network_addresses "${NETWORK}")"
+metis_container_create_addressable_network "${NETWORK}"
+NETWORK_ADDRESSES="$(metis_container_network_addresses "${NETWORK}")"
+read -r FE_IP BE_IP <<< "${NETWORK_ADDRESSES}"
 
 FE_ARGS=(
   --detach
@@ -32,6 +41,10 @@ FE_ARGS=(
   --env "FE_SERVERS=fe1:${FE_IP}:9010"
   --env FE_ID=1
   --env "JACOCO_COVERAGE_OPT=-Xmx2G -Xms2G"
+  # The pinned image's JDK can fail to initialize system metrics on modern
+  # cgroup v2 hosts (apache/doris#56784). Keep this workaround test-local;
+  # explicit heap limits above remain in force.
+  --env "JAVA_TOOL_OPTIONS=-XX:-UseContainerSupport"
 )
 BE_ARGS=(
   --detach
@@ -43,10 +56,16 @@ BE_ARGS=(
   --env "BE_ADDR=${BE_IP}:9050"
 )
 docker run "${FE_ARGS[@]}" "apache/doris:fe-${DORIS_VERSION}" >/dev/null
-docker run "${BE_ARGS[@]}" "apache/doris:be-${DORIS_VERSION}" >/dev/null
 DORIS_PORT="$(metis_container_host_port "${FE_CONTAINER}" 9030)"
+docker run "${BE_ARGS[@]}" "apache/doris:be-${DORIS_VERSION}" >/dev/null
 
 for _ in $(seq 1 180); do
+  for container in "${FE_CONTAINER}" "${BE_CONTAINER}"; do
+    if [[ "$(docker inspect "${container}" --format '{{.State.Running}}')" != true ]]; then
+      echo "Doris container exited before readiness: ${container}" >&2
+      exit 1
+    fi
+  done
   if docker exec "${FE_CONTAINER}" mysql -uroot -h127.0.0.1 -P9030 -e 'SELECT 1' >/dev/null 2>&1; then
     # The image entrypoint can report the BE container ready before doris_be
     # has opened its heartbeat service and reported a usable storage path.

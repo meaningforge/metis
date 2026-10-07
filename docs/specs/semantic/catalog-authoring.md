@@ -1,4 +1,4 @@
-# Offline catalog-assisted authoring
+# Catalog-assisted authoring
 
 `metis project init` creates a local review candidate from a versioned catalog
 snapshot and an explicit authoring map. It reuses Ossie formatting, project
@@ -12,9 +12,63 @@ metis project validate --project sales --config ./candidate-sales/project.yaml
 ```
 
 The [examples](../../../examples/authoring/README.md) provide synthetic Doris and
-ClickHouse snapshots. Online `metis catalog inspect` is a proposed follow-up
-command and is not implemented yet. The generated expressions are specific to
+ClickHouse snapshots and an online capture walkthrough. The generated expressions are specific to
 the snapshot's backend; unsupported dialect compilation fails explicitly.
+
+## Online metadata capture
+
+```sh
+metis catalog inspect --config ./metis.yaml --project sales \
+  --data-source warehouse --relations ./relations.json --output ./catalog.json
+```
+
+All five flags are required; positional arguments are refused. The selector is
+strict JSON or YAML, at most 1 MiB, with `schema_version: 1` and 1–200 `relations`:
+
+```json
+{"schema_version":1,"relations":[{"id":"orders","parts":["Analytics","Orders"]}]}
+```
+
+IDs and requested physical identities must be unique. Online references require
+exact `database.table` parts for ClickHouse and `database.table` or
+`catalog.database.table` parts for Doris. No default database, wildcard, SQL,
+view definition, row sample, default expression or column comment is exported.
+Physical identifiers retain case and spaces; dots within parts, prequoted names,
+quotes, backslashes, control characters and SQL separators are rejected. Full
+column inventories are captured for selected relations; the authoring map later
+chooses which columns become semantic fields. V1 does not collect keys, because
+column-level key flags cannot establish their ordering or physical key model.
+
+`bootstrap.LoadCatalogRunner` evaluates Project `author`, then a required host
+physical metadata access callback, before reading deployment/registry files.
+Omitted policies fail closed. Only after both allow does it validate the selected
+source's Project registration, Backend configuration and execution ceilings.
+The registered project manifest path need not exist yet and is never loaded.
+Credentials and connections are acquired lazily through the existing Runner.
+Trusted-local CLI execution explicitly opts into local Project and catalog access
+under the operator's OS/database identity. This is not remote authorization:
+embedders must supply their own policies, and no REST/MCP route is added.
+
+`driver.CatalogInspector` is an optional execution-lease capability. Doris uses
+exact-object `DESCRIBE`; ClickHouse uses `DESCRIBE TABLE` with subcolumns disabled.
+The Runner shares admission, secret resolution, process pools, shutdown and
+cleanup. Work is bounded to five minutes overall, 30 seconds per open/describe,
+10,000 columns total and 10 MiB metadata, further tightened by deployment/host
+ceilings. Unknown driver errors, empty inventories, interrupted streams,
+duplicate columns and mismatched/partial results fail without a catalog file.
+A privilege error is never inferred to mean a missing table. Inspection proves
+only metadata evidence, not SELECT permission or future query success.
+
+Output is normalized JSON with the existing digest, privately staged and
+atomically published to a new file (0600). Existing files, directories and
+symlinks are refused, including concurrent creation. Parent directories must
+exist; no overwrite flag is available. No credential, endpoint, raw database
+error, observation SQL or business inference enters the snapshot.
+Exit 0 means a complete snapshot exists; exit 1 means authorization, configuration,
+inspection or cleanup failed; exit 2 means malformed selectors, CLI arguments or
+output failure. Diagnostics use fixed messages and stable codes; unknown errors
+use `CATALOG_FAILED`. Failed inspection leaves output absent, not a partial
+snapshot or a failure document masquerading as generator input.
 
 ## Catalog schema version 1
 

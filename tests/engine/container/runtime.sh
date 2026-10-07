@@ -34,3 +34,21 @@ metis_container_network_addresses() {
   fi
   printf '%s.2 %s.3\n' "${prefix}" "${prefix}"
 }
+
+# Doris advertises peer addresses before both containers exist. Recent Docker
+# versions reject --ip on an automatically allocated network. Let Docker choose
+# a free subnet, then recreate only this invocation's empty network with explicit
+# IPAM; no shared/fixed subnet is reserved by the test harness.
+metis_container_create_addressable_network() {
+  local network="$1"
+  local subnet gateway
+  docker network create "${network}" >/dev/null || return 1
+  subnet="$(docker network inspect "${network}" --format '{{(index .IPAM.Config 0).Subnet}}')" || return 1
+  gateway="$(docker network inspect "${network}" --format '{{(index .IPAM.Config 0).Gateway}}')" || return 1
+  if [[ -z "${subnet}" || "${subnet}" != */* || ! "${gateway}" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    echo "cannot resolve allocated Docker subnet" >&2
+    return 1
+  fi
+  docker network rm "${network}" >/dev/null || return 1
+  docker network create --subnet "${subnet}" --gateway "${gateway}" "${network}" >/dev/null
+}

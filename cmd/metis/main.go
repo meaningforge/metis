@@ -36,6 +36,8 @@ func main() {
 		os.Exit(2)
 	}
 	switch os.Args[1] {
+	case "catalog":
+		os.Exit(runCatalog(os.Args[2:]))
 	case "model", "project", "query":
 		os.Exit(runOffline(os.Args[1:]))
 	case "validate":
@@ -57,7 +59,7 @@ func main() {
 }
 
 func commandLogWriter(args []string) io.Writer {
-	if len(args) > 1 && (args[1] == "mcp" || args[1] == "model" || args[1] == "project" || args[1] == "query") {
+	if len(args) > 1 && (args[1] == "mcp" || args[1] == "model" || args[1] == "project" || args[1] == "query" || args[1] == "catalog") {
 		return os.Stderr
 	}
 	return os.Stdout
@@ -411,6 +413,7 @@ func loadServeRuntime(configPath string) (*bootstrap.Runtime, error) {
 func usage() {
 	fmt.Fprintln(os.Stderr, "Metis Semantic Engine")
 	offlineUsage()
+	fmt.Fprintln(os.Stderr, "  metis catalog inspect --config <metis.yaml> --project <name> --data-source <name> --relations <relations.json> --output <catalog.json>")
 	fmt.Fprintln(os.Stderr, "  metis validate --project <name> <model.ossie.yaml>")
 	fmt.Fprintln(os.Stderr, "  metis inspect --project <name> --file <model.ossie.yaml> --model <name>")
 	fmt.Fprintln(os.Stderr, "  metis version")

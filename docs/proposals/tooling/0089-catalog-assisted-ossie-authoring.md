@@ -23,9 +23,10 @@ the same catalog contract without changing the default CGO-free binary.
 The offline `metis project init` slice is implemented as documented in the
 [current authoring contract](../../specs/semantic/catalog-authoring.md). It uses
 versioned catalog evidence and an explicit map without database access. Online
-`metis catalog inspect` and its backend catalog capabilities remain proposals;
-this RFC remains Draft for those stages. The shipped contract defines current
-file schemas and supported type/identifier mappings.
+`metis catalog inspect` now captures exact Doris and ClickHouse column inventories
+through the shared optional lease capability. The shipped contract defines
+current schemas, policies and limits. This RFC remains Draft for broader tutorials
+and optional DuckDB inspection; those stages are not implied by the shipped CLI.
 
 ## Core and managed-host ownership
 
@@ -65,7 +66,7 @@ metis project init --catalog ./authoring/catalog.json \
 metis project validate --project sales --config ./candidate-sales/project.yaml
 ```
 
-The proposed `metis catalog inspect` can run before a semantic model exists. Given the explicit
+`metis catalog inspect` can run before a semantic model exists. Given the explicit
 Project ID, the authoring service first authorizes Project `author`, before it
 consults Project registration, DataSource/Backend inventory, secrets, or catalog
 state. A denied request performs none of those lookups or online operations and
@@ -98,6 +99,10 @@ The relation selector file uses an explicit list of structured names:
 Identifier-part meaning follows the selected backend; the example is illustrative
 and does not prescribe three-part names for every engine. Wildcards, full-database
 crawling, user SQL, views' SQL definitions, and row sampling are excluded.
+The shipped online slice requires two qualified parts, or three for Doris,
+instead of resolving a connection's implicit default database. It captures columns
+and omits optional key evidence: DESCRIBE key flags do not establish ordered key
+definitions. These choices preserve exact identity and avoid invented key meaning.
 Relation IDs must be unique within the selector and remain stable aliases for
 the exact structured references; they are not inferred from table names.
 
@@ -117,8 +122,9 @@ with precision/scale/timezone evidence, nullability as known/unknown, and key
 metadata with its actual backend meaning. The command rejects missing, duplicate,
 or extra per-relation results rather than silently changing a selector's target.
 Only an all-found snapshot with complete column inventories is a successful
-generator input; other outcomes produce an inspection failure report, not a
-partially successful catalog for offline generation.
+generator input. The shipped slice reports inspection failures through redacted
+CLI diagnostics and leaves output absent; it does not emit a partial catalog or
+introduce a separate persisted failure-report schema.
 
 The digest covers normalized stable content, including Project, logical source,
 selector IDs and ordered identifier parts; observation time and server-version
@@ -134,7 +140,7 @@ must not put host-specific identity or secrets into Ossie.
 Limits match the shared inspection facility: at most 200 selected relations,
 10,000 columns, 10 MiB metadata, a 5-minute total deadline and a 30-second
 per-operation deadline, tightened by deployment ceilings. Missing permissions,
-unreadable relations, and overflow produce a failure report rather than a silently
+unreadable relations, and overflow produce failure diagnostics rather than a silently
 partial successful catalog. No background synchronization is introduced.
 Successful metadata inspection proves only the facts the backend actually
 observed; it does not establish SELECT permission on the relation or guarantee

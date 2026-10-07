@@ -1,0 +1,8 @@
+version: 1
+projects:
+  sales:
+    # This authoring-only registration is valid before the candidate exists.
+    path: ./candidate-sales/project.yaml
+    data_source: warehouse
+data_sources:
+  path: ./datasources-doris.yaml

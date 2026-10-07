@@ -66,6 +66,7 @@ func TestQueryMetricsThroughProductionClickHouseBackend(t *testing.T) {
 		Name:         "CLICKHOUSE",
 		QueryMetrics: runtime.QueryMetrics.QueryMetrics,
 	})
+	harness.RunCatalogAuthoringContract(t, runtime.Execution, "clickhouse-local")
 }
 
 type clickHouseStaticSecretResolver string

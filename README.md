@@ -209,7 +209,20 @@ bin/metis project validate --project sales --config ./candidate-sales/project.ya
 The generator selects only mapped fields and optional technical row counts.
 Review its report and author business metrics and relationships before adoption.
 The [authoring contract](docs/specs/semantic/catalog-authoring.md) defines supported
-schemas and mappings. Online `metis catalog inspect` remains a proposed follow-up.
+schemas and mappings. To capture metadata from Doris or ClickHouse first:
+
+```sh
+bin/metis catalog inspect --config ./metis.yaml --project sales \
+  --data-source warehouse --relations examples/authoring/relations.json \
+  --output ./catalog.json
+```
+
+Only explicitly selected, qualified relations are inspected; there is no database
+crawl or row sampling. The command authorizes before reading deployment/source
+configuration or resolving credentials. Local CLI authoring uses the operator's
+OS/database identity; remote embedders must enforce Project `author` and their
+physical metadata access policy. The snapshot feeds `project init`; successful
+inspection does not prove SELECT permission. See the [online walkthrough](examples/authoring/README.md#capture-live-metadata).
 
 To enable execution, reference a named DataSource from your project registration
 and define it in a local DataSource registry. The DataSource type selects the
