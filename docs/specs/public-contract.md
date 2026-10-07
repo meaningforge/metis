@@ -4,6 +4,11 @@ This specification defines which Metis names and interfaces are intended to be s
 
 ## Compatibility surface
 
+`metis project init` consumes the versioned catalog/map contract and emits a local
+Ossie candidate as documented in [offline catalog authoring](semantic/catalog-authoring.md).
+It exposes developer tooling rather than new REST/MCP requests or publication
+state. Online `metis catalog inspect` is still a proposal.
+
 The v0.1 compatibility surface is intentionally narrower than the set of exported Go identifiers in the repository.
 
 `metis project test` is a project-author developer tool, not an additional query

@@ -3,7 +3,7 @@
 - **Status:** Draft
 - **Owners:** meaningforger
 - **Created:** 2026-09-25
-- **Last updated:** 2026-09-26
+- **Last updated:** 2026-10-07
 - **Scope:** Core authoring CLI, catalog metadata, deterministic Ossie generation
 - **Supersedes:** None
 
@@ -20,7 +20,12 @@ adopts them; generation never publishes or activates a semantic model.
 The initial implementation supports Doris and ClickHouse; optional DuckDB follows
 the same catalog contract without changing the default CGO-free binary.
 
-All new commands and file formats below are proposals, not current interfaces.
+The offline `metis project init` slice is implemented as documented in the
+[current authoring contract](../../specs/semantic/catalog-authoring.md). It uses
+versioned catalog evidence and an explicit map without database access. Online
+`metis catalog inspect` and its backend catalog capabilities remain proposals;
+this RFC remains Draft for those stages. The shipped contract defines current
+file schemas and supported type/identifier mappings.
 
 ## Core and managed-host ownership
 
@@ -48,7 +53,7 @@ such as revenue, uniqueness, and additivity require explicit author decisions.
 
 ```sh
 # New online authoring command: reads metadata only.
-metis source inspect --config ./metis.yaml --project sales \
+metis catalog inspect --config ./metis.yaml --project sales \
   --data-source warehouse --relations ./authoring/relations.json \
   --output ./authoring/catalog.json
 
@@ -60,7 +65,7 @@ metis project init --catalog ./authoring/catalog.json \
 metis project validate --project sales --config ./candidate-sales/project.yaml
 ```
 
-`metis source inspect` can run before a semantic model exists. Given the explicit
+The proposed `metis catalog inspect` can run before a semantic model exists. Given the explicit
 Project ID, the authoring service first authorizes Project `author`, before it
 consults Project registration, DataSource/Backend inventory, secrets, or catalog
 state. A denied request performs none of those lookups or online operations and
@@ -104,7 +109,7 @@ is not a dependency of the offline generator. Do not introduce another connectio
 profile, pool, secret resolver, SQL executor, or physical placement authority.
 
 Catalog schema version 1 binds the Project ID and logical DataSource name selected
-by `metis source inspect` to the backend family. Every inspected relation retains the
+by `metis catalog inspect` to the backend family. Every inspected relation retains the
 unique selector ID, requested structured identifier parts, resolved physical
 identity when available, a closed inspection outcome, and whether its column
 inventory is complete. Found relations contain column identifiers, native types
@@ -163,6 +168,10 @@ columns are not emitted. `starter_metrics` is optional. V1 supports only an
 explicit `row_count` of a selected relation, labeled as a technical row count;
 it does not assert distinct orders or another business entity count.
 No numeric column is automatically summed, averaged, or converted to a metric.
+The shipped offline slice currently requires a single selected dataset when
+generating `row_count`, keeping source binding unambiguous through the existing
+compiler. Metric-free skeletons may contain several selected datasets. Broader
+count binding requires a separately verified existing semantic contract.
 Each `datasets[].relation` resolves exactly one snapshot selector ID, not a
 similarly named physical object. The map's `project` must equal the snapshot
 Project. If `data_source` is present, it must equal the snapshot's logical
@@ -290,7 +299,7 @@ Core validation result or catalog digest as a host publication approval.
 
 1. Implement offline `metis project init` from versioned catalog fixtures and explicit
    maps; it can ship before online inspection.
-2. Reuse the shared catalog capability for Doris/ClickHouse `metis source inspect`.
+2. Reuse the shared catalog capability for Doris/ClickHouse `metis catalog inspect`.
 3. Add complete Doris and ClickHouse tutorials using small disposable datasets,
    environment-based credentials, a first business metric, compilation, and query.
 4. Verify optional DuckDB support in its existing build flavor.

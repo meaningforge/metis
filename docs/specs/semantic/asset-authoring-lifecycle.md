@@ -6,6 +6,13 @@ The same loading path is used by bootstrap and the offline `metis` tools.
 
 ## Source authority
 
+`metis project init` can create a reviewable local project from a versioned
+catalog snapshot and explicit field map using the
+[offline authoring contract](catalog-authoring.md). Catalog evidence records
+physical facts; business meaning, uniqueness and relationships require author
+review. The generator validates and formats staged output through these same
+source services. It publishes no deployment and never updates an existing model.
+
 Apache Ossie documents are the authored semantic authority. A Project manifest
 contains ordered source declarations; file matches are expanded deterministically
 and each source declaration must resolve to input. `LoadProject` loads a project

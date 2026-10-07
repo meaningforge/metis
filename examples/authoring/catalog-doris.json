@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "project": "sales",
+  "data_source": "warehouse",
+  "backend": "doris",
+  "relations": [
+    {
+      "id": "orders",
+      "parts": ["Analytics", "Orders"],
+      "outcome": "found",
+      "columns_complete": true,
+      "columns": [
+        {"name": "Region", "native_type": {"name": "VARCHAR"}, "nullable": "nullable"},
+        {"name": "Amount", "native_type": {"name": "DECIMAL", "precision": 18, "scale": 2}, "nullable": "not_null"},
+        {"name": "OrderTime", "native_type": {"name": "DATETIMEV2", "precision": 6}, "nullable": "unknown"},
+        {"name": "InternalNote", "native_type": {"name": "STRING"}, "nullable": "nullable"}
+      ],
+      "keys": [{"kind": "duplicate", "columns": ["Region"]}]
+    }
+  ],
+  "digest": "sha256:2b071829666e159fcc7c3c9ccfe853560a7d442a61c9424993acfad738c9b881"
+}
