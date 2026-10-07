@@ -188,6 +188,10 @@ bin/metis project validate --online --project sales --config ./metis.yaml \
 See [online validation](docs/specs/semantic/online-validation.md) for modes,
 authorization, parameter support and report coverage.
 
+ClickHouse supports server-bound query and policy parameters during online
+validation. Doris parameterized validation remains explicitly unsupported;
+unparameterized validation is available for both backends.
+
 Run the [demo compile suite](examples/demo/checks/compile.yaml) against a complete
 project. The command writes a private JSON report and exits nonzero on a failed
 or incomplete case:

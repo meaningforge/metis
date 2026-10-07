@@ -8,6 +8,19 @@ import (
 	"github.com/meaningforge/metis/execution/driver"
 )
 
+// SupportsCompiledValidation checks optional pure factory evidence before any
+// online operation. The factory cannot mutate the caller's compiler artifact.
+func SupportsCompiledValidation(route ResolvedDataSource, compiled *artifact.CompiledQuery) bool {
+	owned, err := artifact.SnapshotCompiledQuery(compiled)
+	if err != nil || owned == nil {
+		return false
+	}
+	if support, ok := route.Backend.DriverFactory.(driver.CompiledValidationSupport); ok && !isNilLike(support) {
+		return support.SupportsCompiledValidation(owned)
+	}
+	return len(owned.SqlRenderResult.Parameters) == 0
+}
+
 // ValidateCompiled uses the already compiled production route and its resource
 // lifecycle. It never falls back to Execute or changes SQL parameters.
 func (r *Runner) ValidateCompiled(ctx context.Context, route ResolvedDataSource, compiled *artifact.CompiledQuery) (result driver.ValidationEvidence, err error) {

@@ -1,6 +1,6 @@
 # RFC-0088: Online Semantic Validation
 
-- **Status:** Implemented — scoped v1; parameterized engine validation deferred
+- **Status:** Implemented — scoped v1; Doris parameterized engine validation deferred
 - **Created:** 2026-09-25
 - **Last updated:** 2026-10-07
 - **Scope:** Core authoring CLI, application validation services, bounded backend inspection
@@ -91,11 +91,31 @@ Optional driver `CompiledQueryValidator` uses ordinary EXPLAIN on original
 compiled SQL. It never falls back to Execute, EXPLAIN ANALYZE, sample SELECT,
 LIMIT rewrites or a raw SQL CLI. Discard bounded planning output.
 
-Parameterized shapes are unsupported before catalog/secret access. The pinned
-Doris 3.0.8 does not accept the bound EXPLAIN path; ClickHouse's positional
-database/sql binder expands values on the client. A future safe server-parameter
-implementation requires conformance evidence for the original query shape.
+ClickHouse supports parameters using server-side typed named placeholders and
+separate parameter values. Production SELECT and validation EXPLAIN share one
+transport adapter: only actual positional placeholder tokens change spelling;
+quoted text, identifiers and comments are preserved. Compiler SQL and ordered
+values remain unchanged. Values never become SQL literals. Scalar IN/BETWEEN
+values and bound row-policy parameters use the same path.
+
+The closed runtime value domain determines transport types. Strings (including
+dates/timestamps) remain strings and the engine checks contextual conversion;
+integers retain width/sign, finite floats retain their runtime type, NULL uses
+Nullable(String), and exact json.Number decimal values use Decimal without a
+float conversion. Unsupported exact-number forms and unmanaged placeholder syntax
+fail pure factory preflight before catalog/secret access. Unknown/mismatched
+placeholder counts fail rather than switching to legacy interpolation.
+
+Doris 3.0.8 parameterized validation remains unsupported: bound EXPLAIN fails,
+and ordinary PREPARE accepts a deliberately nonexistent relation. Parsing/storing
+a statement cannot establish full planning acceptance. No PREPARE-only green or
+executing fallback is introduced. Future support requires native evidence.
 Missing optional capabilities remain unsupported.
+
+Factories may implement optional CompiledValidationSupport for pure shape checks.
+Runner supplies an owned artifact snapshot so preflight cannot mutate the query
+subsequently inspected/planned. Factories without this capability keep unsupported
+parameter validation; unparameterized existing adapters remain compatible.
 
 Engine evidence is accepted or unsupported. Native operation errors are unavailable;
 permission, missing-object and transient failures are never classified by message

@@ -57,7 +57,7 @@ func bindServerParameters(query sql.SqlRenderResult) (string, clickhousedriver.P
 			if !closed || i > len(text) {
 				return "", nil, fmt.Errorf("unsupported SQL quoting")
 			}
-		case i+1 < len(text) && text[i:i+2] == "--":
+		case text[i] == '#' || (i+1 < len(text) && (text[i:i+2] == "--" || text[i:i+2] == "//")):
 			for i < len(text) && text[i] != '\n' {
 				i++
 			}

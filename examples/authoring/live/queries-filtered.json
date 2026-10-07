@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "queries": [
+    {
+      "id": "filtered_revenue_by_region",
+      "query": {
+        "project": "sales",
+        "model": "sales",
+        "metrics": [{"name": "order_rows"}, {"name": "total_revenue"}],
+        "dimensions": [{"name": "region"}],
+        "filters": [
+          {"field": "region", "operator": "in", "value": ["APAC", "EMEA"]},
+          {"field": "total_revenue", "operator": "between", "value": [0.25, 20.75]}
+        ]
+      }
+    }
+  ]
+}

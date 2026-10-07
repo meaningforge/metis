@@ -28,6 +28,13 @@ type fakeEngine struct {
 
 func (*fakeEngine) DataSourceType() datasource.Type        { return "doris" }
 func (*fakeEngine) ValidateConfig(map[string]string) error { return nil }
+func (e *fakeEngine) SupportsCompiledValidation(c *artifact.CompiledQuery) bool {
+	if e.scenario == "parameters" {
+		c.SqlRenderResult.SQL = "malicious factory mutation"
+		return true
+	}
+	return len(c.SqlRenderResult.Parameters) == 0
+}
 func (e *fakeEngine) OpenDataSource(context.Context, driver.OpenRequest) (driver.Runtime, error) {
 	e.opens++
 	return e, nil
@@ -64,6 +71,9 @@ func (e *fakeLease) ValidateCompiled(_ context.Context, c *artifact.CompiledQuer
 	if c.SqlRenderResult.Dialect != "DORIS" {
 		panic("wrong backend renderer")
 	}
+	if e.engine.scenario == "parameters" && (c.SqlRenderResult.SQL == "malicious factory mutation" || len(c.SqlRenderResult.Parameters) != 1 || c.SqlRenderResult.Parameters[0].Value != "private-filter-value") {
+		panic("factory changed artifact or parameter value")
+	}
 	if e.engine.scenario == "engine" {
 		return driver.ValidationEvidence{}, errors.New("SECRET rejected SQL parameter")
 	}
@@ -90,7 +100,7 @@ func (constrainedPolicy) Evaluate(_ context.Context, req policy.Request) (policy
 }
 
 func TestValidationProductionFlowAndPreflight(t *testing.T) {
-	for _, scenario := range []string{"passed", "alias", "policy_column", "policy_column_missing", "compile", "missing", "type", "permission", "engine", "unsupported", "policy", "hidden"} {
+	for _, scenario := range []string{"passed", "alias", "parameters", "unsupported_parameters", "policy_column", "policy_column_missing", "compile", "missing", "type", "permission", "engine", "unsupported", "policy", "hidden"} {
 		t.Run(scenario, func(t *testing.T) {
 			dir := t.TempDir()
 			write := func(name string, data []byte) {
@@ -122,6 +132,9 @@ func TestValidationProductionFlowAndPreflight(t *testing.T) {
 			if scenario == "compile" {
 				inventory.Queries = append(inventory.Queries, Case{ID: "broken", Query: query.SemanticQuery{Project: "sales", Model: "sales", Metrics: []query.MetricRef{{Name: "absent"}}}})
 			}
+			if scenario == "parameters" || scenario == "unsupported_parameters" {
+				inventory.Queries[0].Query.Filters = []query.Filter{{Field: "region", Operator: query.FilterEQ, Value: "private-filter-value"}}
+			}
 			if strings.HasPrefix(scenario, "policy_column") {
 				inventory.Queries[0].Query.Metrics = []query.MetricRef{{Name: "order_rows"}}
 				inventory.Queries[0].Query.Dimensions = nil
@@ -143,10 +156,10 @@ func TestValidationProductionFlowAndPreflight(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if report.Passed != (scenario == "passed" || scenario == "alias" || scenario == "policy_column") {
+			if report.Passed != (scenario == "passed" || scenario == "alias" || scenario == "parameters" || scenario == "policy_column") {
 				t.Fatalf("report=%+v", report)
 			}
-			if scenario == "compile" || scenario == "policy" || scenario == "hidden" {
+			if scenario == "compile" || scenario == "policy" || scenario == "hidden" || scenario == "unsupported_parameters" {
 				if engine.opens != 0 {
 					t.Fatalf("preflight opened database: %+v", engine)
 				}
@@ -163,7 +176,7 @@ func TestValidationProductionFlowAndPreflight(t *testing.T) {
 				t.Fatalf("leases leaked: %+v", engine)
 			}
 			data, _ := json.Marshal(report)
-			for _, secret := range []string{"SECRET", "private.example", "SELECT", "APAC"} {
+			for _, secret := range []string{"SECRET", "private.example", "SELECT", "APAC", "private-filter-value"} {
 				if strings.Contains(string(data), secret) {
 					t.Fatalf("private data escaped: %s", data)
 				}

@@ -17,7 +17,7 @@ parent="$(cd "$(dirname "$2")" && pwd)"
 work_dir="${parent}/$(basename "$2")"
 # mkdir refuses existing files, directories and symlinks. No force/cleanup path.
 mkdir -m 700 "${work_dir}"
-for file in metis.yaml relations.json model-map.yaml model-reviewed.ossie.yaml query.json queries.json results.yaml; do
+for file in metis.yaml relations.json model-map.yaml model-reviewed.ossie.yaml query.json queries.json queries-filtered.json results.yaml; do
   cp "${example_dir}/${file}" "${work_dir}/${file}"
 done
 cp "${example_dir}/../datasources-${backend}.yaml" "${work_dir}/datasources.yaml"
