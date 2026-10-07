@@ -158,6 +158,16 @@ decision. Unimplemented capabilities fail explicitly rather than falling back to
 queries or database crawling. This optional catalog SPI remains best-effort
 source compatibility and does not widen the stable extension closure above.
 
+## Optional online validation
+
+`driver.CompiledQueryValidator` checks compiled artifacts using a demonstrated
+non-executing method. Doris and ClickHouse use ordinary EXPLAIN, discard bounded
+planning output and honor the same pool/lease deadlines. Unsupported parameter
+shapes remain unsupported; adapters cannot interpolate values or execute SELECT
+as a fallback. Runner preserves the exact Backend/Renderer route, validates the
+closed evidence and sanitizes failures. This optional SPI is best-effort source
+compatibility. See [online validation](../semantic/online-validation.md).
+
 ## Composition
 
 A custom executable imports and composes its chosen extensions explicitly:

@@ -142,7 +142,20 @@ For ClickHouse, use `--dialect CLICKHOUSE`. Compilation checks the model and
 produces SQL without executing it. Keep the original generation report as
 provenance, and validate/review edits separately before any deployment.
 
-## 4. Execute and check independently reviewed expectations
+## 4. Validate against the configured engine, then check results
+
+```sh
+"$METIS_BIN" project validate --online --project sales --config "$DEMO/metis.yaml" \
+  --queries "$DEMO/queries.json" --output "$DEMO/validation.json"
+```
+
+Default validation is offline; `--config` selects the semantic project manifest.
+Online selects the deployment root, prepares every case before connecting,
+inspects required columns/type families and runs EXPLAIN. It does not run the
+compiled SELECT. The report marks completed stages. ClickHouse positional parameter
+shapes are unsupported; this example has no parameters. Doris supports bound EXPLAIN
+parameters. Accepted plans do not certify values or guarantee a later SELECT.
+Always use fresh report paths.
 
 ```sh
 "$METIS_BIN" project test --mode runtime --project sales --config "$DEMO/metis.yaml" \

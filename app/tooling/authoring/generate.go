@@ -262,7 +262,7 @@ func Generate(ctx context.Context, s Snapshot, mapping Mapping) (Candidate, erro
 	if err != nil {
 		return Candidate{}, err
 	}
-	guide := fmt.Sprintf("# Review this generated candidate\n\nProject: %s. Model: %s. Logical DataSource: %s.\n\nThe catalog is author-supplied evidence, not proof of database access.\nRead authoring-report.json and review the physical mappings, pending decisions,\nand existing validation findings before adoption. Publishable only describes\na quality threshold.\n\nFrom this candidate directory:\n\n```sh\nmetis project validate --project %s --config ./project.yaml\nmetis model inspect --model ./%s\n```\n\nFor the eventual deployment, register this Project and apply the logical\nDataSource named %s with independently managed connection configuration.\nThe model-level placement must resolve to that source. Author business metrics\nand relationships explicitly, then compile and run an authorized test query.\nmetis catalog inspect can capture fresh Doris/ClickHouse metadata separately.\nMetadata capture does not prove SELECT permission. Generation itself remains\noffline and has not contacted or validated a database. Runtime validation\nunder RFC-0088 remains a proposal. After any manual model edits, validate and\nreview them independently; this generation report is not approval of those edits.\n", m.Project, m.Model, s.DataSource, "'"+strings.ReplaceAll(m.Project, "'", "'\\''")+"'", modelPath, s.DataSource)
+	guide := fmt.Sprintf("# Review this generated candidate\n\nProject: %s. Model: %s. Logical DataSource: %s.\n\nThe catalog is author-supplied evidence, not proof of database access.\nRead authoring-report.json and review the physical mappings, pending decisions,\nand existing validation findings before adoption. Publishable only describes\na quality threshold.\n\nFrom this candidate directory:\n\n```sh\nmetis project validate --project %s --config ./project.yaml\nmetis model inspect --model ./%s\n```\n\nFor the eventual deployment, register this Project and apply the logical\nDataSource named %s with independently managed connection configuration.\nThe model-level placement must resolve to that source. Author business metrics\nand relationships explicitly, then compile and run an authorized test query.\nmetis catalog inspect can capture fresh Doris/ClickHouse metadata separately.\nMetadata capture does not prove SELECT permission. Generation itself remains\noffline and has not contacted or validated a database. Use metis project validate --online with deployment configuration and an\nexplicit query inventory to check database planning acceptance. After manual\nmodel edits, validate and\nreview them independently; this generation report is not approval of those edits.\n", m.Project, m.Model, s.DataSource, "'"+strings.ReplaceAll(m.Project, "'", "'\\''")+"'", modelPath, s.DataSource)
 	return Candidate{Files: map[string][]byte{"project.yaml": project, modelPath: body, "authoring-report.json": append(rdata, '\n'), "GETTING_STARTED.md": []byte(guide)}, Report: report}, nil
 }
 
@@ -294,6 +294,11 @@ func physicalSource(backend string, parts []string) (string, error) {
 }
 func physicalColumn(name string) bool {
 	return boundedName(name) && !strings.ContainsAny(name, ".`\"\\") && strings.IndexFunc(name, unicode.IsControl) < 0
+}
+
+// NativeDatatype returns only supported native-to-semantic family mappings.
+func NativeDatatype(backend string, n NativeType) (ossie.DataType, bool) {
+	return mapType(backend, n)
 }
 
 func mapType(backend string, n NativeType) (ossie.DataType, bool) {

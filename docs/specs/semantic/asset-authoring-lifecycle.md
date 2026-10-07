@@ -54,7 +54,7 @@ semantics. See [model quality diagnostics](model-quality-diagnostics.md).
 Comparison is deterministic and does not infer renames from similarity.
 Governance changes participate in affected asset digests.
 
-The offline CLI provides `metis project validate`, `metis project inspect`,
+The offline CLI provides `metis project validate [--offline]`, `metis project inspect`,
 `metis project diff`, and `metis model format`. See the [project README](../../../README.md)
 for the supported commands. Source validation and comparison do not replace a
 running generation; that is a separate [embedding operation](../operations/semantic-runtime-activation.md).

@@ -1,328 +1,153 @@
 # RFC-0088: Online Semantic Validation
 
 - **Status:** Draft
-- **Owners:** TBD during review
 - **Created:** 2026-09-25
-- **Last updated:** 2026-09-26
+- **Last updated:** 2026-10-07
 - **Scope:** Core authoring CLI, application validation services, bounded backend inspection
-- **Supersedes:** None
-- **Numbering:** Proposed; retain 0086 for the closed federation proposal and 0087 for historical platform work.
 
 ## Summary
 
-Add an explicit `metis runtime validate` authoring command that verifies an
-Ossie project's physical dependencies and compiles and prepares selected
-semantic queries against their configured databases. Return a versioned report
-that distinguishes offline validity, catalog compatibility, and engine acceptance.
+Extend `metis project validate` with explicit `--online` and `--offline`
+flags. Default validation remains offline. Online checks a selected query inventory
+using production routing, the exact Renderer, physical column metadata and ordinary
+non-executing EXPLAIN. Initial backends are Doris and ClickHouse.
 
-This RFC proposes online-validation interfaces; none of the new commands below
-exist today. The shared exact-relation catalog primitive is implemented for
-`metis catalog inspect` under the [catalog authoring contract](../../specs/semantic/catalog-authoring.md);
-query preparation and online-validation reports remain proposals.
-The initial release covers Doris and ClickHouse. DuckDB inspection follows in
-the existing optional CGO build and must report unsupported until implemented.
+Catalog capture stays `metis catalog inspect`; result expectations stay
+`metis project test`. No additional runtime command or catalog-only mode is added.
 
-## Motivation
-
-Current `metis project validate` performs deterministic loading, semantic validation,
-and quality diagnostics. Those rules intentionally do not query databases.
-`CompileService.Explain` renders SQL but does not run database EXPLAIN.
-Production execution checks complete result contracts, but users currently
-discover missing columns or dialect/version incompatibilities during queries.
-
-The missing operation is a bounded authoring check between editing models and
-deploying them. Passing it is evidence for a particular model, database, and
-observed time; it is not a proof of numerical correctness or a future guarantee.
-
-## Design
-
-### Command and input
+## Commands and input
 
 ```sh
-metis runtime validate --config ./metis.yaml --project sales \
-  --queries ./checks/queries.json --output ./reports/runtime-validation.json
+# Offline: semantic project manifest.
+metis project validate --offline --project sales --config ./sales/project.yaml
+
+# Online: deployment root registering the project and sources.
+metis project validate --online --project sales --config ./metis.yaml \
+  --queries ./queries.json --output ./validation.json
 ```
 
-`--config` uses the existing root runtime manifest, DataSource registry, secret
-references, and exact Backend/Renderer binding. `--project` is required for this
-authoring command. `--queries` is required for a full validation run and contains:
+Flags are mutually exclusive. Omitting both selects offline. Online requires queries
+and output; offline rejects them. Existing offline diagnostics/exit behavior remain,
+with an additive `mode: offline` field in CLI output.
+
+The inventory is strict JSON:
 
 ```json
 {
   "schema_version": 1,
-  "queries": [
-    {
-      "id": "revenue_by_region",
-      "query": {
-        "project": "sales",
-        "model": "sales",
-        "metrics": [{"name": "total_revenue"}],
-        "dimensions": [{"name": "region"}]
-      }
+  "queries": [{
+    "id": "revenue_by_region",
+    "query": {
+      "project": "sales",
+      "model": "sales",
+      "metrics": [{"name": "total_revenue"}],
+      "dimensions": [{"name": "region"}]
     }
-  ]
+  }]
 }
 ```
 
-Each query uses the existing `query.SemanticQuery` grammar and must match the
-selected Project. IDs must be unique. Unknown fields, no cases, more than 100
-cases, or a file larger than 1 MiB fail before any database access.
-The tool does not enumerate every possible metric/dimension combination.
-The inventory decoder validates allowed fields at every JSON object level,
-including the nested semantic query, before unmarshalling it. This is a
-command-specific input rule: the shared `SemanticQuery.UnmarshalJSON` currently
-ignores most unknown fields and must not be tightened as a side effect of this
-command, because existing REST/MCP inputs retain their contracts.
+Require matching project, unique bounded IDs, 1–100 queries and at most 1 MiB.
+Reject duplicate keys, unknown fields at every typed nesting level, and filter
+numbers that lose precision in the existing float64 request representation.
+Inspect raw input before custom unmarshallers; REST/MCP decoding stays unchanged.
 
-A separate explicit `--catalog-only` mode rejects `--queries` and omits
-query preparation and engine probes. It inspects the declared direct physical
-relations and fields of every semantic model in the selected Project, including
-direct join and calendar fields. It does not claim coverage of query-specific
-filter, computed-expression, or data-policy dependencies. Its report says
-`scope: catalog_only`, lists the checked models and checkable declarations, and
-cannot be presented as full runtime validation. A declaration whose physical
-dependency cannot be determined is an incomplete check, not a silent omission.
+## Authorization and preparation
 
-### Validation stages
+The CLI explicitly uses trusted-local authoring. Embedders use
+`LoadValidationRuntime` with the existing ProjectAuthorizer, asset visibility and
+data-policy options. Default Project authorization fails closed.
 
-1. **Offline candidate:** call the shared source loader and return its validity
-   and quality report. Invalid source or a failed configured quality threshold
-   stops online work. Offline failures never resolve secrets or open connections.
-   Before publishing source findings, apply the asset-visibility boundary;
-   findings whose asset visibility cannot be established remain generic offline
-   failures without asset identities or source excerpts.
-2. **Placement and preparation:** resolve each complete semantic model to one
-   applied DataSource. In a full run, prepare all requested query artifacts with
-   that Backend's exact Renderer and the existing policy preflight before online
-   probes begin. A preparation failure produces zero online query probes; it does
-   not authorize partial workload execution. Catalog-only mode skips query
-   preparation.
-3. **Physical dependency inspection:** for a full run, use canonical resolved
-   dependencies to identify exact physical relations and direct fields, including
-   filter, join, calendar, and policy dependencies. In catalog-only mode, use
-   only the declarations defined above. Read only selected catalog metadata.
-4. **Engine acceptance:** in a full run, validate every prepared
-   `CompiledQuery`, preserving SQL text and ordered parameters. Use a
-   backend-owned, demonstrated non-executing preparation/EXPLAIN method. Never
-   use EXPLAIN ANALYZE or substitute a SELECT sample. If a backend cannot
-   validate a parameterized shape safely, report unsupported rather than
-   interpolate values or execute the query.
+Authorize project author and compile before deployment/source/registry reads.
+Load only the selected semantic project. Invalid candidates or failed quality
+thresholds stop before registry access. Source findings remain generic; reports
+never expose source errors or hidden asset identities.
 
-The report distinguishes `catalog_checked`, `compile_checked`, and
-`engine_prepared`. A successful EXPLAIN does not prove result values, complete
-output type metadata, function side-effect freedom, or bounded engine planning
-cost. Online checks use the configured DataSource credentials and the existing
-runtime deadlines; they do not introduce a separate, more privileged validation
-identity. Opening a connection proves reachability, not access to any
-particular relation. Catalog and preparation results report only what their
-backend methods actually checked. Even a successful preparation does not
-guarantee that a later production SELECT will succeed; the database enforces
-permissions again when the query runs. The backend support declaration documents
-precisely what its preparation method checks for each supported server version.
+Apply author/compile asset visibility before route lookup. Prepare every query
+with its model's applied production DataSource, exact Backend Renderer and existing
+data-policy preflight. Any preparation failure starts zero online probes, including
+queries prepared earlier. Each query has one source; model-level multi-source
+placement is preserved. No execute grant is implied.
 
-### Catalog and driver boundary
+Secrets are lazy until the first authorized operation opens the production pool.
+Runner owns admission, deadlines, cancellation and cleanup. Database credentials
+govern metadata and EXPLAIN access; permissions are enforced again during SELECT.
 
-Add optional, narrowly typed inspection capabilities to a driver lease rather
-than adding semantic dependencies to `execution/driver`:
+## Catalog and engine evidence
 
-```go
-// Proposed shapes; final package naming is decided in implementation review.
-type CatalogInspector interface {
-    DescribeRelations(context.Context, []RelationRef) ([]RelationInspectionResult, error)
-}
-type CompiledQueryValidator interface {
-    ValidateCompiled(context.Context, *artifact.CompiledQuery) (ValidationEvidence, error)
-}
-```
+Use the existing canonical resolved workload and transitive field-expression
+closure, including join/filter/calendar obligations and bound policy columns.
+Unresolvable dependencies prevent online work. Only exact qualified relations
+are described, without row sampling. Require matched complete column lists.
 
-`RelationRef` contains structured identifier parts, never free-form SQL.
-`RelationInspectionResult` contains its requested reference and a closed outcome:
-`found`, `not_found`, `unsupported`, `inconclusive`, or `unavailable`. `found`
-contains `RelationMetadata` and an explicit statement of whether its column list
-is complete. An absent column is a mismatch only when that list is complete;
-otherwise it is unknown. A response must contain exactly one result per requested
-reference; missing, duplicate, or extra results make the inspection inconclusive.
-`RelationMetadata` contains relation identity/kind, column identity/native type,
-precision/scale where available, and nullability as known/unknown. Metadata must
-preserve quoted identifier case and distinguish catalog, schema, and database
-according to the backend. Unsupported mappings are explicit evidence.
+Check required physical columns and direct declared/native type families.
+Computed expressions receive dependency-existence and engine-planning checks,
+not direct-column type comparisons. Unsupported mappings remain incomplete.
+V1 does not certify decimal scale, temporal precision/timezone, nullability or
+expression output types; detailed native evidence remains available through
+catalog capture.
 
-`ValidationEvidence` likewise has a closed outcome: `accepted`, `rejected`,
-`unsupported`, `inconclusive`, or `unavailable`. Drivers classify native results
-within their backend implementation and return bounded, typed reasons; callers
-never parse native error strings. The `error` return is for an unclassified
-operation failure and cannot by itself establish a missing object or a rejected
-query. A failure to classify required evidence makes the run incomplete.
+Optional driver `CompiledQueryValidator` uses ordinary EXPLAIN on original
+compiled SQL. It never falls back to Execute, EXPLAIN ANALYZE, sample SELECT,
+LIMIT rewrites or a raw SQL CLI. Discard bounded planning output.
 
-Runner owns lease acquisition, admission, effective timeout, secret resolution,
-cancellation, observations, and cleanup for these operations. Driver SQL for
-system catalogs and validation is a private backend implementation detail.
-Do not fabricate a semantic query to execute metadata SQL. Do not expose a raw
-SQL runner. Existing drivers remain source-compatible; missing optional
-interfaces return an explicit capability failure.
+Doris forwards ordered values through MySQL server-side parameter binding.
+ClickHouse's positional database/sql binder expands values on the client, so
+parameterized shapes are unsupported before catalog/secret access. A future
+typed server-parameter implementation requires conformance evidence.
+Missing optional capabilities remain unsupported.
 
-The shared catalog contract is also reusable by catalog-assisted authoring.
-It provides exact-object description only; schema crawling and sampling are
-outside this first version.
+Engine evidence is accepted or unsupported. Native operation errors are unavailable;
+permission, missing-object and transient failures are never classified by message
+parsing. Column/type mismatch requires complete metadata. EXPLAIN acceptance is
+planning evidence at the observed time, not numerical correctness, guaranteed
+SELECT permission, function side-effect freedom or a future database guarantee.
 
-### Type compatibility and coverage
+## Bounds, reports and exits
 
-Classify comparisons as `compatible`, `incompatible`, or `unknown`. A declared
-Integer versus a physical string is incompatible; incomplete metadata is unknown,
-not a success. Decimal precision, temporal precision/timezone, and unsupported
-native types must retain evidence rather than collapse to a generic string.
-Computed expression types are not compared directly to an arbitrary source
-column type. Report catalog coverage only for facts that can actually be checked;
-engine preparation supplies separate evidence for compiled expressions.
+Five minutes per run, at most 30 seconds per open/inspection/probe, tightened by
+deployment limits. Operations are sequential. Exact catalog limits remain
+200 relations, 10,000 columns and 10 MiB per operation; inventories contain at most
+100 cases and reports at most 10 MiB. Bounds fail rather than truncate. Close every
+lease and stream on all paths.
 
-Source expressions whose physical dependencies cannot be enumerated are marked
-unknown. A required unknown/unsupported check makes the requested scope
-incomplete and non-successful. There is no implicit skip-to-green behavior.
+Schema version 1 includes mode online, project, Metis version, pinned candidate
+and inventory digests, offline_checked, complete, passed, and per-case ID,
+compile_checked, catalog_checked, engine_prepared, backend, method, outcome and
+bounded code. No global database snapshot is claimed. Inventory digest is SHA-256
+of the owned decoded inventory serialized as JSON, excluding operational timing.
 
-### Authorization and deployment scope
+Cases are passed, failed, unsupported, unavailable or not_run. Completed mismatches
+can be complete failures; unsupported/unavailable/not_run checks remain incomplete.
+Shared semantic/execution errors retain stable codes. Private command categories:
+source_dependency_mismatch, source_type_mismatch, source_type_unknown,
+catalog_incomplete, backend_unsupported, parameter_validation_unsupported,
+engine_validation_unsupported and validation_unavailable. These are private
+authoring categories rather than new REST/MCP error codes.
 
-This is initially a trusted local authoring command plus an embedding service,
-with no REST/MCP registration. The CLI uses the explicit trusted-local Principal
-mode; its database role determines access to catalog metadata.
+Reports exclude SQL, parameters, source excerpts, physical identities, endpoints,
+credentials and native errors. Publish owner-only output atomically to a fresh
+path; refuse existing files/directories/symlinks. No overwrite option is included.
+Exit 0: all selected checks passed. Exit 1: failed/incomplete validation.
+Exit 2: command/input/report I/O failure. Failure reports never claim partial success.
 
-An embedder must resolve and authorize Project `author` and `compile` before
-loading source content or consulting semantic inventory, DataSource, Backend,
-secrets, or catalog state. It must apply asset visibility and the existing data
-policy preflight to every query. These permissions imply no `execute` grant.
-Any future read-execution probe requires `execute` as well and a separate design
-decision. Catalog reports are author/operator artifacts and must not enter Agent
-discovery.
+## Acceptance
 
-For catalog-only inspection, require visibility under both `author` and `compile`
-for every model and authored asset needed to describe its direct physical
-declarations before looking up its physical identity. If any required asset is
-hidden, fail the requested scope as incomplete with a generic finding that is
-indistinguishable from other unavailable catalog coverage; do not probe it,
-name or count it in the report, or silently omit it from coverage. Full-run
-source findings and query assets must satisfy the same two visibility actions
-before their identities enter a report. No query exists in catalog-only mode,
-so the query data-policy preflight is not evaluated and policy-only dependencies
-receive no coverage claim. The trusted-local CLI explicitly selects the local
-all-visible asset policy; an embedder uses its configured visibility policy.
+- Default/offline constructs no online dependencies. Help explains modes and the
+  semantic-project versus deployment configuration distinction.
+- Denied author/compile precedes configuration reads; invalid/quality-ineligible
+  source and query preflight failures cause zero secret resolutions or opens.
+- Asset/data-policy denial blocks probes; every query prepares before online work.
+- Fake drivers prove exact Renderer/route, no Execute fallback, redaction, bounds
+  and cleanup on errors/cancellation/deadlines.
+- Real Doris/ClickHouse exercise actual CLI acceptance, missing columns/types,
+  invalid query preflight and parameter support/unsupported cases.
+- README, current contracts, extension guidance and runnable tutorial are updated.
+- Mark Implemented after local and both native-engine gates pass.
 
-The immutable candidate generation is pinned for the complete run. Sources remain
-independent: multiple sources may be checked in one report, but every query has
-exactly one resolved source. No cross-source query is introduced.
+## References
 
-### Bounds, outcomes, and report
-
-Default operation limits: 5 minutes total, 30 seconds per inspection/probe,
-2 concurrent operations, 100 cases, 200 relations, 10,000 column records, and
-10 MiB metadata/report budget. Effective runtime limits are the stricter of these
-limits and deployment ceilings. Exceeding any bound is a failure, not truncation.
-Close every lease and stream on success, failure, cancellation, and timeout.
-
-Report schema version 1 includes candidate digest, Metis version, requested scope,
-case-list digest, backend family and supported server-version evidence, stage
-coverage, findings, and `complete`/`passed`. Operational timestamps and durations
-are separated from stable findings and excluded from evidence digests. Online
-metadata can change during or after the run; the report makes no global snapshot
-claim across sources.
-
-Closed check outcomes are `passed`, `failed`, `unsupported`, and `not_run`.
-`not_run` always has a reason. Findings include stage, case/asset identity,
-stable code, bounded source location, and one caller action. Suggested codes:
-
-| Proposed code | Caller action | Meaning |
-| --- | --- | --- |
-| `SOURCE_DEPENDENCY_MISMATCH` | `CHANGE_MODEL` | The authored physical dependency differs from observed metadata. |
-| `SOURCE_TYPE_MISMATCH` | `CHANGE_MODEL` | A direct authored type claim contradicts supported native metadata. |
-| `ONLINE_VALIDATION_UNSUPPORTED` | `CHANGE_TARGET` | Required backend validation is unavailable. |
-| `ONLINE_VALIDATION_INCONCLUSIVE` | `CHANGE_TARGET` | Required evidence could not be established. |
-| `ONLINE_VALIDATION_UNAVAILABLE` | `CHANGE_TARGET` | Connection, privilege, deadline, or inspection prevented checking. |
-| `GENERATED_QUERY_REJECTED` | `REPORT_DEFECT` | A valid supported compiled query is rejected by the configured engine. |
-
-Only emit a mismatch when the driver can distinguish it reliably from permissions
-or transient failure. Ambiguous native errors become inconclusive. Preserve
-existing semantic error codes rather than reclassifying them by message parsing.
-Register new codes in the central registry and transport projections if introduced.
-
-Exit 0 means all required checks in the requested scope passed and quality is
-eligible; exit 1 means a completed report contains a failed/incomplete check;
-exit 2 means command/input/report I/O failure; interruption returns the conventional
-signal exit. Missing credentials and unavailable databases cannot produce exit 0.
-
-Reports omit credentials, endpoints, raw native errors, SQL, and parameter values.
-Author-visible relation/field identities may be included. Write reports using a
-temporary file and atomic rename with owner-only permissions; refuse an existing
-output unless `--overwrite` is explicit. A failed run may publish a complete
-failure report, but never a partial success report.
-
-## Alternatives
-
-- Extend `metis project validate` to connect automatically: mixes deterministic
-  offline authoring with credentialed operations and changes existing behavior.
-- Treat compile success as database validation: misses missing tables/columns,
-  privileges, and engine-version differences.
-- Execute every metric with LIMIT 0: an aggregate can still scan, and a rewritten
-  query does not necessarily validate the original shape. No silent fallback.
-- Build a second database client in CLI: duplicates credentials, pooling, and
-  cancellation. Reuse production resource ownership and optional lease capabilities.
-
-## Rollout and migration
-
-1. Land typed catalog/probe evidence and bounded Runner operations with fake-driver
-   tests; existing binaries and APIs retain their behavior.
-2. Add Doris and ClickHouse implementations and declare tested version/method
-   coverage. Expose `metis runtime validate` only with explicit command help.
-3. Add sample query inventories, failure examples, and an opt-in CI recipe.
-4. Consider optional DuckDB coverage after both remote backends pass.
-
-No automatic startup probe, publication service, source mutation, or runtime
-replacement is added. The command can be removed from a CI job to roll back
-adoption; it never mutates a running generation or warehouse data.
-
-## Test and acceptance criteria
-
-- Invalid model performs zero online operations. Denied author or compile access
-  performs zero source loads, semantic inventory or DataSource/Backend reads,
-  secret resolutions, lease acquisitions, and online operations.
-- Catalog-only mode neither reveals hidden asset identities nor silently treats
-  hidden or unresolvable declarations as complete; it excludes query-policy
-  evidence from its coverage claim.
-- Unknown inventory fields fail at every nesting level without changing existing
-  REST/MCP decoding behavior.
-- Missing relation/column, incompatible native type, unknown expression metadata,
-  permission denial, and unsupported preparation produce distinguishable outcomes.
-- Connection success alone never establishes relation access. Reports do not
-  claim that catalog or preparation success guarantees a later SELECT; database
-  permission errors during online checks remain failures, not missing objects.
-- Partial, duplicate, or extra per-relation responses cannot convert a missing
-  object or column into a successful check; incomplete column metadata remains
-  unknown, and raw driver errors never determine mismatch classifications.
-- Bound parameters, unusual quoted identifiers, and Decimal/temporal values are
-  preserved; no SQL interpolation or EXPLAIN ANALYZE path exists.
-- Tests prove the online operation uses the same Backend/Renderer and resolved
-  route as production compilation, including model-level multi-source placement.
-- Timeout, queue cancellation, connection failure, and metadata overflow release
-  permits and leave the same runtime usable for the next operation.
-- Real Doris and ClickHouse gates execute successful and deliberately broken
-  models, plus parameterized probes; compiler-only tests cannot satisfy this gate.
-- Existing offline validation output and existing REST/MCP schemas are unchanged.
-- Reports show which cases were checked and never claim project-wide numerical
-  correctness from a finite query inventory.
-
-## Documentation updates
-
-Implementation updates the CLI README, runtime-bootstrap and public-contract
-specifications, Renderer/Driver extension guidance, testing architecture, and a
-new online-validation specification. Add this Draft to the Core RFC index only;
-current specifications are updated when behavior is implemented.
-
-## References and review decisions
-
-- [Current offline authoring](../../specs/semantic/asset-authoring-lifecycle.md)
-- [Current runtime binding](../../specs/operations/runtime-bootstrap.md)
-- [Current data-policy preflight](../../specs/operations/data-access-policy.md)
-- [Current driver SPI](../../../execution/driver/driver.go)
-- [MetricFlow validation stages](https://docs.getdbt.com/docs/build/validation)
-
-Before acceptance, confirm each backend's non-executing validation method and
-supported parameter shapes with a small conformance spike, review type mapping,
-and choose the final command flag/API spelling. These are implementation gates,
-not evidence that the proposed capability is already delivered.
+- [Offline authoring lifecycle](../../specs/semantic/asset-authoring-lifecycle.md)
+- [Catalog authoring](../../specs/semantic/catalog-authoring.md)
+- [Data policy preflight](../../specs/operations/data-access-policy.md)
+- [Online validation contract](../../specs/semantic/online-validation.md)

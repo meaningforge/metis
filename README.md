@@ -164,7 +164,8 @@ driver. Values are never interpolated into SQL text.
 | --- | --- |
 | `metis query compile` | Compile a semantic request into SQL and parameters as JSON. |
 | `metis model validate`, `metis model inspect` | Validate an Ossie document or inspect its metadata. |
-| `metis project validate`, `metis project inspect` | Load and check a complete semantic project. |
+| `metis project validate [--offline]`, `metis project inspect` | Load and check a complete semantic project without database connections. |
+| `metis project validate --online` | Inspect query dependencies and check Doris/ClickHouse EXPLAIN acceptance. |
 | `metis project diff` | Compare two local semantic project inputs. |
 | `metis project init` | Generate a reviewable Ossie project from catalog evidence and an explicit map, offline. |
 | `metis project test --mode compile` | Check project-owned compile expectations in CI without connecting to a database. |
@@ -175,6 +176,17 @@ driver. Values are never interpolated into SQL text.
 bin/metis project validate --project demo --config examples/demo/project.yaml
 bin/metis model inspect --model examples/demo/models/sales.ossie.yaml
 ```
+
+Validation is offline by default. Explicit online validation requires a deployment
+configuration, query inventory and a fresh report path:
+
+```sh
+bin/metis project validate --online --project sales --config ./metis.yaml \
+  --queries ./queries.json --output ./validation.json
+```
+
+See [online validation](docs/specs/semantic/online-validation.md) for modes,
+authorization, parameter support and report coverage.
 
 Run the [demo compile suite](examples/demo/checks/compile.yaml) against a complete
 project. The command writes a private JSON report and exits nonzero on a failed

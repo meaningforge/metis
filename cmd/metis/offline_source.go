@@ -1,33 +1,82 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
+	"os/signal"
 	"sort"
 	"strings"
+	"syscall"
 
+	"github.com/meaningforge/metis/app/auth"
+	"github.com/meaningforge/metis/app/bootstrap"
 	"github.com/meaningforge/metis/app/service/source"
+	"github.com/meaningforge/metis/app/tooling/validation"
+	"github.com/meaningforge/metis/execution/runner"
 )
 
 func validateProject(args []string) int {
 	fs := flag.NewFlagSet("metis project validate", flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
 	project := fs.String("project", "", "stable project ID")
-	config := fs.String("config", "", "semantic project manifest")
+	config := fs.String("config", "", "semantic project manifest (offline) or deployment configuration (--online)")
+	online := fs.Bool("online", false, "connect to configured databases to inspect dependencies and EXPLAIN selected queries")
+	offline := fs.Bool("offline", false, "explicit offline validation (default; no database connections)")
+	queries := fs.String("queries", "", "version 1 JSON query inventory (required with --online)")
+	output := fs.String("output", "", "new private JSON report file (required with --online)")
 	if err := fs.Parse(args); err != nil {
 		if err == flag.ErrHelp {
 			return 0
 		}
 		return 2
 	}
-	if strings.TrimSpace(*project) == "" || strings.TrimSpace(*config) == "" {
-		fmt.Fprintln(os.Stderr, "metis project validate: --project and --config are required")
+	if strings.TrimSpace(*project) == "" || strings.TrimSpace(*config) == "" || fs.NArg() != 0 || (*online && *offline) || (*online && (*queries == "" || *output == "")) || (!*online && (*queries != "" || *output != "")) {
+		fmt.Fprintln(os.Stderr, "metis project validate: --project and --config are required; --online additionally requires --queries and --output; --online and --offline are mutually exclusive")
 		return 2
 	}
+	if *online {
+		if _, err := os.Lstat(*output); err == nil || !os.IsNotExist(err) {
+			fmt.Fprintln(os.Stderr, "metis project validate: use a fresh report output path")
+			return 2
+		}
+		inventory, err := validation.LoadInventory(*queries, *project)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "metis project validate:", err)
+			return 2
+		}
+		backends, err := defaultBackends()
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "metis project validate: backend assembly failed")
+			return 2
+		}
+		ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+		defer cancel()
+		ctx = auth.WithPrincipal(ctx, &auth.Principal{TenantID: "local", SubjectID: "project-validation", Scopes: []string{auth.ScopeSemanticAuthor, auth.ScopeSemanticCompile}})
+		report, err := validation.Run(ctx, *config, *project, inventory, bootstrap.WithBackendRegistry(backends), bootstrap.WithSecretResolver(runner.NewEnvSecretResolver()), bootstrap.WithLocalAllAccessProjectAuthorization())
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "metis project validate: invalid input")
+			return 2
+		}
+		if err := validation.WriteReport(*output, report); err != nil {
+			fmt.Fprintln(os.Stderr, "metis project validate:", err)
+			return 2
+		}
+		if err := writeCLIJSON(report); err != nil {
+			return 2
+		}
+		if !report.Passed {
+			return 1
+		}
+		return 0
+	}
 	result := source.ValidateProject(*project, *config)
-	if err := writeCLIJSON(result); err != nil {
+	if err := writeCLIJSON(struct {
+		Mode string `json:"mode"`
+		source.ValidationResult
+	}{Mode: "offline", ValidationResult: result}); err != nil {
 		fmt.Fprintf(os.Stderr, "ERROR: write validation result: %v\n", err)
 		return 1
 	}

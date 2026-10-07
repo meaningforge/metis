@@ -19,6 +19,7 @@ import (
 	"github.com/meaningforge/metis/app/httperr"
 	"github.com/meaningforge/metis/app/tooling/authoring"
 	"github.com/meaningforge/metis/app/tooling/regression"
+	"github.com/meaningforge/metis/app/tooling/validation"
 	"github.com/meaningforge/metis/ossie"
 	"github.com/meaningforge/metis/serrors"
 	testdatasource "github.com/meaningforge/metis/tests/engine/datasource"
@@ -119,6 +120,16 @@ func RunAuthoringWalkthrough(t *testing.T, backend, username, password string) {
 	}
 	run(binary, "project", "validate", "--project", "sales", "--config", filepath.Join(work, "candidate-sales/project.yaml"))
 	run(binary, "query", "compile", "--model", generated, "--dialect", strings.ToUpper(backend), "--metric", "order_rows", "--metric", "total_revenue", "--dimension", "region", "--output", filepath.Join(work, "reviewed-query.json"))
+	run(binary, "project", "validate", "--online", "--project", "sales", "--config", filepath.Join(work, "metis.yaml"), "--queries", filepath.Join(work, "queries.json"), "--output", filepath.Join(work, "validation.json"))
+	validationData, err := os.ReadFile(filepath.Join(work, "validation.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var validated validation.Report
+	if err := json.Unmarshal(validationData, &validated); err != nil || !validated.Passed || !validated.Complete || len(validated.Cases) != 1 || !validated.Cases[0].EnginePrepared {
+		t.Fatalf("online validation failed: %s", validationData)
+	}
+	checkOnlineValidationFailures(t, ctx, binary, work, generated, reviewed, backend)
 	run(binary, "project", "test", "--mode", "runtime", "--project", "sales", "--config", filepath.Join(work, "metis.yaml"), "--suite", filepath.Join(work, "results.yaml"), "--output", filepath.Join(work, "results.json"))
 	data, err := os.ReadFile(filepath.Join(work, "results.json"))
 	if err != nil {
