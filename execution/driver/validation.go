@@ -18,3 +18,9 @@ type ValidationEvidence struct {
 type CompiledQueryValidator interface {
 	ValidateCompiled(context.Context, *artifact.CompiledQuery, CatalogLimits) (ValidationEvidence, error)
 }
+
+// CompiledValidationSupport is an optional factory capability for pure preflight.
+// It must not resolve credentials, open connections or mutate the artifact.
+type CompiledValidationSupport interface {
+	SupportsCompiledValidation(*artifact.CompiledQuery) bool
+}

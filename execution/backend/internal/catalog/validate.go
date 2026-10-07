@@ -10,9 +10,9 @@ import (
 	"github.com/meaningforge/metis/execution/driver"
 )
 
-// Explain discards bounded planning output. The pinned Doris version does not
-// accept the bound EXPLAIN path and ClickHouse's positional binder interpolates.
-// Parameterized shapes therefore remain unsupported without any query I/O.
+// Explain discards bounded planning output from transport-ready SQL. Positional
+// values must be handled by a demonstrated backend adapter before this boundary;
+// this helper never interpolates values or executes the SELECT.
 func Explain(ctx context.Context, db *sql.DB, compiled *artifact.CompiledQuery, limits driver.CatalogLimits, backend string) (evidence driver.ValidationEvidence, err error) {
 	evidence = driver.ValidationEvidence{Outcome: "unsupported", Method: "explain"}
 	if compiled == nil || db == nil || limits.MaxColumns <= 0 || limits.MaxBytes <= 0 {

@@ -152,8 +152,10 @@ provenance, and validate/review edits separately before any deployment.
 Default validation is offline; `--config` selects the semantic project manifest.
 Online selects the deployment root, prepares every case before connecting,
 inspects required columns/type families and runs EXPLAIN. It does not run the
-compiled SELECT. The report marks completed stages. Parameterized queries are
-unsupported in this version for both engines; this example has no parameters.
+compiled SELECT. The report marks completed stages. ClickHouse also supports
+server-bound parameters; use `queries-filtered.json` to validate region and revenue
+range filters, selecting a fresh report path. Doris parameter validation remains
+unsupported in this version; `queries.json` has no parameters.
 Accepted plans do not certify values or guarantee a later SELECT.
 Always use fresh report paths.
 

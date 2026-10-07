@@ -168,6 +168,13 @@ as a fallback. Runner preserves the exact Backend/Renderer route, validates the
 closed evidence and sanitizes failures. This optional SPI is best-effort source
 compatibility. See [online validation](../semantic/online-validation.md).
 
+Factories can additionally implement `driver.CompiledValidationSupport` for a
+pure preflight check before pools or secrets. Runner supplies a detached compiler
+artifact; preflight must perform no I/O. ClickHouse uses this to validate its
+server-parameter transport. Production execution and EXPLAIN share the same
+placeholder/value mapping, preserving compiler artifacts and avoiding SQL literal
+interpolation. Doris parameter validation remains explicitly unsupported.
+
 ## Composition
 
 A custom executable imports and composes its chosen extensions explicitly:

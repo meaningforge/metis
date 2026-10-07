@@ -31,10 +31,21 @@ Unsupported/unresolved dependencies produce incomplete reports. Exact qualified
 relations are described without sampling. Native errors remain unavailable rather
 than being guessed from text.
 
-Doris and ClickHouse parameterized queries are unsupported in this version:
-the pinned Doris 3.0.8 rejects bound EXPLAIN, and ClickHouse's positional
-database/sql driver expands parameters on the client. There is
-no interpolation or SELECT fallback. The native suite verifies actual command
+ClickHouse supports parameterized queries with server-side named values. Execution
+and validation use one transport adapter that changes only placeholder spelling,
+preserving the compiler artifact and ordered values. It handles strings, integers,
+finite floats, booleans, binary strings, NULL and supported exact JSON numbers.
+Date/time strings retain their original text; the engine validates contextual
+conversion. Use engine-accepted formats (the pinned ClickHouse DateTime64 range
+example uses `YYYY-MM-DD HH:MM:SS`). No timezone inference or global parsing-setting
+change is performed; invalid or unsupported formats remain failed online checks.
+IN/BETWEEN lists expand to ordered scalar parameters. Policy values
+follow the same path and remain absent from reports. Unsupported parameter forms
+and ambiguous SQL quoting/counts fail pure preflight before credential resolution.
+
+Doris 3.0.8 parameterized validation remains unsupported. Ordinary PREPARE accepts
+nonexistent relations, so it cannot replace a full planning check. There is no
+interpolation, PREPARE-only success or SELECT fallback. The native suite verifies command
 behavior on the engine versions pinned in the executable conformance registry;
 other versions receive evidence from their own observed runs.
 

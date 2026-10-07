@@ -97,7 +97,7 @@ func Run(ctx context.Context, config, project string, inventory Inventory, optio
 			continue
 		}
 		// Only demonstrated non-executing shapes are eligible for online I/O.
-		if len(work.Compiled.SqlRenderResult.Parameters) > 0 {
+		if !runner.SupportsCompiledValidation(work.Route, work.Compiled) {
 			c.Outcome = "unsupported"
 			c.Code = "parameter_validation_unsupported"
 			continue
