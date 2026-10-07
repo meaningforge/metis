@@ -18,12 +18,20 @@ jobs:
           fetch-depth: 0
 
       # Keep tag-time release execution on the same runner and toolchain path
-      # that the release-packaging job in ci.yml exercises on every push, so the
+      # that the release-packaging job in ci.yml exercises on main code pushes, so the
       # first tag is not the first time this packaging path runs.
       - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
-          cache: false
+          cache: true
+          cache-dependency-path: |
+            go.sum
+            .goreleaser.yml
+
+      - name: Verify module files are tidy
+        run: |
+          go mod tidy
+          git diff --exit-code -- go.mod go.sum
 
       - name: Release gate
         run: make release-check
@@ -33,7 +41,8 @@ jobs:
         with:
           distribution: goreleaser
           version: '~> v2'
-          args: release --clean
+          # Release gate above has already run the tests and license checks.
+          args: release --clean --skip=before
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

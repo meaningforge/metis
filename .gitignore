@@ -3,6 +3,7 @@
 *.test
 .coverage
 .DS_Store
+__pycache__/
 .workload/
 .workload.partial/
 /s2sbench-results/
