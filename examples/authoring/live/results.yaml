@@ -1,0 +1,26 @@
+schema_version: 1
+project: sales
+fixture: {id: authoring-live-v1, kind: externally_prepared}
+cases:
+  - id: reviewed_demo_results
+    operation: query_metrics
+    request:
+      query:
+        project: sales
+        model: sales
+        metrics: [{name: order_rows}, {name: total_revenue}]
+        dimensions: [{name: region}]
+    expect:
+      outcome: success
+      output_schema:
+        columns:
+          - {name: region, kind: dimension, datatype: String}
+          - {name: order_rows, kind: metric, datatype: Integer}
+          - {name: total_revenue, kind: metric, datatype: Decimal}
+      warnings: []
+      row_count: 2
+      rows:
+        mode: unordered
+        values:
+          - [{type: string, value: APAC}, {type: integer, value: "2"}, {type: decimal, value: "10.25"}]
+          - [{type: string, value: EMEA}, {type: integer, value: "1"}, {type: decimal, value: "7.50"}]

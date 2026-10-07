@@ -52,6 +52,10 @@ func TestGeneratedCandidateLoadsAndRendersExactPhysicalIdentity(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
+			guide := string(candidate.Files["GETTING_STARTED.md"])
+			if !strings.Contains(guide, "metis catalog inspect") || !strings.Contains(guide, "generation report is not approval") || strings.Contains(guide, "Online catalog inspection and runtime validation are follow-up tooling proposals") {
+				t.Fatal("generated guide misrepresents shipped inspection or manual review")
+			}
 			model := candidate.Files["models/sales.ossie.yaml"]
 			if bytes.Contains(model, []byte("private_column")) || bytes.Contains(model, []byte("unique_keys")) || bytes.Contains(model, []byte("primary_key")) {
 				t.Fatal("invented or unselected semantics")

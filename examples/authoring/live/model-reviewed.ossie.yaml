@@ -1,0 +1,35 @@
+# Manually authored for this toy dataset, never inferred by project init.
+version: "0.2.0.dev0"
+semantic_model:
+  - name: sales
+    description: Reviewed demo model with one explicitly authored revenue metric
+    custom_extensions:
+      - {vendor_name: METIS, data: '{"kind":"data_source","name":"warehouse"}'}
+    datasets:
+      - name: orders
+        source: metis_authoring_demo.orders
+        fields:
+          - name: region
+            datatype: String
+            expression:
+              dialects: [{dialect: ANSI_SQL, expression: orders.region}]
+            dimension: {}
+          - name: amount
+            datatype: Decimal
+            expression:
+              dialects: [{dialect: ANSI_SQL, expression: orders.amount}]
+          - name: order_time
+            datatype: DateTime
+            expression:
+              dialects: [{dialect: ANSI_SQL, expression: orders.order_time}]
+    metrics:
+      - name: order_rows
+        description: Physical demo rows, including rows with an unrecorded amount
+        datatype: Integer
+        expression:
+          dialects: [{dialect: ANSI_SQL, expression: "COUNT(*)"}]
+      - name: total_revenue
+        description: Sum of recorded demo amounts in one currency; NULL amounts are omitted, not replaced with zero
+        datatype: Decimal
+        expression:
+          dialects: [{dialect: ANSI_SQL, expression: "SUM(orders.amount)"}]

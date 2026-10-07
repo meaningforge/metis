@@ -15,6 +15,12 @@ The [examples](../../../examples/authoring/README.md) provide synthetic Doris an
 ClickHouse snapshots and an online capture walkthrough. The generated expressions are specific to
 the snapshot's backend; unsupported dialect compilation fails explicitly.
 
+The [live table-to-query walkthrough](../../../examples/authoring/live/README.md)
+adds disposable setup SQL, explicit reviewed business definitions, exact result
+expectations and authenticated querying. It is tested through the real CLI for
+both backends. Setup and manual model adoption stay outside generation; a
+generation report is provenance, not approval of later edits.
+
 ## Online metadata capture
 
 ```sh

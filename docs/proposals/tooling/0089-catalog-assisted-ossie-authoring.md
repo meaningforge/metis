@@ -1,6 +1,6 @@
 # RFC-0089: Catalog-assisted Ossie Authoring
 
-- **Status:** Draft
+- **Status:** Implemented
 - **Owners:** meaningforger
 - **Created:** 2026-09-25
 - **Last updated:** 2026-10-07
@@ -25,8 +25,11 @@ The offline `metis project init` slice is implemented as documented in the
 versioned catalog evidence and an explicit map without database access. Online
 `metis catalog inspect` now captures exact Doris and ClickHouse column inventories
 through the shared optional lease capability. The shipped contract defines
-current schemas, policies and limits. This RFC remains Draft for broader tutorials
-and optional DuckDB inspection; those stages are not implied by the shipped CLI.
+current schemas, policies and limits. The [Doris/ClickHouse live walkthrough](../../../examples/authoring/live/README.md)
+now exercises setup, capture, generation, explicit business review and execution
+through the shipped CLI and REST interface. The initial Doris/ClickHouse scope is
+implemented. Optional DuckDB inspection and broader native mappings remain
+deferred extensions, not implied support in the current CLI.
 
 ## Core and managed-host ownership
 
@@ -310,6 +313,16 @@ Core validation result or catalog digest as a host publication approval.
    environment-based credentials, a first business metric, compilation, and query.
 4. Verify optional DuckDB support in its existing build flavor.
 
+Steps 1–3 are implemented and covered by the normal offline checks and existing
+manual Doris/ClickHouse real-engine matrix. The walkthrough uses a fresh,
+externally prepared demo database; a manually authored revenue definition is
+adopted only after explicit review, never inferred by the generator. The test
+executes the checked-in CLI commands and authenticated REST request, independently
+checks fixed decimal/count expectations, and verifies that generation initially
+contains only the requested technical row count. Human completion time remains
+an unmeasured usability target. Step 4 is deferred: the optional DuckDB execution
+build remains tested, but DuckDB catalog capture/generation is not supported.
+
 Existing authored documents are never regenerated or overwritten. Adoption is
 manual through normal source control and existing runtime registration/activation.
 The CLI creates no database objects, Git repository, Cloud release, or deployment.
@@ -359,7 +372,8 @@ and review lifecycle; this RFC does not specify their UI or persistence APIs.
 
 Update the source-authoring specification, CLI reference, Renderer/Driver extension
 guidance, example index, and add dedicated Doris/ClickHouse onboarding guides at
-implementation time. Keep this Draft linked in the RFC index during review.
+implementation time. The shipped walkthrough, authoring specification and RFC
+index now describe the implemented Doris/ClickHouse scope.
 
 ## References and review decisions
 

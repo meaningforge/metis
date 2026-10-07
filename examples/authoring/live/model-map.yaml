@@ -1,0 +1,13 @@
+schema_version: 1
+project: sales
+model: sales
+data_source: warehouse
+datasets:
+  - relation: orders
+    name: orders
+    fields:
+      - {column: region, name: region, dimension: true}
+      - {column: amount, name: amount}
+      - {column: order_time, name: order_time}
+starter_metrics:
+  - {name: order_rows, kind: row_count, dataset: orders}
