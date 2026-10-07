@@ -104,11 +104,14 @@ func (s *QueryMetricsService) PrepareValidation(ctx context.Context, q query.Sem
 				if ref.Qualifier != "" && ref.Qualifier != dataset.Name {
 					continue
 				} // covered by transitive closure
+				if ref.Name != field.Field && work[0].Query.Model.Fields[dataset.Name+"."+ref.Name] != nil {
+					continue
+				} // expand canonical field aliases through the closure
 				if _, exists := columns[ref.Name]; !exists {
 					columns[ref.Name] = ""
 				}
 			}
-			if identifier, ok := parsed.(*expression.IdentifierExpr); ok && len(identifier.Parts) <= 2 && len(refs) == 1 {
+			if identifier, ok := parsed.(*expression.IdentifierExpr); ok && len(identifier.Parts) <= 2 && len(refs) == 1 && (refs[0].Qualifier == "" || refs[0].Qualifier == dataset.Name) {
 				handle := work[0].Query.Model.Fields[dataset.Name+"."+field.Field]
 				if handle != nil && handle.Field != nil {
 					columns[refs[0].Name] = handle.Field.Datatype

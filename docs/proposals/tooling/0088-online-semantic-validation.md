@@ -91,10 +91,10 @@ Optional driver `CompiledQueryValidator` uses ordinary EXPLAIN on original
 compiled SQL. It never falls back to Execute, EXPLAIN ANALYZE, sample SELECT,
 LIMIT rewrites or a raw SQL CLI. Discard bounded planning output.
 
-Doris forwards ordered values through MySQL server-side parameter binding.
-ClickHouse's positional database/sql binder expands values on the client, so
-parameterized shapes are unsupported before catalog/secret access. A future
-typed server-parameter implementation requires conformance evidence.
+Parameterized shapes are unsupported before catalog/secret access. The pinned
+Doris 3.0.8 does not accept the bound EXPLAIN path; ClickHouse's positional
+database/sql binder expands values on the client. A future safe server-parameter
+implementation requires conformance evidence for the original query shape.
 Missing optional capabilities remain unsupported.
 
 Engine evidence is accepted or unsupported. Native operation errors are unavailable;

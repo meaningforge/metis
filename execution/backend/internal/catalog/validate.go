@@ -10,27 +10,26 @@ import (
 	"github.com/meaningforge/metis/execution/driver"
 )
 
-// Explain discards bounded planning output. Values are never interpolated here.
-// ClickHouse's positional database/sql binder interpolates values; until a
-// renderer-native typed parameter path is available those shapes are unsupported.
+// Explain discards bounded planning output. The pinned Doris version does not
+// accept the bound EXPLAIN path and ClickHouse's positional binder interpolates.
+// Parameterized shapes therefore remain unsupported without any query I/O.
 func Explain(ctx context.Context, db *sql.DB, compiled *artifact.CompiledQuery, limits driver.CatalogLimits, backend string) (evidence driver.ValidationEvidence, err error) {
 	evidence = driver.ValidationEvidence{Outcome: "unsupported", Method: "explain"}
 	if compiled == nil || db == nil || limits.MaxColumns <= 0 || limits.MaxBytes <= 0 {
 		return evidence, fmt.Errorf("invalid validation operation")
 	}
-	if backend == "clickhouse" && len(compiled.SqlRenderResult.Parameters) > 0 {
+	if backend != "doris" && backend != "clickhouse" {
 		return evidence, nil
 	}
-	arguments := make([]any, len(compiled.SqlRenderResult.Parameters))
-	for i, parameter := range compiled.SqlRenderResult.Parameters {
-		arguments[i] = parameter.Value
+	if len(compiled.SqlRenderResult.Parameters) > 0 {
+		return evidence, nil
 	}
 	statement := strings.TrimSpace(compiled.SqlRenderResult.SQL)
 	upper := strings.ToUpper(statement)
 	if !(strings.HasPrefix(upper, "SELECT ") || strings.HasPrefix(upper, "SELECT\n") || strings.HasPrefix(upper, "WITH ") || strings.HasPrefix(upper, "WITH\n")) {
 		return evidence, nil
 	}
-	rows, err := db.QueryContext(ctx, "EXPLAIN "+statement, arguments...)
+	rows, err := db.QueryContext(ctx, "EXPLAIN "+statement)
 	if err != nil {
 		return driver.ValidationEvidence{}, err
 	}

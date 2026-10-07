@@ -31,8 +31,9 @@ Unsupported/unresolved dependencies produce incomplete reports. Exact qualified
 relations are described without sampling. Native errors remain unavailable rather
 than being guessed from text.
 
-Doris uses MySQL-bound EXPLAIN parameters. ClickHouse positional parameters are
-unsupported because its database/sql driver expands them on the client. There is
+Doris and ClickHouse parameterized queries are unsupported in this version:
+the pinned Doris 3.0.8 rejects bound EXPLAIN, and ClickHouse's positional
+database/sql driver expands parameters on the client. There is
 no interpolation or SELECT fallback. The native suite verifies actual command
 behavior on the engine versions pinned in the executable conformance registry;
 other versions receive evidence from their own observed runs.

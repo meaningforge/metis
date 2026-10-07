@@ -70,7 +70,7 @@ func (r *Runner) ValidateCompiled(ctx context.Context, route ResolvedDataSource,
 	if err != nil {
 		return driver.ValidationEvidence{}, executionError(ExecutionDriver, "engine validation is unavailable")
 	}
-	if (result.Outcome != "accepted" && result.Outcome != "unsupported") || (result.Method != "" && result.Method != "explain") {
+	if (result.Outcome != "accepted" && result.Outcome != "unsupported") || (result.Method != "" && result.Method != "explain") || (result.Outcome == "accepted" && result.Method != "explain") {
 		return driver.ValidationEvidence{}, executionError(ExecutionResultContract, "invalid validation evidence")
 	}
 	return result, nil

@@ -58,12 +58,6 @@ func checkOnlineValidationFailures(t *testing.T, ctx context.Context, binary, wo
 			if err := json.Unmarshal(data, &report); err != nil {
 				t.Fatal(err)
 			}
-			if scenario == "parameter" && backend == "doris" {
-				if commandErr != nil || !report.Passed {
-					t.Fatalf("bound Doris EXPLAIN: %s", data)
-				}
-				return
-			}
 			if commandErr == nil || report.Passed {
 				t.Fatalf("accepted broken validation: %s", data)
 			}
@@ -79,4 +73,28 @@ func checkOnlineValidationFailures(t *testing.T, ctx context.Context, binary, wo
 			}
 		})
 	}
+	t.Run("online_bad_credentials", func(t *testing.T) {
+		key := "METIS_DORIS_PASSWORD"
+		if backend == "clickhouse" {
+			key = "METIS_CLICKHOUSE_PASSWORD"
+		}
+		t.Setenv(key, "metis_wrong_validation_password")
+		output := filepath.Join(work, "bad-credentials.json")
+		cmd := exec.CommandContext(ctx, binary, "project", "validate", "--online", "--project", "sales", "--config", filepath.Join(work, "metis.yaml"), "--queries", filepath.Join(work, "queries.json"), "--output", output)
+		stdout, err := cmd.CombinedOutput()
+		if err == nil {
+			t.Fatal("accepted invalid database credentials")
+		}
+		data, err := os.ReadFile(output)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var report validation.Report
+		if json.Unmarshal(data, &report) != nil || report.Passed || report.Complete {
+			t.Fatalf("invalid failure report: %s", data)
+		}
+		if strings.Contains(string(data)+string(stdout), "metis_wrong_validation_password") {
+			t.Fatal("credentials escaped")
+		}
+	})
 }

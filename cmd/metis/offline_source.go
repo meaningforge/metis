@@ -38,6 +38,10 @@ func validateProject(args []string) int {
 		return 2
 	}
 	if *online {
+		if _, err := canonicalReportPath(*output); err != nil {
+			fmt.Fprintln(os.Stderr, "metis project validate: report parent directory must exist")
+			return 2
+		}
 		if _, err := os.Lstat(*output); err == nil || !os.IsNotExist(err) {
 			fmt.Fprintln(os.Stderr, "metis project validate: use a fresh report output path")
 			return 2

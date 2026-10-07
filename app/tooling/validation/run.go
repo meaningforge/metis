@@ -95,8 +95,8 @@ func Run(ctx context.Context, config, project string, inventory Inventory, optio
 			c.Code = "backend_unsupported"
 			continue
 		}
-		// Positional ClickHouse binding is client-side; do not interpolate it.
-		if c.Backend == "clickhouse" && len(work.Compiled.SqlRenderResult.Parameters) > 0 {
+		// Only demonstrated non-executing shapes are eligible for online I/O.
+		if len(work.Compiled.SqlRenderResult.Parameters) > 0 {
 			c.Outcome = "unsupported"
 			c.Code = "parameter_validation_unsupported"
 			continue
@@ -120,7 +120,7 @@ func Run(ctx context.Context, config, project string, inventory Inventory, optio
 			c.Code = safeCode(err)
 			continue
 		}
-		matched := true
+		matched, unknown := true, false
 		for _, relation := range work.Relations {
 			var observed *driver.CatalogRelation
 			for j := range metadata {
@@ -133,6 +133,7 @@ func Run(ctx context.Context, config, project string, inventory Inventory, optio
 			}
 			if observed == nil {
 				matched = false
+				unknown = true
 				c.Code = "catalog_incomplete"
 				break
 			}
@@ -148,6 +149,7 @@ func Run(ctx context.Context, config, project string, inventory Inventory, optio
 						actual, known := authoring.NativeDatatype(c.Backend, authoring.NativeType{Name: n.Name, Precision: n.Precision, Scale: n.Scale, Length: n.Length, Timezone: n.Timezone})
 						if !known {
 							matched = false
+							unknown = true
 							c.Code = "source_type_unknown"
 						} else if actual != field.Datatype {
 							matched = false
@@ -163,7 +165,7 @@ func Run(ctx context.Context, config, project string, inventory Inventory, optio
 		}
 		if !matched {
 			c.Outcome = "failed"
-			if c.Code == "source_type_unknown" || c.Code == "catalog_incomplete" {
+			if unknown {
 				c.Outcome = "unsupported"
 			}
 			continue
