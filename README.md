@@ -222,7 +222,10 @@ crawl or row sampling. The command authorizes before reading deployment/source
 configuration or resolving credentials. Local CLI authoring uses the operator's
 OS/database identity; remote embedders must enforce Project `author` and their
 physical metadata access policy. The snapshot feeds `project init`; successful
-inspection does not prove SELECT permission. See the [online walkthrough](examples/authoring/README.md#capture-live-metadata).
+inspection does not prove SELECT permission. Follow the
+[Doris/ClickHouse table-to-query walkthrough](examples/authoring/live/README.md)
+for disposable setup data, explicit business-model review, and verified query
+results through the CLI and authenticated REST interface.
 
 To enable execution, reference a named DataSource from your project registration
 and define it in a local DataSource registry. The DataSource type selects the

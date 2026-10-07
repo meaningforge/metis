@@ -143,6 +143,21 @@ retry. A production Backend must run the shared resilience behavior through a
 real engine and may supply only the engine-local long-running statement or
 fault setup needed to trigger that behavior.
 
+## Optional catalog inspection
+
+The built-in Doris and ClickHouse leases also implement the optional
+`driver.CatalogInspector` capability used by
+[`metis catalog inspect`](../semantic/catalog-authoring.md). It inspects exact
+qualified relations and returns bounded column/type/nullability evidence, not
+arbitrary SQL execution, row samples or semantic definitions. It must share the
+normal pool/lease lifecycle and honor cancellation and supplied metadata limits.
+The Runner checks identity, completeness and budgets and discards failed results.
+Project `author` and host physical-metadata authorization happen before source
+configuration or credentials are consulted; the Driver does not make that policy
+decision. Unimplemented capabilities fail explicitly rather than falling back to
+queries or database crawling. This optional catalog SPI remains best-effort
+source compatibility and does not widen the stable extension closure above.
+
 ## Composition
 
 A custom executable imports and composes its chosen extensions explicitly:

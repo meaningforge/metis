@@ -1,0 +1,8 @@
+{
+  "query": {
+    "project": "sales",
+    "model": "sales",
+    "metrics": [{"name": "order_rows"}, {"name": "total_revenue"}],
+    "dimensions": [{"name": "region"}]
+  }
+}

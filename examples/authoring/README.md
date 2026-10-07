@@ -1,5 +1,9 @@
 # Generate a reviewable project offline
 
+For a runnable database-to-query workflow, follow the
+[Doris and ClickHouse live walkthrough](live/README.md). The examples below are
+the separate offline path and require no database.
+
 These snapshots are synthetic metadata examples, not captured database evidence.
 They describe the same physical `Analytics.Orders` relation using Doris or
 ClickHouse native type evidence. Their normalized digests are checked by the

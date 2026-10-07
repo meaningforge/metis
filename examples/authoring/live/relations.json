@@ -1,0 +1,6 @@
+{
+  "schema_version": 1,
+  "relations": [
+    {"id": "orders", "parts": ["metis_authoring_demo", "orders"]}
+  ]
+}

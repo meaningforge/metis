@@ -1,0 +1,7 @@
+version: 1
+projects:
+  sales:
+    path: ./candidate-sales/project.yaml
+    data_source: warehouse
+data_sources:
+  path: ./datasources.yaml
