@@ -98,9 +98,12 @@ func Run(ctx context.Context, config, project string, inventory Inventory, optio
 		}
 		// Only demonstrated non-executing shapes are eligible for online I/O.
 		if len(work.Compiled.SqlRenderResult.Parameters) > 0 {
-			c.Outcome = "unsupported"
-			c.Code = "parameter_validation_unsupported"
-			continue
+			support, ok := work.Route.Backend.DriverFactory.(driver.CompiledValidationSupport)
+			if !ok || !support.SupportsCompiledValidation(work.Compiled) {
+				c.Outcome = "unsupported"
+				c.Code = "parameter_validation_unsupported"
+				continue
+			}
 		}
 		refs := make([]driver.CatalogReference, 0, len(work.Relations))
 		// Several semantic datasets may refer to one physical relation.

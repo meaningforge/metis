@@ -19,7 +19,7 @@ func checkOnlineValidationFailures(t *testing.T, ctx context.Context, binary, wo
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, scenario := range []string{"missing_column", "type_mismatch", "parameter", "compile_failure"} {
+	for _, scenario := range []string{"missing_column", "type_mismatch", "parameter", "parameter_in", "parameter_decimal", "compile_failure"} {
 		t.Run("online_"+scenario, func(t *testing.T) {
 			inventory := base
 			inventory.Queries = append([]validation.Case(nil), base.Queries...)
@@ -31,6 +31,10 @@ func checkOnlineValidationFailures(t *testing.T, ctx context.Context, binary, wo
 				body = []byte(strings.Replace(string(reviewed), "datatype: String", "datatype: Integer", 1))
 			case "parameter":
 				inventory.Queries[0].Query.Filters = []query.Filter{{Field: "region", Operator: query.FilterEQ, Value: "APAC"}}
+			case "parameter_in":
+				inventory.Queries[0].Query.Filters = []query.Filter{{Field: "region", Operator: query.FilterIN, Value: []any{"APAC", "EMEA' -- ? {foreign:String}"}}}
+			case "parameter_decimal":
+				inventory.Queries[0].Query.Filters = []query.Filter{{Field: "total_revenue", Operator: query.FilterBetween, Value: []any{0.25, 20.75}}}
 			case "compile_failure":
 				inventory.Queries = append(inventory.Queries, validation.Case{ID: "broken", Query: query.SemanticQuery{Project: "sales", Model: "sales", Metrics: []query.MetricRef{{Name: "absent_metric"}}}})
 			}
@@ -58,10 +62,16 @@ func checkOnlineValidationFailures(t *testing.T, ctx context.Context, binary, wo
 			if err := json.Unmarshal(data, &report); err != nil {
 				t.Fatal(err)
 			}
+			if strings.HasPrefix(scenario, "parameter") && backend == "clickhouse" {
+				if commandErr != nil || !report.Passed || !report.Cases[0].EnginePrepared {
+					t.Fatalf("server-bound validation failed: %s", data)
+				}
+				return
+			}
 			if commandErr == nil || report.Passed {
 				t.Fatalf("accepted broken validation: %s", data)
 			}
-			if scenario == "parameter" && (report.Cases[0].Outcome != "unsupported" || report.Cases[0].CatalogChecked) {
+			if strings.HasPrefix(scenario, "parameter") && (report.Cases[0].Outcome != "unsupported" || report.Cases[0].CatalogChecked) {
 				t.Fatalf("unsafe parameter probe: %s", data)
 			}
 			if scenario == "compile_failure" {

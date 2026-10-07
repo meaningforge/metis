@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	clickhousedriver "github.com/ClickHouse/clickhouse-go/v2"
 
 	"github.com/meaningforge/metis/compiler/artifact"
 	"github.com/meaningforge/metis/execution/driver"
@@ -16,11 +17,14 @@ func (e *executor) Execute(ctx context.Context, compiled *artifact.CompiledQuery
 		return nil, fmt.Errorf("ClickHouse Executor is not initialized")
 	}
 	query := compiled.SqlRenderResult
-	arguments := make([]any, len(query.Parameters))
-	for index, parameter := range query.Parameters {
-		arguments[index] = parameter.Value
+	text, parameters, err := bindServerParameters(query)
+	if err != nil {
+		return nil, err
 	}
-	rows, err := e.db.QueryContext(ctx, query.SQL, arguments...)
+	if len(parameters) > 0 {
+		ctx = clickhousedriver.Context(ctx, clickhousedriver.WithParameters(parameters))
+	}
+	rows, err := e.db.QueryContext(ctx, text)
 	if err != nil {
 		return nil, err
 	}
