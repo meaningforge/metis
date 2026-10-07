@@ -1,5 +1,8 @@
 # Generate a reviewable project offline
 
+For a server-free local workflow, use the [DuckDB walkthrough](duckdb/README.md).
+Database access requires the optional DuckDB build; offline generation does not.
+
 For a runnable database-to-query workflow, follow the
 [Doris and ClickHouse live walkthrough](live/README.md). The examples below are
 the separate offline path and require no database.

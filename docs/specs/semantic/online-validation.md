@@ -2,7 +2,7 @@
 
 `metis project validate` defaults to offline loading, semantic checks and quality
 diagnostics. `--offline` makes that choice explicit. `--online` checks a caller's
-query inventory against Doris or ClickHouse using production routing and EXPLAIN.
+query inventory against Doris, ClickHouse or optional DuckDB using production routing and EXPLAIN.
 
 ```sh
 metis project validate --offline --project sales --config ./sales/project.yaml
@@ -42,6 +42,14 @@ change is performed; invalid or unsupported formats remain failed online checks.
 IN/BETWEEN lists expand to ordered scalar parameters. Policy values
 follow the same path and remain absent from reports. Unsupported parameter forms
 and ambiguous SQL quoting/counts fail pure preflight before credential resolution.
+
+DuckDB uses native prepared `EXPLAIN` with ordered bound parameters, never
+`EXPLAIN ANALYZE`. Exact JSON numbers use the same decimal text conversion as
+production execution. Parameter arity, missing tables and missing columns are
+checked by the engine without executing the inspected SELECT. An existing local
+file is opened read-only; capture and online checks require the optional CGO
+build. See the [local walkthrough](../../../examples/authoring/duckdb/README.md).
+Planning acceptance does not certify result types or runtime results.
 
 Doris 3.0.8 parameterized validation remains unsupported. Ordinary PREPARE accepts
 nonexistent relations, so it cannot replace a full planning check. There is no

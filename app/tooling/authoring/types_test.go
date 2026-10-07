@@ -13,6 +13,9 @@ func queryDialect(backend string) sql.SQLDialect {
 	if backend == "doris" {
 		return "DORIS"
 	}
+	if backend == "duckdb" {
+		return "DUCKDB"
+	}
 	return "CLICKHOUSE"
 }
 
@@ -62,6 +65,10 @@ func TestNativeTypeMappingsPreserveCategoriesAndEvidence(t *testing.T) {
 		{"clickhouse", NativeType{Name: "DateTime64", Precision: &temporal, Timezone: &utc}, ossie.DataTypeDateTimeTz},
 		{"clickhouse", NativeType{Name: "DateTime64", Precision: &temporal}, ossie.DataTypeDateTime},
 		{"clickhouse", NativeType{Name: "UInt64"}, ossie.DataTypeInteger},
+		{"duckdb", NativeType{Name: "VARCHAR"}, ossie.DataTypeString},
+		{"duckdb", NativeType{Name: "DECIMAL", Precision: &precision, Scale: &scale}, ossie.DataTypeDecimal},
+		{"duckdb", NativeType{Name: "TIMESTAMP", Precision: &temporal}, ossie.DataTypeDateTime},
+		{"duckdb", NativeType{Name: "TIMESTAMP WITH TIME ZONE", Precision: &temporal}, ossie.DataTypeDateTimeTz},
 	} {
 		got, ok := mapType(tc.backend, tc.native)
 		if !ok || got != tc.want {

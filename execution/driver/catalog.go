@@ -52,7 +52,7 @@ type CatalogInspector interface {
 
 func ValidateCatalogReference(backend string, ref CatalogReference) error {
 	maxParts := 2
-	if backend == "doris" {
+	if backend == "doris" || backend == "duckdb" {
 		maxParts = 3
 	} else if backend != "clickhouse" {
 		return fmt.Errorf("unsupported catalog backend")

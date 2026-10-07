@@ -49,6 +49,22 @@ func ParseClickHouse(value string) (driver.CatalogNativeType, string, error) {
 	native, _, err := parse(value, true)
 	return native, nullable, err
 }
+
+// ParseDuckDB preserves unsupported complex/native type text and timestamp
+// units. TIMESTAMPTZ identifies a zoned type, not a guessed configured timezone.
+func ParseDuckDB(value string) (driver.CatalogNativeType, string, error) {
+	value = strings.TrimSpace(value)
+	native, nullable, err := parse(value, false)
+	if err != nil {
+		return native, nullable, err
+	}
+	precision, known := map[string]int{"TIMESTAMP": 6, "TIMESTAMP_S": 0, "TIMESTAMP_MS": 3, "TIMESTAMP_NS": 9, "TIMESTAMP WITH TIME ZONE": 6, "TIMESTAMPTZ": 6}[strings.ToUpper(value)]
+	if known {
+		native.Name = strings.ToUpper(value)
+		native.Precision = &precision
+	}
+	return native, nullable, nil
+}
 func parse(value string, clickhouse bool) (driver.CatalogNativeType, string, error) {
 	native := driver.CatalogNativeType{Name: value}
 	if value == "" || len(value) > 256 || strings.ContainsAny(value, "\x00\r\n") {

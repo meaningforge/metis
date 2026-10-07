@@ -91,7 +91,7 @@ func Run(ctx context.Context, config, project string, inventory Inventory, optio
 	}
 	for i, work := range prepared {
 		c := &report.Cases[i]
-		if c.Backend != "doris" && c.Backend != "clickhouse" {
+		if c.Backend != "doris" && c.Backend != "clickhouse" && c.Backend != "duckdb" {
 			c.Outcome = "unsupported"
 			c.Code = "backend_unsupported"
 			continue
@@ -141,7 +141,7 @@ func Run(ctx context.Context, config, project string, inventory Inventory, optio
 			for _, field := range relation.Columns {
 				found := false
 				for _, column := range observed.Columns {
-					if column.Name != field.Name {
+					if !columnMatches(c.Backend, column.Name, field.Name) {
 						continue
 					}
 					found = true
@@ -200,6 +200,24 @@ func Run(ctx context.Context, config, project string, inventory Inventory, optio
 		}
 	}
 	return report, nil
+}
+
+// DuckDB folds ASCII identifiers even when quoted. Unicode case folding would
+// incorrectly equate distinct native names, so retain non-ASCII spelling.
+func columnMatches(backend, observed, wanted string) bool {
+	if backend != "duckdb" {
+		return observed == wanted
+	}
+	fold := func(s string) string {
+		b := []byte(s)
+		for i, v := range b {
+			if v >= 'A' && v <= 'Z' {
+				b[i] = v + ('a' - 'A')
+			}
+		}
+		return string(b)
+	}
+	return fold(observed) == fold(wanted)
 }
 
 func safeCode(err error) string {

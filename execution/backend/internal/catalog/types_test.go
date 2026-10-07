@@ -18,11 +18,18 @@ func TestNativeEvidence(t *testing.T) {
 		{"clickhouse", "LowCardinality(Nullable(String))", `{"name":"String"}`, "nullable"},
 		{"clickhouse", "Array(UInt64)", `{"name":"Array(UInt64)"}`, "not_null"},
 		{"clickhouse", "FixedString(8)", `{"name":"FixedString","length":8}`, "not_null"},
+		{"duckdb", "DECIMAL(18,2)", `{"name":"DECIMAL","precision":18,"scale":2}`, "unknown"},
+		{"duckdb", "TIMESTAMP_NS", `{"name":"TIMESTAMP_NS","precision":9}`, "unknown"},
+		{"duckdb", "TIMESTAMP WITH TIME ZONE", `{"name":"TIMESTAMP WITH TIME ZONE","precision":6}`, "unknown"},
+		{"duckdb", "STRUCT(Region VARCHAR)", `{"name":"STRUCT(Region VARCHAR)"}`, "unknown"},
 	} {
 		t.Run(tc.backend+tc.input, func(t *testing.T) {
 			parse := ParseDoris
 			if tc.backend == "clickhouse" {
 				parse = ParseClickHouse
+			}
+			if tc.backend == "duckdb" {
+				parse = ParseDuckDB
 			}
 			typ, nullable, err := parse(tc.input)
 			if err != nil {

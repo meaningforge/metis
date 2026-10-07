@@ -3,7 +3,7 @@
 - **Status:** Implemented
 - **Owners:** meaningforger
 - **Created:** 2026-09-25
-- **Last updated:** 2026-10-07
+- **Last updated:** 2026-10-08
 - **Scope:** Core authoring CLI, catalog metadata, deterministic Ossie generation
 - **Supersedes:** None
 
@@ -17,7 +17,7 @@ which fields should become dimensions and any explicitly requested starter metri
 Database facts and authored business meaning have different provenance. Generated
 files remain local review candidates until the author validates and explicitly
 adopts them; generation never publishes or activates a semantic model.
-The initial implementation supports Doris and ClickHouse; optional DuckDB follows
+The implementation supports Doris and ClickHouse; optional DuckDB follows
 the same catalog contract without changing the default CGO-free binary.
 
 The offline `metis project init` slice is implemented as documented in the
@@ -28,8 +28,10 @@ through the shared optional lease capability. The shipped contract defines
 current schemas, policies and limits. The [Doris/ClickHouse live walkthrough](../../../examples/authoring/live/README.md)
 now exercises setup, capture, generation, explicit business review and execution
 through the shipped CLI and REST interface. The initial Doris/ClickHouse scope is
-implemented. Optional DuckDB inspection and broader native mappings remain
-deferred extensions, not implied support in the current CLI.
+implemented. Optional DuckDB inspection, generation and online validation are
+also implemented with a [local CLI walkthrough](../../../examples/authoring/duckdb/README.md).
+Only database access requires its existing CGO build flavor. Broader native
+mappings remain deferred; unsupported selected types fail explicitly.
 
 ## Core and managed-host ownership
 
@@ -320,8 +322,11 @@ adopted only after explicit review, never inferred by the generator. The test
 executes the checked-in CLI commands and authenticated REST request, independently
 checks fixed decimal/count expectations, and verifies that generation initially
 contains only the requested technical row count. Human completion time remains
-an unmeasured usability target. Step 4 is deferred: the optional DuckDB execution
-build remains tested, but DuckDB catalog capture/generation is not supported.
+an unmeasured usability target. Step 4 is implemented: the optional DuckDB gate
+executes the local walkthrough through the built CLI and checks parameterized
+EXPLAIN, exact decimal/count results and missing-column rejection. Independent
+setup and explicit adoption remain outside Metis commands; the default build
+can generate offline from a DuckDB snapshot without introducing CGO.
 
 Existing authored documents are never regenerated or overwritten. Adoption is
 manual through normal source control and existing runtime registration/activation.

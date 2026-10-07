@@ -325,8 +325,8 @@ func validateSnapshot(s Snapshot) error {
 	if !boundedName(s.Project) || !boundedName(s.DataSource) {
 		return invalid("catalog", "project and logical data_source are required")
 	}
-	if s.Backend != "doris" && s.Backend != "clickhouse" {
-		return finding("AUTHORING_UNSUPPORTED_BACKEND", "backend", "offline mappings currently support Doris and ClickHouse")
+	if s.Backend != "doris" && s.Backend != "clickhouse" && s.Backend != "duckdb" {
+		return finding("AUTHORING_UNSUPPORTED_BACKEND", "backend", "offline mappings support Doris, ClickHouse and DuckDB")
 	}
 	if len(s.Relations) == 0 || len(s.Relations) > 200 {
 		return invalid("relations", "catalog requires 1 through 200 relations")

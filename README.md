@@ -165,7 +165,7 @@ driver. Values are never interpolated into SQL text.
 | `metis query compile` | Compile a semantic request into SQL and parameters as JSON. |
 | `metis model validate`, `metis model inspect` | Validate an Ossie document or inspect its metadata. |
 | `metis project validate [--offline]`, `metis project inspect` | Load and check a complete semantic project without database connections. |
-| `metis project validate --online` | Inspect query dependencies and check Doris/ClickHouse EXPLAIN acceptance. |
+| `metis project validate --online` | Inspect query dependencies and check Doris/ClickHouse or optional DuckDB EXPLAIN acceptance. |
 | `metis project diff` | Compare two local semantic project inputs. |
 | `metis project init` | Generate a reviewable Ossie project from catalog evidence and an explicit map, offline. |
 | `metis project test --mode compile` | Check project-owned compile expectations in CI without connecting to a database. |
@@ -248,13 +248,17 @@ and define it in a local DataSource registry. The DataSource type selects the
 database backend and SQL renderer.
 
 The default build includes Doris and ClickHouse execution backends. To enable
-DuckDB execution, build with CGO and the `duckdb` tag:
+DuckDB execution, catalog inspection and online validation, build with CGO and the `duckdb` tag:
 
 ```sh
 CGO_ENABLED=1 go build -tags duckdb -o bin/metis ./cmd/metis
 ```
 
-DuckDB SQL compilation works with the default build. Compile-only deployments
+The [local DuckDB walkthrough](examples/authoring/duckdb/README.md) covers an
+existing read-only database file through catalog capture, reviewed project
+generation, parameterized online validation and result tests, without Docker.
+Offline generation from DuckDB snapshots and DuckDB SQL compilation work with
+the default build. Compile-only deployments
 require no database credentials. The execution runtime manages connections,
 secrets, cancellation, timeouts, and output limits.
 

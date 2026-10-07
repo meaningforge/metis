@@ -40,12 +40,15 @@ func exampleInputs(t *testing.T, backend string) (Snapshot, Mapping) {
 	if backend == "clickhouse" {
 		s.Relations[0].Columns[1].NativeType.Name = "Int64"
 	}
+	if backend == "duckdb" {
+		s.Relations[0].Columns[0].NativeType.Name = "VARCHAR"
+	}
 	m := Mapping{SchemaVersion: 1, Project: "sales", Model: "sales", Datasets: []DatasetMapping{{Relation: "orders", Name: "orders", Fields: []FieldMapping{{Column: "Region", Name: "region", Dimension: true}, {Column: "Order ID", Name: "order_id"}, {Column: "Amount", Name: "amount"}}}}, StarterMetrics: []StarterMetric{{Name: "order_rows", Kind: "row_count", Dataset: "orders"}}}
 	return seal(t, s), m
 }
 
 func TestGeneratedCandidateLoadsAndRendersExactPhysicalIdentity(t *testing.T) {
-	for _, backend := range []string{"doris", "clickhouse"} {
+	for _, backend := range []string{"doris", "clickhouse", "duckdb"} {
 		t.Run(backend, func(t *testing.T) {
 			s, m := exampleInputs(t, backend)
 			candidate, err := Generate(context.Background(), s, m)
@@ -81,7 +84,11 @@ func TestGeneratedCandidateLoadsAndRendersExactPhysicalIdentity(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			for _, value := range []string{"`Sales`.`Order Items`", "`Region`", "COUNT(*)"} {
+			physical, column := "`Sales`.`Order Items`", "`Region`"
+			if backend == "duckdb" {
+				physical, column = `"Sales"."Order Items"`, `"Region"`
+			}
+			for _, value := range []string{physical, column, "COUNT(*)"} {
 				if !strings.Contains(compiled.SqlRenderResult.SQL, value) {
 					t.Errorf("missing physical identifier %s: %s", value, compiled.SqlRenderResult.SQL)
 				}
@@ -90,7 +97,7 @@ func TestGeneratedCandidateLoadsAndRendersExactPhysicalIdentity(t *testing.T) {
 				t.Fatalf("schema=%#v", compiled.OutputSchema)
 			}
 			countOnly, err := runtime.Compile.Compile(context.Background(), semantic.CompileRequest{Query: query.SemanticQuery{Project: "sales", Model: "sales", Metrics: []query.MetricRef{{Name: "order_rows"}}}, Dialect: queryDialect(backend)})
-			if err != nil || !strings.Contains(countOnly.SqlRenderResult.SQL, "`Sales`.`Order Items`") {
+			if err != nil || !strings.Contains(countOnly.SqlRenderResult.SQL, physical) {
 				t.Fatalf("unambiguous count binding: %#v %v", countOnly, err)
 			}
 			if !candidate.Report.Validation.Valid || len(candidate.Report.ReviewTasks) == 0 {
