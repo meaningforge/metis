@@ -10,6 +10,11 @@ It exposes developer tooling rather than new REST/MCP requests or publication
 state. `metis catalog inspect` captures bounded metadata for explicit Doris and
 ClickHouse relations using the same [catalog authoring contract](semantic/catalog-authoring.md).
 
+`metis project validate` defaults to offline checks; explicit `--online` uses
+production routing, bounded catalog inspection and non-executing EXPLAIN for
+selected Doris/ClickHouse queries. Its flags and private report schema follow
+the [online validation contract](semantic/online-validation.md).
+
 The v0.1 compatibility surface is intentionally narrower than the set of exported Go identifiers in the repository.
 
 `metis project test` is a project-author developer tool, not an additional query
