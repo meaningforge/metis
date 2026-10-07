@@ -17,10 +17,10 @@ docker() {
     if ` + fail + `; then return 1; fi
     state=1
   elif [[ "$1 $2 $3" == "network inspect metis-test-owned" && "$state" == 1 ]]; then
-    printf '172.31.0.0/16\n'
+    if [[ "$5" == *Gateway* ]]; then printf '172.31.0.1\n'; else printf '172.31.0.0/16\n'; fi
   elif [[ "$*" == "network rm metis-test-owned" && "$state" == 1 ]]; then
     state=2
-  elif [[ "$*" == "network create --subnet 172.31.0.0/16 metis-test-owned" && "$state" == 2 ]]; then
+  elif [[ "$*" == "network create --subnet 172.31.0.0/16 --gateway 172.31.0.1 metis-test-owned" && "$state" == 2 ]]; then
     state=3
   else
     printf 'unexpected Docker operation: %s\n' "$*" >&2

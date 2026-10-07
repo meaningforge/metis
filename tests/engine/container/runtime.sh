@@ -41,13 +41,14 @@ metis_container_network_addresses() {
 # IPAM; no shared/fixed subnet is reserved by the test harness.
 metis_container_create_addressable_network() {
   local network="$1"
-  local subnet
+  local subnet gateway
   docker network create "${network}" >/dev/null || return 1
   subnet="$(docker network inspect "${network}" --format '{{(index .IPAM.Config 0).Subnet}}')" || return 1
-  if [[ -z "${subnet}" || "${subnet}" != */* ]]; then
+  gateway="$(docker network inspect "${network}" --format '{{(index .IPAM.Config 0).Gateway}}')" || return 1
+  if [[ -z "${subnet}" || "${subnet}" != */* || ! "${gateway}" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
     echo "cannot resolve allocated Docker subnet" >&2
     return 1
   fi
   docker network rm "${network}" >/dev/null || return 1
-  docker network create --subnet "${subnet}" "${network}" >/dev/null
+  docker network create --subnet "${subnet}" --gateway "${gateway}" "${network}" >/dev/null
 }

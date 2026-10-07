@@ -21,7 +21,8 @@ trap 'exit 130' INT
 trap 'exit 143' TERM
 
 metis_container_create_addressable_network "${NETWORK}"
-read -r FE_IP BE_IP <<< "$(metis_container_network_addresses "${NETWORK}")"
+NETWORK_ADDRESSES="$(metis_container_network_addresses "${NETWORK}")"
+read -r FE_IP BE_IP <<< "${NETWORK_ADDRESSES}"
 
 FE_ARGS=(
   --detach
