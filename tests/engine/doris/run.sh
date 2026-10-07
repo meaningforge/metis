@@ -9,11 +9,19 @@ BE_CONTAINER="metis-doris-conformance-be-${RUN_ID}"
 NETWORK="metis-doris-conformance-${RUN_ID}"
 
 cleanup() {
+  local exit_status=$?
+  if [[ "${exit_status}" != 0 ]]; then
+    # Include startup evidence even when failure precedes the readiness loop.
+    docker inspect --format '{{.Name}}: {{.State.Status}} exit={{.State.ExitCode}} error={{.State.Error}}' "${FE_CONTAINER}" "${BE_CONTAINER}" 2>/dev/null || true
+    docker logs --tail 100 "${FE_CONTAINER}" >&2 2>/dev/null || true
+    docker logs --tail 100 "${BE_CONTAINER}" >&2 2>/dev/null || true
+  fi
   # -v removes anonymous volumes declared by the engine images together with
   # the containers. Long-lived self-hosted runners otherwise accumulate those
   # volumes across repeated real-engine conformance runs.
   docker rm -fv "${BE_CONTAINER}" "${FE_CONTAINER}" >/dev/null 2>&1 || true
   docker network rm "${NETWORK}" >/dev/null 2>&1 || true
+  return "${exit_status}"
 }
 
 trap cleanup EXIT
@@ -44,8 +52,8 @@ BE_ARGS=(
   --env "BE_ADDR=${BE_IP}:9050"
 )
 docker run "${FE_ARGS[@]}" "apache/doris:fe-${DORIS_VERSION}" >/dev/null
-docker run "${BE_ARGS[@]}" "apache/doris:be-${DORIS_VERSION}" >/dev/null
 DORIS_PORT="$(metis_container_host_port "${FE_CONTAINER}" 9030)"
+docker run "${BE_ARGS[@]}" "apache/doris:be-${DORIS_VERSION}" >/dev/null
 
 for _ in $(seq 1 180); do
   if docker exec "${FE_CONTAINER}" mysql -uroot -h127.0.0.1 -P9030 -e 'SELECT 1' >/dev/null 2>&1; then
