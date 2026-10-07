@@ -166,6 +166,7 @@ driver. Values are never interpolated into SQL text.
 | `metis model validate`, `metis model inspect` | Validate an Ossie document or inspect its metadata. |
 | `metis project validate`, `metis project inspect` | Load and check a complete semantic project. |
 | `metis project diff` | Compare two local semantic project inputs. |
+| `metis project init` | Generate a reviewable Ossie project from catalog evidence and an explicit map, offline. |
 | `metis project test --mode compile` | Check project-owned compile expectations in CI without connecting to a database. |
 | `metis project test --mode runtime` | Assert metric results against an externally prepared database fixture; emit JSON and optional JUnit. |
 | `metis model format` | Format a model file. |
@@ -195,6 +196,20 @@ conformance or custom authorization. Fixture setup and CI orchestration stay
 external; the CLI is not a general-purpose testing framework.
 
 ## Execute queries
+
+To start a model from metadata, use the
+[offline authoring example](examples/authoring/README.md):
+
+```sh
+bin/metis project init --catalog examples/authoring/catalog-doris.json \
+  --mapping examples/authoring/model-map.yaml --output ./candidate-sales
+bin/metis project validate --project sales --config ./candidate-sales/project.yaml
+```
+
+The generator selects only mapped fields and optional technical row counts.
+Review its report and author business metrics and relationships before adoption.
+The [authoring contract](docs/specs/semantic/catalog-authoring.md) defines supported
+schemas and mappings. Online `metis catalog inspect` remains a proposed follow-up.
 
 To enable execution, reference a named DataSource from your project registration
 and define it in a local DataSource registry. The DataSource type selects the

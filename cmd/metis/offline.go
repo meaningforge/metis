@@ -40,6 +40,8 @@ func runOffline(args []string) int {
 		}
 	case "project":
 		switch args[1] {
+		case "init":
+			return initProject(args[2:])
 		case "validate":
 			return validateProject(args[2:])
 		case "inspect":
@@ -310,6 +312,7 @@ func offlineUsage() {
 	fmt.Fprintln(os.Stderr, "  metis model validate --model <ossie.yaml>")
 	fmt.Fprintln(os.Stderr, "  metis model inspect --model <ossie.yaml>")
 	fmt.Fprintln(os.Stderr, "  metis model format --model <ossie.yaml> --output <formatted.yaml>")
+	fmt.Fprintln(os.Stderr, "  metis project init --catalog <catalog.json> --mapping <mapping.yaml> --output <new-directory>")
 	fmt.Fprintln(os.Stderr, "  metis project validate --project <id> --config <project.yaml>")
 	fmt.Fprintln(os.Stderr, "  metis project inspect --project <id> --config <project.yaml>")
 	fmt.Fprintln(os.Stderr, "  metis project diff --project <id> --base-config <project.yaml> --candidate-config <project.yaml>")

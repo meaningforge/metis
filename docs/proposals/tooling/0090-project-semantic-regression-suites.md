@@ -1,9 +1,9 @@
 # RFC-0090: Project Semantic Regression Suites
 
-- **Status:** Draft — scope revision; scoped v1 implemented
+- **Status:** Implemented — scoped v1
 - **Owners:** TBD during review
 - **Created:** 2026-09-25
-- **Last updated:** 2026-09-26
+- **Last updated:** 2026-10-07
 - **Scope:** Project-author developer tooling for local and CI assertions
 - **Supersedes:** None
 
@@ -160,7 +160,8 @@ Scoped v1 retains these regression obligations:
 Internal engine conformance, analytics workflows, and host authorization tests
 remain separate; their full scenario corpus need not be reproduced in project
 suites. Further maintenance addresses shipped-contract defects, not the removed
-expansion checklist. This scope revision remains subject to PR review.
+expansion checklist. The scope revision was adopted in PR #16; these obligations
+define the shipped v1.
 
 ## Documentation and adoption
 

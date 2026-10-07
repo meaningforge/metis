@@ -27,6 +27,7 @@ Current, testable contracts for Metis Core. Start with the public contract and g
 - [Agent Semantic Discovery](semantic/agent-semantic-search.md)
 - [Aggregation Algebra and Fan-out Safety](semantic/aggregation-algebra-and-fanout-safety.md)
 - [Semantic Source Authoring](semantic/asset-authoring-lifecycle.md)
+- [Offline Catalog-assisted Authoring](semantic/catalog-authoring.md)
 - [Semantic Asset Governance and Visibility](semantic/asset-governance.md)
 - [Semantic Compilation Pipeline Specification](semantic/compilation-pipeline.md)
 - [Metric Change Attribution Specification](semantic/metric-change-attribution.md)

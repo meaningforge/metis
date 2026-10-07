@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "project": "sales",
+  "data_source": "warehouse",
+  "backend": "clickhouse",
+  "relations": [
+    {
+      "id": "orders",
+      "parts": ["Analytics", "Orders"],
+      "outcome": "found",
+      "columns_complete": true,
+      "columns": [
+        {"name": "Region", "native_type": {"name": "String"}, "nullable": "nullable"},
+        {"name": "Amount", "native_type": {"name": "Decimal", "precision": 18, "scale": 2}, "nullable": "not_null"},
+        {"name": "OrderTime", "native_type": {"name": "DateTime64", "precision": 6, "timezone": "UTC"}, "nullable": "unknown"},
+        {"name": "InternalNote", "native_type": {"name": "String"}, "nullable": "nullable"}
+      ],
+      "keys": [{"kind": "sorting", "columns": ["Region"]}]
+    }
+  ],
+  "digest": "sha256:cf933fa39155d9f74518ddea5765502a9280d62dbce3a826bab7fa04d1e52e03"
+}

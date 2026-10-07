@@ -36,6 +36,7 @@ func TestOfflineCLICommandHelp(t *testing.T) {
 		{"project", "inspect", "--help"},
 		{"project", "diff", "--help"},
 		{"project", "test", "--help"},
+		{"project", "init", "--help"},
 	} {
 		if code := runOffline(args); code != 0 {
 			t.Fatalf("command %v help returned %d", args, code)
