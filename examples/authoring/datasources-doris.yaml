@@ -1,0 +1,11 @@
+warehouse:
+  type: doris
+  config:
+    host: "${METIS_DORIS_HOST}"
+    port: "${METIS_DORIS_PORT}"
+    username: "${METIS_DORIS_USERNAME}"
+    password: "${METIS_DORIS_PASSWORD}"
+  policy:
+    query_timeout: 30s
+    max_rows: 10000
+    max_bytes: 10485760

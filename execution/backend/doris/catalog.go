@@ -1,0 +1,11 @@
+package doris
+
+import (
+	"context"
+	"github.com/meaningforge/metis/execution/backend/internal/catalog"
+	"github.com/meaningforge/metis/execution/driver"
+)
+
+func (e *executor) DescribeRelation(ctx context.Context, ref driver.CatalogReference, limits driver.CatalogLimits) (driver.CatalogRelation, error) {
+	return catalog.Describe(ctx, e.db, "doris", ref, limits, catalog.ParseDoris)
+}

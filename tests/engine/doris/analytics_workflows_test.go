@@ -89,6 +89,7 @@ func TestAnalyticsWorkflowsThroughProductionDorisBackend(t *testing.T) {
 		AttributeMetric: runtime.AttributeMetric.AttributeMetric,
 		CompareMetrics:  runtime.CompareMetrics.CompareMetrics,
 	})
+	harness.RunCatalogAuthoringContract(t, runtime.Execution, "doris-local")
 }
 
 type staticSecretResolver string

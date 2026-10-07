@@ -15,7 +15,10 @@ Ossie project's physical dependencies and compiles and prepares selected
 semantic queries against their configured databases. Return a versioned report
 that distinguishes offline validity, catalog compatibility, and engine acceptance.
 
-This RFC proposes interfaces; none of the new commands below exist today.
+This RFC proposes online-validation interfaces; none of the new commands below
+exist today. The shared exact-relation catalog primitive is implemented for
+`metis catalog inspect` under the [catalog authoring contract](../../specs/semantic/catalog-authoring.md);
+query preparation and online-validation reports remain proposals.
 The initial release covers Doris and ClickHouse. DuckDB inspection follows in
 the existing optional CGO build and must report unsupported until implemented.
 

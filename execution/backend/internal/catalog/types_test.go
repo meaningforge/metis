@@ -1,0 +1,41 @@
+package catalog
+
+import (
+	"encoding/json"
+	"testing"
+)
+
+func TestNativeEvidence(t *testing.T) {
+	for _, tc := range []struct{ backend, input, want, nullable string }{
+		{"doris", "decimalv3(18, 4)", `{"name":"DECIMALV3","precision":18,"scale":4}`, "unknown"},
+		{"doris", "datetimev2(6)", `{"name":"DATETIMEV2","precision":6}`, "unknown"},
+		{"doris", "varchar(64)", `{"name":"VARCHAR","length":64}`, "unknown"},
+		{"doris", "array<int>", `{"name":"ARRAY\u003cINT\u003e"}`, "unknown"},
+		{"clickhouse", "Nullable(Decimal(18, 4))", `{"name":"Decimal","precision":18,"scale":4}`, "nullable"},
+		{"clickhouse", "Decimal128(8)", `{"name":"Decimal","precision":38,"scale":8}`, "not_null"},
+		{"clickhouse", "DateTime64(9, 'Asia/Shanghai')", `{"name":"DateTime64","precision":9,"timezone":"Asia/Shanghai"}`, "not_null"},
+		{"clickhouse", "LowCardinality(Nullable(String))", `{"name":"String"}`, "nullable"},
+		{"clickhouse", "Array(UInt64)", `{"name":"Array(UInt64)"}`, "not_null"},
+		{"clickhouse", "FixedString(8)", `{"name":"FixedString","length":8}`, "not_null"},
+	} {
+		t.Run(tc.backend+tc.input, func(t *testing.T) {
+			parse := ParseDoris
+			if tc.backend == "clickhouse" {
+				parse = ParseClickHouse
+			}
+			typ, nullable, err := parse(tc.input)
+			if err != nil {
+				t.Fatal(err)
+			}
+			data, _ := json.Marshal(typ)
+			if string(data) != tc.want || nullable != tc.nullable {
+				t.Fatalf("type=%s nullable=%s", data, nullable)
+			}
+		})
+	}
+	for _, input := range []string{"Decimal(3)", "Decimal(-1,2)", "DateTime64(nope)", "DateTime64(9, 'secret\nvalue')", ""} {
+		if _, _, err := ParseClickHouse(input); err == nil {
+			t.Fatalf("accepted %q", input)
+		}
+	}
+}

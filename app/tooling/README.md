@@ -5,7 +5,7 @@ This directory contains reusable application workflows shipped through the
 
 | Package | Responsibility | CLI entry point |
 | --- | --- | --- |
-| [authoring](authoring/) | Validate catalog evidence and explicit mappings, generate a reviewable Ossie candidate, and publish local files safely. | `metis project init` |
+| [authoring](authoring/) | Normalize bounded catalog evidence, validate explicit mappings, generate a reviewable Ossie candidate, and publish local files safely. | `metis catalog inspect`, `metis project init` |
 | [regression](regression/) | Validate project-owned suites, invoke compile/query services, compare reviewed expectations, and produce JSON/JUnit reports. | `metis project test` |
 
 ## Dependencies and ownership
