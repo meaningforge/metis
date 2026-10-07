@@ -22,7 +22,15 @@ func integer(value string) (*int, error) {
 
 // ParseDoris retains unsupported native evidence instead of guessing a mapping.
 func ParseDoris(value string) (driver.CatalogNativeType, string, error) {
-	return parse(strings.ToUpper(strings.TrimSpace(value)), false)
+	value = strings.TrimSpace(value)
+	match := simpleType.FindStringSubmatch(value)
+	if match != nil {
+		switch strings.ToUpper(match[1]) {
+		case "CHAR", "VARCHAR", "STRING", "BOOLEAN", "BOOL", "TINYINT", "SMALLINT", "INT", "INTEGER", "BIGINT", "LARGEINT", "FLOAT", "DOUBLE", "DECIMAL", "DECIMALV2", "DECIMALV3", "DATE", "DATEV2", "DATETIME", "DATETIMEV2":
+			value = strings.ToUpper(value)
+		}
+	}
+	return parse(value, false)
 }
 func ParseClickHouse(value string) (driver.CatalogNativeType, string, error) {
 	value = strings.TrimSpace(value)

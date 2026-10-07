@@ -20,7 +20,7 @@ trap cleanup EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
 
-docker network create "${NETWORK}" >/dev/null
+metis_container_create_addressable_network "${NETWORK}"
 read -r FE_IP BE_IP <<< "$(metis_container_network_addresses "${NETWORK}")"
 
 FE_ARGS=(

@@ -46,6 +46,9 @@ func ParseSelectors(data []byte) (Selectors, error) {
 // InspectCatalog converts only bounded, matched driver evidence to the existing
 // offline schema. It performs no semantic inference or model activation.
 func InspectCatalog(ctx context.Context, execution *runner.Runner, project, dataSource string, selectors Selectors) (Snapshot, error) {
+	if selectors.SchemaVersion != SchemaVersion || !boundedName(project) || !boundedName(dataSource) {
+		return Snapshot{}, invalid("catalog", "version 1 selectors, Project and logical DataSource are required")
+	}
 	resolved, err := execution.ResolveDataSource(dataSource)
 	if err != nil {
 		return Snapshot{}, err
