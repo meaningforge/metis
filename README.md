@@ -339,6 +339,15 @@ run, set `OSSIE_GIT_DIR` to a local Apache Ossie Git object directory containing
 that commit. Database integration tests require explicitly configured services
 and run separately.
 
+CI reuses Go module/build caches. Ordinary code PRs run the complete correctness,
+embedded DuckDB, E2E and container checks; full release archives additionally run
+for packaging, dependency, license, CI or platform-specific changes, on `main`
+code pushes, and for manual dispatch. Documentation-only changes use the docs
+gate (changes to packaged license files still trigger full checks). Snapshot
+packaging shares the same commit's correctness gate rather than repeating its
+tests through GoReleaser hooks. Tag releases run `make release-check` before
+publishing. See [the CI scope classifier](tools/ci/change_scope.py).
+
 ## License
 
 [Apache License 2.0](LICENSE). Third-party attribution and license texts are

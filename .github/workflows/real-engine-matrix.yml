@@ -27,7 +27,8 @@ jobs:
       - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
-          cache: false
+          cache: true
+          cache-dependency-path: go.sum
       - id: targets
         name: Resolve matrix from executable registry
         env:
@@ -50,7 +51,10 @@ jobs:
       - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
-          cache: false
+          cache: true
+          cache-dependency-path: |
+            go.sum
+            Makefile
       - name: Run real-engine execution conformance
         env:
           ENGINE: ${{ matrix.engine }}

@@ -19,6 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       docs_only: ${{ steps.changes.outputs.docs_only }}
+      packaging_required: ${{ steps.changes.outputs.packaging_required }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -28,10 +29,10 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Manual ci runs validate the standard correctness path only. Manual
-          # warehouse execution belongs to real-engine-matrix.yml.
+          # Manual runs execute all default gates. Warehouse selection remains
+          # in real-engine-matrix.yml.
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            echo "docs_only=false" >> "$GITHUB_OUTPUT"
+            python3 tools/ci/change_scope.py --event workflow_dispatch < /dev/null >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
@@ -43,25 +44,8 @@ jobs:
             HEAD="${{ github.sha }}"
           fi
 
-          CHANGED="$(git diff --name-only "$BASE" "$HEAD")"
-          printf '%s\n' "$CHANGED"
-
-          # A documentation-only change may touch docs/** or Markdown files
-          # anywhere in the repository. Any workflow, build, source, fixture,
-          # example, or test change forces the full correctness path.
-          docs_only=true
-          if [[ -z "$CHANGED" ]]; then
-            docs_only=false
-          else
-            while IFS= read -r path; do
-              [[ -z "$path" ]] && continue
-              if [[ "$path" != docs/* && "$path" != *.md ]]; then
-                docs_only=false
-                break
-              fi
-            done <<<"$CHANGED"
-          fi
-          echo "docs_only=$docs_only" >> "$GITHUB_OUTPUT"
+          git diff --name-only -z "$BASE" "$HEAD" |
+            python3 tools/ci/change_scope.py --event "${{ github.event_name }}" >> "$GITHUB_OUTPUT"
 
   test:
     name: Required correctness tests
@@ -77,7 +61,10 @@ jobs:
         if: ${{ needs.detect-engine-execution-impact.outputs.docs_only != 'true' }}
         with:
           go-version-file: go.mod
-          cache: false
+          cache: true
+          cache-dependency-path: |
+            go.sum
+            Makefile
       - name: Download modules
         if: ${{ needs.detect-engine-execution-impact.outputs.docs_only != 'true' }}
         run: go mod download
@@ -146,32 +133,38 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      # The tag-triggered release workflow runs GoReleaser for the first time at
-      # tag-push time, when a failure is most expensive to discover. This job
-      # exercises the same packaging path continuously so that never happens.
-      - name: Skip packaging snapshot for docs-only change
-        if: ${{ needs.detect-engine-execution-impact.outputs.docs_only == 'true' }}
-        run: echo 'Documentation-only change; release packaging is not required.'
+      # Keep the check name present on every PR. Ordinary source PRs use the
+      # correctness/container gates; packaging/platform changes and main code
+      # pushes also exercise all release archives.
+      - name: Skip packaging snapshot when not required
+        if: ${{ needs.detect-engine-execution-impact.outputs.packaging_required != 'true' }}
+        run: echo 'Full release packaging is not required for this change.'
       - uses: actions/checkout@v4
-        if: ${{ needs.detect-engine-execution-impact.outputs.docs_only != 'true' }}
+        if: ${{ needs.detect-engine-execution-impact.outputs.packaging_required == 'true' }}
         with:
           fetch-depth: 0
       - uses: actions/setup-go@v7
-        if: ${{ needs.detect-engine-execution-impact.outputs.docs_only != 'true' }}
+        if: ${{ needs.detect-engine-execution-impact.outputs.packaging_required == 'true' }}
         with:
           go-version-file: go.mod
-          cache: false
+          cache: true
+          # Separate packaging from the parallel test job's cache writes.
+          cache-dependency-path: |
+            go.sum
+            .goreleaser.yml
       - name: Build release archives without publishing
-        if: ${{ needs.detect-engine-execution-impact.outputs.docs_only != 'true' }}
+        if: ${{ needs.detect-engine-execution-impact.outputs.packaging_required == 'true' }}
         uses: goreleaser/goreleaser-action@v7
         with:
           distribution: goreleaser
           version: '~> v2'
-          args: release --snapshot --clean --skip=publish
+          # The parallel required test gate already checks tidy, tests and
+          # licenses. Snapshot packaging does not publish and need not repeat it.
+          args: release --snapshot --clean --skip=publish,before
       # Verify every target and exercise the runner-native packaged binary.
       - name: Verify packaged release artifacts
-        if: ${{ needs.detect-engine-execution-impact.outputs.docs_only != 'true' }}
+        if: ${{ needs.detect-engine-execution-impact.outputs.packaging_required == 'true' }}
         run: bash tools/ci/release-artifact-smoke.sh dist "$GITHUB_SHA"
       - name: Cleanup packaging artifacts
-        if: ${{ always() && needs.detect-engine-execution-impact.outputs.docs_only != 'true' }}
+        if: ${{ always() && needs.detect-engine-execution-impact.outputs.packaging_required == 'true' }}
         run: rm -rf dist
