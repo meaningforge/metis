@@ -48,6 +48,9 @@ func (e *fakeLease) DescribeRelation(_ context.Context, ref driver.CatalogRefere
 	}
 	p, s := 18, 2
 	columns := []driver.CatalogColumn{{Name: "region", NativeType: driver.CatalogNativeType{Name: "STRING"}}, {Name: "amount", NativeType: driver.CatalogNativeType{Name: "DECIMAL", Precision: &p, Scale: &s}}}
+	if e.engine.scenario == "policy_column_missing" {
+		columns = columns[1:]
+	}
 	if e.engine.scenario == "missing" {
 		columns = columns[:1]
 	}
@@ -76,8 +79,18 @@ func (deniedPolicy) Evaluate(context.Context, policy.Request) (policy.Decision, 
 	return policy.Decision{Effect: policy.Denied}, nil
 }
 
+type constrainedPolicy struct{}
+
+func (constrainedPolicy) Evaluate(_ context.Context, req policy.Request) (policy.Decision, error) {
+	decision := policy.Decision{Effect: policy.Constrained}
+	for _, source := range req.Sources {
+		decision.Sources = append(decision.Sources, policy.SourceConstraint{Dataset: source.Dataset, RowPredicates: []policy.Predicate{{Field: policy.FieldRef{Dataset: source.Dataset, Field: "region"}, Operator: query.FilterIsNull}}})
+	}
+	return decision, nil
+}
+
 func TestValidationProductionFlowAndPreflight(t *testing.T) {
-	for _, scenario := range []string{"passed", "compile", "missing", "type", "permission", "engine", "unsupported", "policy", "hidden"} {
+	for _, scenario := range []string{"passed", "alias", "policy_column", "policy_column_missing", "compile", "missing", "type", "permission", "engine", "unsupported", "policy", "hidden"} {
 		t.Run(scenario, func(t *testing.T) {
 			dir := t.TempDir()
 			write := func(name string, data []byte) {
@@ -89,6 +102,9 @@ func TestValidationProductionFlowAndPreflight(t *testing.T) {
 			model, err := os.ReadFile("../../../examples/authoring/live/model-reviewed.ossie.yaml")
 			if err != nil {
 				t.Fatal(err)
+			}
+			if scenario == "alias" {
+				model = []byte(strings.ReplaceAll(strings.Replace(string(model), "- name: amount", "- name: net", 1), "SUM(orders.amount)", "SUM(orders.net)"))
 			}
 			write("model.yaml", model)
 			write("project.yaml", []byte("semantic_sources:\n  sales: {path: model.yaml}\n"))
@@ -106,9 +122,16 @@ func TestValidationProductionFlowAndPreflight(t *testing.T) {
 			if scenario == "compile" {
 				inventory.Queries = append(inventory.Queries, Case{ID: "broken", Query: query.SemanticQuery{Project: "sales", Model: "sales", Metrics: []query.MetricRef{{Name: "absent"}}}})
 			}
+			if strings.HasPrefix(scenario, "policy_column") {
+				inventory.Queries[0].Query.Metrics = []query.MetricRef{{Name: "order_rows"}}
+				inventory.Queries[0].Query.Dimensions = nil
+			}
 			options := []bootstrap.RuntimeOption{bootstrap.WithLocalAllAccessProjectAuthorization(), bootstrap.WithBackendRegistry(backends)}
 			if scenario == "policy" {
 				options = append(options, bootstrap.WithDataAccessPolicy(deniedPolicy{}))
+			}
+			if strings.HasPrefix(scenario, "policy_column") {
+				options = append(options, bootstrap.WithDataAccessPolicy(constrainedPolicy{}))
 			}
 			if scenario == "hidden" {
 				options = append(options, bootstrap.WithAssetVisibilityPolicy(semantic.AssetVisibilityPolicyFunc(func(context.Context, semantic.AssetVisibilityRequest) semantic.AssetVisibilityDecision {
@@ -120,7 +143,7 @@ func TestValidationProductionFlowAndPreflight(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if report.Passed != (scenario == "passed") {
+			if report.Passed != (scenario == "passed" || scenario == "alias" || scenario == "policy_column") {
 				t.Fatalf("report=%+v", report)
 			}
 			if scenario == "compile" || scenario == "policy" || scenario == "hidden" {
@@ -132,6 +155,9 @@ func TestValidationProductionFlowAndPreflight(t *testing.T) {
 				if engine.probes != 0 {
 					t.Fatal("probed after catalog failure")
 				}
+			}
+			if (scenario == "missing" || scenario == "type") && (!report.Complete || !report.Cases[0].CatalogChecked) {
+				t.Fatalf("completed catalog mismatch lost coverage: %+v", report)
 			}
 			if engine.closes != engine.probes+engine.describes {
 				t.Fatalf("leases leaked: %+v", engine)

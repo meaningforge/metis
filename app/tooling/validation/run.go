@@ -57,7 +57,7 @@ func Run(ctx context.Context, config, project string, inventory Inventory, optio
 	digest := sha256.Sum256(data)
 	report := Report{SchemaVersion: 1, Mode: "online", Project: project, MetisVersion: version.Version, InventoryDigest: hex.EncodeToString(digest[:])}
 	for _, c := range inventory.Queries {
-		report.Cases = append(report.Cases, CaseReport{ID: c.ID, Outcome: "not_run"})
+		report.Cases = append(report.Cases, CaseReport{ID: c.ID, Outcome: "not_run", Code: "preparation_not_completed"})
 	}
 	if ctx == nil {
 		ctx = context.Background()
@@ -86,6 +86,7 @@ func Run(ctx context.Context, config, project string, inventory Inventory, optio
 			return report, nil
 		}
 		report.Cases[i].CompileChecked = true
+		report.Cases[i].Code = "online_checks_not_started"
 		report.Cases[i].Backend = string(prepared[i].Route.Backend.Type)
 	}
 	for i, work := range prepared {
@@ -163,6 +164,7 @@ func Run(ctx context.Context, config, project string, inventory Inventory, optio
 				}
 			}
 		}
+		c.CatalogChecked = !unknown
 		if !matched {
 			c.Outcome = "failed"
 			if unknown {
@@ -185,6 +187,7 @@ func Run(ctx context.Context, config, project string, inventory Inventory, optio
 		}
 		c.EnginePrepared = true
 		c.Outcome = "passed"
+		c.Code = ""
 	}
 	report.Complete = true
 	report.Passed = true

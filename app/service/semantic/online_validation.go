@@ -111,15 +111,21 @@ func (s *QueryMetricsService) PrepareValidation(ctx context.Context, q query.Sem
 					columns[ref.Name] = ""
 				}
 			}
-			if identifier, ok := parsed.(*expression.IdentifierExpr); ok && len(identifier.Parts) <= 2 && len(refs) == 1 && (refs[0].Qualifier == "" || refs[0].Qualifier == dataset.Name) {
+			if identifier, ok := parsed.(*expression.IdentifierExpr); ok && len(identifier.Parts) <= 2 && len(refs) == 1 && (refs[0].Qualifier == "" || refs[0].Qualifier == dataset.Name) && (refs[0].Name == field.Field || work[0].Query.Model.Fields[dataset.Name+"."+refs[0].Name] == nil) {
 				handle := work[0].Query.Model.Fields[dataset.Name+"."+field.Field]
 				if handle != nil && handle.Field != nil {
+					if previous := columns[refs[0].Name]; previous != "" && previous != handle.Field.Datatype {
+						return out, policy.ErrInvalid
+					}
 					columns[refs[0].Name] = handle.Field.Datatype
 				}
 			}
 		}
 		if constraint := constraints.models[q.Model][dataset.Name]; constraint != nil {
 			for _, predicate := range constraint.Predicates() {
+				if previous := columns[predicate.Column]; previous != "" && previous != predicate.Datatype {
+					return out, policy.ErrInvalid
+				}
 				columns[predicate.Column] = predicate.Datatype
 			}
 		}

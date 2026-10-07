@@ -1,6 +1,6 @@
 # RFC-0088: Online Semantic Validation
 
-- **Status:** Draft
+- **Status:** Implemented — scoped v1; parameterized engine validation deferred
 - **Created:** 2026-09-25
 - **Last updated:** 2026-10-07
 - **Scope:** Core authoring CLI, application validation services, bounded backend inspection
@@ -117,7 +117,8 @@ compile_checked, catalog_checked, engine_prepared, backend, method, outcome and
 bounded code. No global database snapshot is claimed. Inventory digest is SHA-256
 of the owned decoded inventory serialized as JSON, excluding operational timing.
 
-Cases are passed, failed, unsupported, unavailable or not_run. Completed mismatches
+Cases are passed, failed, unsupported, unavailable or not_run. Not-run cases retain
+preparation_not_completed or online_checks_not_started as the reason. Completed mismatches
 can be complete failures; unsupported/unavailable/not_run checks remain incomplete.
 Shared semantic/execution errors retain stable codes. Private command categories:
 source_dependency_mismatch, source_type_mismatch, source_type_unknown,
