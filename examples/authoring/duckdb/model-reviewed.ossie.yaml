@@ -1,0 +1,30 @@
+# Manually authored for the disposable sample, never inferred by project init.
+version: "0.2.0.dev0"
+semantic_model:
+  - name: sales
+    description: Reviewed local demo with explicitly authored business semantics
+    custom_extensions:
+      - {vendor_name: METIS, data: '{"kind":"data_source","name":"warehouse"}'}
+    datasets:
+      - name: orders
+        source: main.orders
+        fields:
+          - name: region
+            datatype: String
+            expression: {dialects: [{dialect: ANSI_SQL, expression: orders.region}]}
+            dimension: {}
+          - name: amount
+            datatype: Decimal
+            expression: {dialects: [{dialect: ANSI_SQL, expression: orders.amount}]}
+          - name: order_time
+            datatype: DateTime
+            expression: {dialects: [{dialect: ANSI_SQL, expression: orders.order_time}]}
+    metrics:
+      - name: order_rows
+        description: All physical demo rows, including unrecorded amounts
+        datatype: Integer
+        expression: {dialects: [{dialect: ANSI_SQL, expression: "COUNT(*)"}]}
+      - name: total_revenue
+        description: Sum of recorded amounts in one toy currency; NULL is omitted
+        datatype: Decimal
+        expression: {dialects: [{dialect: ANSI_SQL, expression: "SUM(orders.amount)"}]}

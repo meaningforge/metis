@@ -15,6 +15,13 @@ The [examples](../../../examples/authoring/README.md) provide synthetic Doris an
 ClickHouse snapshots and an online capture walkthrough. The generated expressions are specific to
 the snapshot's backend; unsupported dialect compilation fails explicitly.
 
+The [DuckDB walkthrough](../../../examples/authoring/duckdb/README.md) covers the
+same capture, generation, explicit review, online validation and result-test
+workflow locally, without a server or Docker. Capture, online validation and
+runtime tests require the optional `CGO_ENABLED=1 -tags duckdb` binary; offline
+generation and SQL compilation remain available in the default CGO-free build.
+Generated DuckDB expressions use the portable `ANSI_SQL` subset.
+
 The [live table-to-query walkthrough](../../../examples/authoring/live/README.md)
 adds disposable setup SQL, explicit reviewed business definitions, exact result
 expectations and authenticated querying. It is tested through the real CLI for
@@ -44,6 +51,13 @@ quotes, backslashes, control characters and SQL separators are rejected. Full
 column inventories are captured for selected relations; the authoring map later
 chooses which columns become semantic fields. V1 does not collect keys, because
 column-level key flags cannot establish their ordering or physical key model.
+
+DuckDB requires explicit `schema.table` or `catalog.schema.table` parts and uses
+quoted exact-object `DESCRIBE`. The connection opens an existing file read-only;
+Metis does not create or seed it. Stop external writers before opening it.
+Native column spelling is preserved in snapshots and mappings. Online dependency
+matching follows DuckDB's ASCII-only case-insensitive identifier rules; it does
+not apply Unicode case folding or guess a default schema/catalog.
 
 `bootstrap.LoadCatalogRunner` evaluates Project `author`, then a required host
 physical metadata access callback, before reading deployment/registry files.
@@ -80,7 +94,7 @@ snapshot or a failure document masquerading as generator input.
 
 Catalog inputs are regular files containing strict JSON or YAML, at most 10 MiB, with:
 
-- `schema_version: 1`, `project`, `data_source`, and `backend` (`doris` or `clickhouse`).
+- `schema_version: 1`, `project`, `data_source`, and `backend` (`doris`, `clickhouse`, or `duckdb`).
 - `relations`: 1 through 200 entries, at most 10,000 columns total. Each has a
   unique selector `id`, ordered physical identifier `parts`, optional
   `resolved_parts`, `outcome: found`, `columns_complete: true`, and a nonempty
@@ -169,6 +183,13 @@ The generator never inserts casts. Supported native type families are:
 | ClickHouse | Decimal with explicit precision/scale | Decimal |
 | ClickHouse | Date, Date32 | Date |
 | ClickHouse | DateTime, DateTime64 with optional fractional precision 0–9 | DateTime, or DateTimeTz with explicit timezone evidence |
+
+DuckDB additionally maps VARCHAR/CHAR/TEXT, BOOLEAN/BOOL, signed and unsigned
+integer families, FLOAT/DOUBLE, explicit DECIMAL, DATE and native timestamp
+units. TIMESTAMP_S/MS/NS retain fractional precision 0/3/9; TIMESTAMP and
+TIMESTAMPTZ retain precision 6. Zoned types do not invent a session timezone.
+Arrays, structs and other unsupported types remain native evidence and cannot
+be selected for generation; unselected columns need not be mapped.
 
 The initial Decimal subset requires precision 1–38 and scale 0–precision.
 Unsupported types or contradictory evidence require explicit column exclusion;

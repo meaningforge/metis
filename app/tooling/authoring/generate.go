@@ -14,6 +14,7 @@ import (
 	"github.com/meaningforge/metis/ossie"
 	"github.com/meaningforge/metis/renderer/clickhouse"
 	"github.com/meaningforge/metis/renderer/doris"
+	"github.com/meaningforge/metis/renderer/duckdb"
 	"github.com/meaningforge/metis/version"
 	"go.yaml.in/yaml/v3"
 )
@@ -218,7 +219,11 @@ func Generate(ctx context.Context, s Snapshot, mapping Mapping) (Candidate, erro
 			if !ok {
 				return Candidate{}, finding("AUTHORING_UNSUPPORTED_TYPE", floc, "native type evidence has no faithful supported mapping; exclude this column")
 			}
-			field := ossie.Field{Name: selected.Name, Datatype: datatype, Expression: ossie.Expression{Dialects: []ossie.DialectExpression{{Dialect: ossie.Dialect(strings.ToUpper(s.Backend)), Expression: selection.Name + ".`" + col.Name + "`"}}}}
+			quotedColumn := "`" + col.Name + "`"
+			if s.Backend == "duckdb" {
+				quotedColumn = "\"" + col.Name + "\""
+			}
+			field := ossie.Field{Name: selected.Name, Datatype: datatype, Expression: ossie.Expression{Dialects: []ossie.DialectExpression{{Dialect: authoringDialect(s.Backend), Expression: selection.Name + "." + quotedColumn}}}}
 			if selected.Dimension {
 				field.Dimension = &ossie.Dimension{}
 			}
@@ -231,7 +236,7 @@ func Generate(ctx context.Context, s Snapshot, mapping Mapping) (Candidate, erro
 		model.Datasets = append(model.Datasets, ds)
 	}
 	for _, mtr := range m.StarterMetrics {
-		model.Metrics = append(model.Metrics, ossie.Metric{Name: mtr.Name, Datatype: ossie.DataTypeInteger, Description: "Technical physical row count; not a distinct business entity count.", Expression: ossie.Expression{Dialects: []ossie.DialectExpression{{Dialect: ossie.Dialect(strings.ToUpper(s.Backend)), Expression: "COUNT(*)"}}}})
+		model.Metrics = append(model.Metrics, ossie.Metric{Name: mtr.Name, Datatype: ossie.DataTypeInteger, Description: "Technical physical row count; not a distinct business entity count.", Expression: ossie.Expression{Dialects: []ossie.DialectExpression{{Dialect: authoringDialect(s.Backend), Expression: "COUNT(*)"}}}})
 	}
 	// Canonical formatting uses the shared Ossie loader, preserving its grammar.
 	body, err := yaml.Marshal(ossie.Document{Version: ossie.SupportedSpecVersion, SemanticModel: []ossie.SemanticModel{model}})
@@ -262,12 +267,20 @@ func Generate(ctx context.Context, s Snapshot, mapping Mapping) (Candidate, erro
 	if err != nil {
 		return Candidate{}, err
 	}
-	guide := fmt.Sprintf("# Review this generated candidate\n\nProject: %s. Model: %s. Logical DataSource: %s.\n\nThe catalog is author-supplied evidence, not proof of database access.\nRead authoring-report.json and review the physical mappings, pending decisions,\nand existing validation findings before adoption. Publishable only describes\na quality threshold.\n\nFrom this candidate directory:\n\n```sh\nmetis project validate --project %s --config ./project.yaml\nmetis model inspect --model ./%s\n```\n\nFor the eventual deployment, register this Project and apply the logical\nDataSource named %s with independently managed connection configuration.\nThe model-level placement must resolve to that source. Author business metrics\nand relationships explicitly, then compile and run an authorized test query.\nmetis catalog inspect can capture fresh Doris/ClickHouse metadata separately.\nMetadata capture does not prove SELECT permission. Generation itself remains\noffline and has not contacted or validated a database. Use metis project validate --online with deployment configuration and an\nexplicit query inventory to check database planning acceptance. After manual\nmodel edits, validate and\nreview them independently; this generation report is not approval of those edits.\n", m.Project, m.Model, s.DataSource, "'"+strings.ReplaceAll(m.Project, "'", "'\\''")+"'", modelPath, s.DataSource)
+	guide := fmt.Sprintf("# Review this generated candidate\n\nProject: %s. Model: %s. Logical DataSource: %s.\n\nThe catalog is author-supplied evidence, not proof of database access.\nRead authoring-report.json and review the physical mappings, pending decisions,\nand existing validation findings before adoption. Publishable only describes\na quality threshold.\n\nFrom this candidate directory:\n\n```sh\nmetis project validate --project %s --config ./project.yaml\nmetis model inspect --model ./%s\n```\n\nFor the eventual deployment, register this Project and apply the logical\nDataSource named %s with independently managed connection configuration.\nThe model-level placement must resolve to that source. Author business metrics\nand relationships explicitly, then compile and run an authorized test query.\nmetis catalog inspect can capture fresh Doris/ClickHouse or optional DuckDB metadata separately.\nMetadata capture does not prove SELECT permission. Generation itself remains\noffline and has not contacted or validated a database. Use metis project validate --online with deployment configuration and an\nexplicit query inventory to check database planning acceptance. After manual\nmodel edits, validate and\nreview them independently; this generation report is not approval of those edits.\n", m.Project, m.Model, s.DataSource, "'"+strings.ReplaceAll(m.Project, "'", "'\\''")+"'", modelPath, s.DataSource)
 	return Candidate{Files: map[string][]byte{"project.yaml": project, modelPath: body, "authoring-report.json": append(rdata, '\n'), "GETTING_STARTED.md": []byte(guide)}, Report: report}, nil
 }
 
+// DuckDB's generated expressions use the portable ANSI subset.
+func authoringDialect(backend string) ossie.Dialect {
+	if backend == "duckdb" {
+		return ossie.DialectANSISQL
+	}
+	return ossie.Dialect(strings.ToUpper(backend))
+}
+
 func physicalSource(backend string, parts []string) (string, error) {
-	if backend == "clickhouse" && len(parts) != 2 || backend == "doris" && (len(parts) < 1 || len(parts) > 3) {
+	if backend == "clickhouse" && len(parts) != 2 || backend == "doris" && (len(parts) < 1 || len(parts) > 3) || backend == "duckdb" && (len(parts) < 2 || len(parts) > 3) {
 		return "", fmt.Errorf("unsupported identifier arity")
 	}
 	for _, part := range parts {
@@ -280,12 +293,17 @@ func physicalSource(backend string, parts []string) (string, error) {
 	var err error
 	if backend == "doris" {
 		rendered, err = (doris.Renderer{}).QuoteSource(value)
+	} else if backend == "duckdb" {
+		rendered, err = (duckdb.Renderer{}).QuoteSource(value)
 	} else {
 		rendered, err = (clickhouse.Renderer{}).QuoteSource(value)
 	}
 	expected := make([]string, len(parts))
 	for i, part := range parts {
 		expected[i] = "`" + part + "`"
+		if backend == "duckdb" {
+			expected[i] = "\"" + part + "\""
+		}
 	}
 	if err != nil || rendered != strings.Join(expected, ".") {
 		return "", fmt.Errorf("source identity changed during rendering")
@@ -369,6 +387,39 @@ func mapType(backend string, n NativeType) (ossie.DataType, bool) {
 					return ossie.DataTypeDateTimeTz, true
 				}
 				return ossie.DataTypeDateTime, true
+			}
+		}
+	} else if backend == "duckdb" {
+		switch name {
+		case "VARCHAR", "CHAR", "TEXT":
+			if n.Precision == nil && n.Scale == nil {
+				return ossie.DataTypeString, true
+			}
+		case "BOOLEAN", "BOOL":
+			if n.Precision == nil && n.Scale == nil {
+				return ossie.DataTypeBoolean, true
+			}
+		case "TINYINT", "SMALLINT", "INTEGER", "BIGINT", "HUGEINT", "UTINYINT", "USMALLINT", "UINTEGER", "UBIGINT", "UHUGEINT":
+			if n.Precision == nil && n.Scale == nil {
+				return ossie.DataTypeInteger, true
+			}
+		case "FLOAT", "DOUBLE":
+			if n.Precision == nil && n.Scale == nil {
+				return ossie.DataTypeFloat, true
+			}
+		case "DECIMAL":
+			decimal = true
+		case "DATE":
+			if n.Precision == nil && n.Scale == nil {
+				return ossie.DataTypeDate, true
+			}
+		case "TIMESTAMP", "TIMESTAMP_S", "TIMESTAMP_MS", "TIMESTAMP_NS":
+			if n.Scale == nil && n.Precision != nil && *n.Precision <= 9 {
+				return ossie.DataTypeDateTime, true
+			}
+		case "TIMESTAMP WITH TIME ZONE", "TIMESTAMPTZ":
+			if n.Scale == nil && n.Precision != nil && *n.Precision == 6 {
+				return ossie.DataTypeDateTimeTz, true
 			}
 		}
 	}

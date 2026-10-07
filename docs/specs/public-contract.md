@@ -12,7 +12,7 @@ ClickHouse relations using the same [catalog authoring contract](semantic/catalo
 
 `metis project validate` defaults to offline checks; explicit `--online` uses
 production routing, bounded catalog inspection and non-executing EXPLAIN for
-selected Doris/ClickHouse queries. Its flags and private report schema follow
+selected Doris/ClickHouse and optional DuckDB queries. Its flags and private report schema follow
 the [online validation contract](semantic/online-validation.md).
 
 The v0.1 compatibility surface is intentionally narrower than the set of exported Go identifiers in the repository.

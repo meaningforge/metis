@@ -32,6 +32,13 @@ func Describe(ctx context.Context, db *sql.DB, backend string, ref driver.Catalo
 		statement = "DESCRIBE TABLE " + strings.Join(quoted, ".") + " SETTINGS describe_include_subcolumns = 0"
 		nameField, typeField, nullField = "name", "type", ""
 	}
+	if backend == "duckdb" {
+		for i, part := range ref.Parts {
+			quoted[i] = "\"" + part + "\""
+		}
+		statement = "DESCRIBE " + strings.Join(quoted, ".")
+		nameField, typeField, nullField = "column_name", "column_type", "null"
+	}
 	rows, err := db.QueryContext(ctx, statement)
 	if err != nil {
 		return result, err

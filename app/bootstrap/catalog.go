@@ -93,8 +93,8 @@ func LoadCatalogRunner(ctx context.Context, configPath, project, dataSource stri
 			selected.Policy.QueryTimeout = ceilings.QueryTimeout.String()
 		}
 	}
-	if selected.Type != "doris" && selected.Type != "clickhouse" {
-		return nil, catalogConfigError("catalog inspection supports Doris and ClickHouse")
+	if selected.Type != "doris" && selected.Type != "clickhouse" && selected.Type != "duckdb" {
+		return nil, catalogConfigError("catalog inspection supports Doris, ClickHouse and optional DuckDB")
 	}
 	binding, err := opts.backends.Resolve(selected.Type)
 	if err != nil || binding.DriverFactory.ValidateConfig(selected.ConfigSnapshot()) != nil {

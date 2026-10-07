@@ -145,7 +145,7 @@ fault setup needed to trigger that behavior.
 
 ## Optional catalog inspection
 
-The built-in Doris and ClickHouse leases also implement the optional
+The built-in Doris, ClickHouse and optional DuckDB leases also implement the optional
 `driver.CatalogInspector` capability used by
 [`metis catalog inspect`](../semantic/catalog-authoring.md). It inspects exact
 qualified relations and returns bounded column/type/nullability evidence, not
@@ -161,7 +161,8 @@ source compatibility and does not widen the stable extension closure above.
 ## Optional online validation
 
 `driver.CompiledQueryValidator` checks compiled artifacts using a demonstrated
-non-executing method. Doris and ClickHouse use ordinary EXPLAIN, discard bounded
+non-executing method. Doris and ClickHouse use ordinary EXPLAIN; DuckDB uses native
+prepared EXPLAIN with positional bindings. All discard bounded
 planning output and honor the same pool/lease deadlines. Unsupported parameter
 shapes remain unsupported; adapters cannot interpolate values or execute SELECT
 as a fallback. Runner preserves the exact Backend/Renderer route, validates the

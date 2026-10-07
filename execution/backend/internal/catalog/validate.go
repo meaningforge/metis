@@ -3,6 +3,7 @@ package catalog
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -18,10 +19,10 @@ func Explain(ctx context.Context, db *sql.DB, compiled *artifact.CompiledQuery, 
 	if compiled == nil || db == nil || limits.MaxColumns <= 0 || limits.MaxBytes <= 0 {
 		return evidence, fmt.Errorf("invalid validation operation")
 	}
-	if backend != "doris" && backend != "clickhouse" {
+	if backend != "doris" && backend != "clickhouse" && backend != "duckdb" {
 		return evidence, nil
 	}
-	if len(compiled.SqlRenderResult.Parameters) > 0 {
+	if len(compiled.SqlRenderResult.Parameters) > 0 && backend != "duckdb" {
 		return evidence, nil
 	}
 	statement := strings.TrimSpace(compiled.SqlRenderResult.SQL)
@@ -29,7 +30,31 @@ func Explain(ctx context.Context, db *sql.DB, compiled *artifact.CompiledQuery, 
 	if !(strings.HasPrefix(upper, "SELECT ") || strings.HasPrefix(upper, "SELECT\n") || strings.HasPrefix(upper, "WITH ") || strings.HasPrefix(upper, "WITH\n")) {
 		return evidence, nil
 	}
-	rows, err := db.QueryContext(ctx, "EXPLAIN "+statement)
+	var arguments []any
+	if backend == "duckdb" {
+		for _, p := range compiled.SqlRenderResult.Parameters {
+			value := p.Value
+			if number, ok := value.(json.Number); ok {
+				value = number.String()
+			}
+			arguments = append(arguments, value)
+		}
+	}
+	var rows *sql.Rows
+	if backend == "duckdb" {
+		prepared, prepareErr := db.PrepareContext(ctx, "EXPLAIN "+statement)
+		if prepareErr != nil {
+			return driver.ValidationEvidence{}, prepareErr
+		}
+		defer func() {
+			if closeErr := prepared.Close(); err == nil && closeErr != nil {
+				err = closeErr
+			}
+		}()
+		rows, err = prepared.QueryContext(ctx, arguments...)
+	} else {
+		rows, err = db.QueryContext(ctx, "EXPLAIN "+statement, arguments...)
+	}
 	if err != nil {
 		return driver.ValidationEvidence{}, err
 	}
