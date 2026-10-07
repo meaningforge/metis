@@ -163,6 +163,9 @@ func Run(ctx context.Context, config, project string, inventory Inventory, optio
 		}
 		if !matched {
 			c.Outcome = "failed"
+			if c.Code == "source_type_unknown" || c.Code == "catalog_incomplete" {
+				c.Outcome = "unsupported"
+			}
 			continue
 		}
 		c.CatalogChecked = true
@@ -215,7 +218,7 @@ func WriteReport(path string, report Report) error {
 	}
 	file, err := os.CreateTemp(filepath.Dir(path), ".metis-validation-*")
 	if err != nil {
-		return fmt.Errorf("cannot stage validation report")
+		return fmt.Errorf("cannot create validation report temporary file")
 	}
 	defer os.Remove(file.Name())
 	_, writeErr := file.Write(append(data, '\n'))
