@@ -19,7 +19,7 @@ func TestProjectInitCommandCreatesOfflineCandidates(t *testing.T) {
 			mapping := "../../examples/authoring/model-map.yaml"
 			dir := t.TempDir()
 			out := filepath.Join(dir, "candidate")
-			args := []string{"project", "init", "--catalog", catalog, "--mapping", mapping, "--output", out}
+			args := []string{"semantic", "init", "--catalog", catalog, "--mapping", mapping, "--output", out}
 			if code := runOffline(args); code != 0 {
 				t.Fatalf("exit=%d", code)
 			}

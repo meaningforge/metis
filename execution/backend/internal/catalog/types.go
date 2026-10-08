@@ -133,7 +133,7 @@ func parse(value string, clickhouse bool) (driver.CatalogNativeType, string, err
 			}
 		}
 	default:
-		// Complex/unsupported types remain opaque evidence; project init requires
+		// Complex/unsupported types remain opaque evidence; semantic init requires
 		// explicit exclusion when it cannot represent them without a cast.
 	}
 	return native, "unknown", err

@@ -16,7 +16,7 @@ export METIS_BIN="$PWD/bin/metis"
 For an already installed binary, use `export METIS_BIN=metis` instead.
 
 Run the following commands from the repository root. Database setup is explicit
-and external: neither `catalog inspect` nor `project init` creates or changes
+and external: neither `catalog inspect` nor `semantic init` creates or changes
 database objects. Use a disposable development warehouse, never production.
 
 ## 1. Prepare one fresh dataset
@@ -99,7 +99,7 @@ bash examples/authoring/live/prepare.sh clickhouse ./demo-clickhouse
 ```
 
 Choose one and use a fresh work directory. The script copies reference-only
-configuration privately, runs `catalog inspect`, `project init`, `project validate`
+configuration privately, runs `catalog inspect`, `semantic init`, `semantic validate`
 and `query compile`. It performs no setup SQL, grants, row sampling or automatic
 business-model adoption. It works before `candidate-sales/project.yaml` exists.
 The generated model selects three columns, omits `internal_note`, and contains
@@ -132,7 +132,7 @@ fresh candidate; the generator itself never overwrites it:
 
 ```sh
 cp "$DEMO/model-reviewed.ossie.yaml" "$DEMO/candidate-sales/models/sales.ossie.yaml"
-"$METIS_BIN" project validate --project sales --config "$DEMO/candidate-sales/project.yaml"
+"$METIS_BIN" semantic validate --project sales --config "$DEMO/candidate-sales/project.yaml"
 "$METIS_BIN" query compile --model "$DEMO/candidate-sales/models/sales.ossie.yaml" \
   --dialect DORIS --metric order_rows --metric total_revenue --dimension region \
   --output "$DEMO/reviewed-query.json"
@@ -145,7 +145,7 @@ provenance, and validate/review edits separately before any deployment.
 ## 4. Validate against the configured engine, then check results
 
 ```sh
-"$METIS_BIN" project validate --online --project sales --config "$DEMO/metis.yaml" \
+"$METIS_BIN" semantic validate --online --project sales --config "$DEMO/metis.yaml" \
   --queries "$DEMO/queries.json" --output "$DEMO/validation.json"
 ```
 
@@ -160,7 +160,7 @@ Accepted plans do not certify values or guarantee a later SELECT.
 Always use fresh report paths.
 
 ```sh
-"$METIS_BIN" project test --mode runtime --project sales --config "$DEMO/metis.yaml" \
+"$METIS_BIN" semantic test --mode runtime --project sales --config "$DEMO/metis.yaml" \
   --suite "$DEMO/results.yaml" --output "$DEMO/results.json"
 ```
 

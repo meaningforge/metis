@@ -15,13 +15,13 @@ generator; no database is needed for this walkthrough.
 From the repository root after building `bin/metis`:
 
 ```sh
-bin/metis project init --catalog examples/authoring/catalog-doris.json \
+bin/metis semantic init --catalog examples/authoring/catalog-doris.json \
   --mapping examples/authoring/model-map.yaml --output ./candidate-doris
-bin/metis project validate --project sales --config ./candidate-doris/project.yaml
+bin/metis semantic validate --project sales --config ./candidate-doris/project.yaml
 
-bin/metis project init --catalog examples/authoring/catalog-clickhouse.json \
+bin/metis semantic init --catalog examples/authoring/catalog-clickhouse.json \
   --mapping examples/authoring/model-map.yaml --output ./candidate-clickhouse
-bin/metis project validate --project sales --config ./candidate-clickhouse/project.yaml
+bin/metis semantic validate --project sales --config ./candidate-clickhouse/project.yaml
 ```
 
 `model-map.yaml` deliberately selects three fields and omits `InternalNote`.
@@ -68,9 +68,9 @@ three-part `catalog.database.table` selectors. ClickHouse requires two parts.
 ```sh
 metis catalog inspect --config ./metis.yaml --project sales \
   --data-source warehouse --relations ./relations.json --output ./catalog.json
-metis project init --catalog ./catalog.json --mapping ./model-map.yaml \
+metis semantic init --catalog ./catalog.json --mapping ./model-map.yaml \
   --output ./candidate-sales
-metis project validate --project sales --config ./candidate-sales/project.yaml
+metis semantic validate --project sales --config ./candidate-sales/project.yaml
 ```
 
 Only the selected table's column metadata is read; no row data, database crawl,

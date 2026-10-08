@@ -1,4 +1,4 @@
-# Manually authored for the disposable sample, never inferred by project init.
+# Manually authored for the disposable sample, never inferred by semantic init.
 version: "0.2.0.dev0"
 semantic_model:
   - name: sales

@@ -19,7 +19,7 @@ import (
 )
 
 func validateProject(args []string) int {
-	fs := flag.NewFlagSet("metis project validate", flag.ContinueOnError)
+	fs := flag.NewFlagSet("metis semantic validate", flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
 	project := fs.String("project", "", "stable project ID")
 	config := fs.String("config", "", "semantic project manifest (offline) or deployment configuration (--online)")
@@ -34,26 +34,26 @@ func validateProject(args []string) int {
 		return 2
 	}
 	if strings.TrimSpace(*project) == "" || strings.TrimSpace(*config) == "" || fs.NArg() != 0 || (*online && *offline) || (*online && (*queries == "" || *output == "")) || (!*online && (*queries != "" || *output != "")) {
-		fmt.Fprintln(os.Stderr, "metis project validate: --project and --config are required; --online additionally requires --queries and --output; --online and --offline are mutually exclusive")
+		fmt.Fprintln(os.Stderr, "metis semantic validate: --project and --config are required; --online additionally requires --queries and --output; --online and --offline are mutually exclusive")
 		return 2
 	}
 	if *online {
 		if _, err := canonicalReportPath(*output); err != nil {
-			fmt.Fprintln(os.Stderr, "metis project validate: report parent directory must exist")
+			fmt.Fprintln(os.Stderr, "metis semantic validate: report parent directory must exist")
 			return 2
 		}
 		if _, err := os.Lstat(*output); err == nil || !os.IsNotExist(err) {
-			fmt.Fprintln(os.Stderr, "metis project validate: use a fresh report output path")
+			fmt.Fprintln(os.Stderr, "metis semantic validate: use a fresh report output path")
 			return 2
 		}
 		inventory, err := validation.LoadInventory(*queries, *project)
 		if err != nil {
-			fmt.Fprintln(os.Stderr, "metis project validate:", err)
+			fmt.Fprintln(os.Stderr, "metis semantic validate:", err)
 			return 2
 		}
 		backends, err := defaultBackends()
 		if err != nil {
-			fmt.Fprintln(os.Stderr, "metis project validate: backend assembly failed")
+			fmt.Fprintln(os.Stderr, "metis semantic validate: backend assembly failed")
 			return 2
 		}
 		ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -61,11 +61,11 @@ func validateProject(args []string) int {
 		ctx = auth.WithPrincipal(ctx, &auth.Principal{TenantID: "local", SubjectID: "project-validation", Scopes: []string{auth.ScopeSemanticAuthor, auth.ScopeSemanticCompile}})
 		report, err := validation.Run(ctx, *config, *project, inventory, bootstrap.WithBackendRegistry(backends), bootstrap.WithSecretResolver(runner.NewEnvSecretResolver()), bootstrap.WithLocalAllAccessProjectAuthorization())
 		if err != nil {
-			fmt.Fprintln(os.Stderr, "metis project validate: invalid input")
+			fmt.Fprintln(os.Stderr, "metis semantic validate: invalid input")
 			return 2
 		}
 		if err := validation.WriteReport(*output, report); err != nil {
-			fmt.Fprintln(os.Stderr, "metis project validate:", err)
+			fmt.Fprintln(os.Stderr, "metis semantic validate:", err)
 			return 2
 		}
 		if err := writeCLIJSON(report); err != nil {
@@ -91,7 +91,7 @@ func validateProject(args []string) int {
 }
 
 func inspectProject(args []string) int {
-	fs := flag.NewFlagSet("metis project inspect", flag.ContinueOnError)
+	fs := flag.NewFlagSet("metis semantic inspect", flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
 	project := fs.String("project", "", "stable project ID")
 	config := fs.String("config", "", "semantic project manifest")
@@ -102,7 +102,7 @@ func inspectProject(args []string) int {
 		return 2
 	}
 	if strings.TrimSpace(*project) == "" || strings.TrimSpace(*config) == "" {
-		fmt.Fprintln(os.Stderr, "metis project inspect: --project and --config are required")
+		fmt.Fprintln(os.Stderr, "metis semantic inspect: --project and --config are required")
 		return 2
 	}
 	candidate, err := source.LoadProject(*project, *config)
@@ -154,7 +154,7 @@ func inspectProject(args []string) int {
 }
 
 func diffProject(args []string) int {
-	fs := flag.NewFlagSet("metis project diff", flag.ContinueOnError)
+	fs := flag.NewFlagSet("metis semantic diff", flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
 	project := fs.String("project", "", "stable project ID")
 	baseConfig := fs.String("base-config", "", "base semantic project manifest")
@@ -166,7 +166,7 @@ func diffProject(args []string) int {
 		return 2
 	}
 	if strings.TrimSpace(*project) == "" || strings.TrimSpace(*baseConfig) == "" || strings.TrimSpace(*candidateConfig) == "" {
-		fmt.Fprintln(os.Stderr, "metis project diff: --project, --base-config, and --candidate-config are required")
+		fmt.Fprintln(os.Stderr, "metis semantic diff: --project, --base-config, and --candidate-config are required")
 		return 2
 	}
 	base, err := source.LoadProject(*project, *baseConfig)

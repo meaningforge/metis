@@ -38,7 +38,7 @@ func main() {
 	switch os.Args[1] {
 	case "catalog":
 		os.Exit(runCatalog(os.Args[2:]))
-	case "model", "project", "query":
+	case "model", "semantic", "query":
 		os.Exit(runOffline(os.Args[1:]))
 	case "validate":
 		validate(os.Args[2:])
@@ -59,7 +59,7 @@ func main() {
 }
 
 func commandLogWriter(args []string) io.Writer {
-	if len(args) > 1 && (args[1] == "mcp" || args[1] == "model" || args[1] == "project" || args[1] == "query" || args[1] == "catalog") {
+	if len(args) > 1 && (args[1] == "mcp" || args[1] == "model" || args[1] == "semantic" || args[1] == "query" || args[1] == "catalog") {
 		return os.Stderr
 	}
 	return os.Stdout

@@ -23,9 +23,9 @@ done
 cp "${example_dir}/../datasources-${backend}.yaml" "${work_dir}/datasources.yaml"
 "${metis_bin}" catalog inspect --config "${work_dir}/metis.yaml" --project sales \
   --data-source warehouse --relations "${work_dir}/relations.json" --output "${work_dir}/catalog.json"
-"${metis_bin}" project init --catalog "${work_dir}/catalog.json" \
+"${metis_bin}" semantic init --catalog "${work_dir}/catalog.json" \
   --mapping "${work_dir}/model-map.yaml" --output "${work_dir}/candidate-sales"
-"${metis_bin}" project validate --project sales --config "${work_dir}/candidate-sales/project.yaml"
+"${metis_bin}" semantic validate --project sales --config "${work_dir}/candidate-sales/project.yaml"
 "${metis_bin}" query compile --model "${work_dir}/candidate-sales/models/sales.ossie.yaml" \
   --dialect "${backend}" --metric order_rows --dimension region --output "${work_dir}/generated-count.json"
 echo 'Candidate ready. Review the report and explicit business definition before adopting model-reviewed.ossie.yaml.'

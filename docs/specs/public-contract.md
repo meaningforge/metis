@@ -4,20 +4,25 @@ This specification defines which Metis names and interfaces are intended to be s
 
 ## Compatibility surface
 
-`metis project init` consumes the versioned catalog/map contract and emits a local
+The semantic-authoring CLI group is `metis semantic`, with `init`, `inspect`,
+`validate`, `diff` and `test`. The former `project` group is removed, not an alias.
+This naming change does not rename `--project`, `project.yaml`, serialized Project
+identities, REST/MCP requests or the Project authorization boundary.
+
+`metis semantic init` consumes the versioned catalog/map contract and emits a local
 Ossie candidate as documented in [offline catalog authoring](semantic/catalog-authoring.md).
 It exposes developer tooling rather than new REST/MCP requests or publication
 state. `metis catalog inspect` captures bounded metadata for explicit Doris and
 ClickHouse relations using the same [catalog authoring contract](semantic/catalog-authoring.md).
 
-`metis project validate` defaults to offline checks; explicit `--online` uses
+`metis semantic validate` defaults to offline checks; explicit `--online` uses
 production routing, bounded catalog inspection and non-executing EXPLAIN for
 selected Doris/ClickHouse and optional DuckDB queries. Its flags and private report schema follow
 the [online validation contract](semantic/online-validation.md).
 
 The v0.1 compatibility surface is intentionally narrower than the set of exported Go identifiers in the repository.
 
-`metis project test` is a project-author developer tool, not an additional query
+`metis semantic test` is a project-author developer tool, not an additional query
 or analytics operation. Its [suite and report contract](testing/project-compile-regression.md)
 covers offline compilation and runtime metric-result checks. It does not expose
 fixture management, arbitrary assertions, or host-policy testing. Internal engine
@@ -230,7 +235,7 @@ Embedders may replace one Project's semantic generation through the
 [Manager API](operations/semantic-runtime-activation.md). Core provides no
 runtime administration HTTP endpoint.
 
-`metis model`, `metis project`, and `metis query` provide offline model/project
+`metis model`, `metis semantic`, and `metis query` provide offline model/project
 validation, inspection, formatting, comparison, and compilation.
 `metis query compile` emits a query object with `dialect`, `sql`,
 and optional `parameters`. Parameter values remain separate from SQL text.

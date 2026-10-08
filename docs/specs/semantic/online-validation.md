@@ -1,12 +1,12 @@
 # Online project validation
 
-`metis project validate` defaults to offline loading, semantic checks and quality
+`metis semantic validate` defaults to offline loading, semantic checks and quality
 diagnostics. `--offline` makes that choice explicit. `--online` checks a caller's
 query inventory against Doris, ClickHouse or optional DuckDB using production routing and EXPLAIN.
 
 ```sh
-metis project validate --offline --project sales --config ./sales/project.yaml
-metis project validate --online --project sales --config ./metis.yaml \
+metis semantic validate --offline --project sales --config ./sales/project.yaml
+metis semantic validate --online --project sales --config ./metis.yaml \
   --queries ./queries.json --output ./validation.json
 ```
 
@@ -59,7 +59,7 @@ other versions receive evidence from their own observed runs.
 
 Reports exclude SQL, values, source excerpts, physical identities, endpoints,
 credentials and raw database errors. EXPLAIN acceptance concerns planning at the
-observed time. Use `metis project test` for independently authored result expectations;
+observed time. Use `metis semantic test` for independently authored result expectations;
 later SELECT permissions and database state can still change.
 
 See [RFC-0088](../../proposals/tooling/0088-online-semantic-validation.md) for

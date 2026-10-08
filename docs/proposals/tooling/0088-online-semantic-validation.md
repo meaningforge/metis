@@ -7,7 +7,7 @@
 
 ## Summary
 
-Extend `metis project validate` with explicit `--online` and `--offline`
+Extend `metis semantic validate` with explicit `--online` and `--offline`
 flags. Default validation remains offline. Online checks a selected query inventory
 using production routing, the exact Renderer, physical column metadata and ordinary
 non-executing EXPLAIN. Initial backends are Doris and ClickHouse; the optional
@@ -15,16 +15,16 @@ DuckDB build also supports native prepared EXPLAIN with positional bindings.
 Its existing database file is opened read-only and no SELECT fallback is allowed.
 
 Catalog capture stays `metis catalog inspect`; result expectations stay
-`metis project test`. No additional runtime command or catalog-only mode is added.
+`metis semantic test`. No additional runtime command or catalog-only mode is added.
 
 ## Commands and input
 
 ```sh
 # Offline: semantic project manifest.
-metis project validate --offline --project sales --config ./sales/project.yaml
+metis semantic validate --offline --project sales --config ./sales/project.yaml
 
 # Online: deployment root registering the project and sources.
-metis project validate --online --project sales --config ./metis.yaml \
+metis semantic validate --online --project sales --config ./metis.yaml \
   --queries ./queries.json --output ./validation.json
 ```
 

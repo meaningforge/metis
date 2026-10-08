@@ -24,7 +24,7 @@ for file in model-map.yaml queries.json queries-filtered.json results.yaml; do
 done
 "${metis_bin}" catalog inspect --config "${work_dir}/metis.yaml" --project sales \
   --data-source warehouse --relations "${work_dir}/relations.json" --output "${work_dir}/catalog.json"
-"${metis_bin}" project init --catalog "${work_dir}/catalog.json" \
+"${metis_bin}" semantic init --catalog "${work_dir}/catalog.json" \
   --mapping "${work_dir}/model-map.yaml" --output "${work_dir}/candidate-sales"
-"${metis_bin}" project validate --offline --project sales --config "${work_dir}/candidate-sales/project.yaml"
+"${metis_bin}" semantic validate --offline --project sales --config "${work_dir}/candidate-sales/project.yaml"
 echo 'Candidate ready. Review mappings and business semantics before adopting model-reviewed.ossie.yaml.'

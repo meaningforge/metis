@@ -43,12 +43,12 @@ configuration for a remote deployment. Never commit secret values.
 From the repository root, after building `bin/metis`:
 
 ```sh
-bin/metis project test --mode runtime --project regression \
+bin/metis semantic test --mode runtime --project regression \
   --config examples/regression/metis-doris.yaml \
   --suite examples/regression/results.yaml \
   --output ./doris-results.json --junit-output ./doris-results.xml
 
-bin/metis project test --mode runtime --project regression \
+bin/metis semantic test --mode runtime --project regression \
   --config examples/regression/metis-clickhouse.yaml \
   --suite examples/regression/results.yaml \
   --output ./clickhouse-results.json --junit-output ./clickhouse-results.xml

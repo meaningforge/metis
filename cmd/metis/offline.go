@@ -20,6 +20,10 @@ func (m *multiFlag) String() string     { return strings.Join(*m, ",") }
 func (m *multiFlag) Set(v string) error { *m = append(*m, v); return nil }
 
 func runOffline(args []string) int {
+	if len(args) == 0 || (args[0] != "model" && args[0] != "semantic" && args[0] != "query") {
+		offlineUsage()
+		return 2
+	}
 	if len(args) < 2 {
 		offlineUsage()
 		return 2
@@ -38,7 +42,7 @@ func runOffline(args []string) int {
 		case "format":
 			return formatModel(args[2:])
 		}
-	case "project":
+	case "semantic":
 		switch args[1] {
 		case "init":
 			return initProject(args[2:])
@@ -312,11 +316,11 @@ func offlineUsage() {
 	fmt.Fprintln(os.Stderr, "  metis model validate --model <ossie.yaml>")
 	fmt.Fprintln(os.Stderr, "  metis model inspect --model <ossie.yaml>")
 	fmt.Fprintln(os.Stderr, "  metis model format --model <ossie.yaml> --output <formatted.yaml>")
-	fmt.Fprintln(os.Stderr, "  metis project init --catalog <catalog.json> --mapping <mapping.yaml> --output <new-directory>")
-	fmt.Fprintln(os.Stderr, "  metis project validate [--offline] --project <id> --config <project.yaml>")
-	fmt.Fprintln(os.Stderr, "  metis project validate --online --project <id> --config <metis.yaml> --queries <queries.json> --output <report.json>")
-	fmt.Fprintln(os.Stderr, "  metis project inspect --project <id> --config <project.yaml>")
-	fmt.Fprintln(os.Stderr, "  metis project diff --project <id> --base-config <project.yaml> --candidate-config <project.yaml>")
-	fmt.Fprintln(os.Stderr, "  metis project test --mode compile --project <id> --config <project.yaml> --suite <suite.yaml> --dialect <dialect> --output <report.json>")
-	fmt.Fprintln(os.Stderr, "  metis project test --mode runtime --project <id> --config <metis.yaml> --suite <suite.yaml> --output <report.json> [--junit-output <report.xml>]")
+	fmt.Fprintln(os.Stderr, "  metis semantic init --catalog <catalog.json> --mapping <mapping.yaml> --output <new-directory>")
+	fmt.Fprintln(os.Stderr, "  metis semantic validate [--offline] --project <id> --config <project.yaml>")
+	fmt.Fprintln(os.Stderr, "  metis semantic validate --online --project <id> --config <metis.yaml> --queries <queries.json> --output <report.json>")
+	fmt.Fprintln(os.Stderr, "  metis semantic inspect --project <id> --config <project.yaml>")
+	fmt.Fprintln(os.Stderr, "  metis semantic diff --project <id> --base-config <project.yaml> --candidate-config <project.yaml>")
+	fmt.Fprintln(os.Stderr, "  metis semantic test --mode compile --project <id> --config <project.yaml> --suite <suite.yaml> --dialect <dialect> --output <report.json>")
+	fmt.Fprintln(os.Stderr, "  metis semantic test --mode runtime --project <id> --config <metis.yaml> --suite <suite.yaml> --output <report.json> [--junit-output <report.xml>]")
 }
