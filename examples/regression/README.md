@@ -69,6 +69,8 @@ Use a fresh, private artifact directory per run. The supplied
 `2`. Do not add `|| true`, `continue-on-error`, or a successful upload command
 in place of checking that exit status. Compile/schema checks alone cannot
 detect changing `SUM` to `AVG`: APAC would become `60` instead of `120`.
+The wrapper exclusively creates its private console log and refuses existing
+files or symlinks before running the suite, so a log cannot overwrite inputs.
 
 For example, these steps can be added to an existing GitHub Actions job after
 building Metis and independently preparing the read-only Doris fixture:

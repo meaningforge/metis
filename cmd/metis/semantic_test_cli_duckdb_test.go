@@ -180,4 +180,28 @@ INSERT INTO metis_regression.orders VALUES ('APAC',50), ('APAC',70), ('EMEA',80)
 			}
 		})
 	}
+	t.Run("existing_log_alias_is_preserved", func(t *testing.T) {
+		source := filepath.Join(dir, "results.yaml")
+		before, err := os.ReadFile(source)
+		if err != nil {
+			t.Fatal(err)
+		}
+		alias := filepath.Join(dir, "existing-log")
+		if err := os.Symlink(source, alias); err != nil {
+			t.Fatal(err)
+		}
+		output := filepath.Join(dir, "must-not-execute.json")
+		command := exec.CommandContext(ctx, "bash", filepath.Join(root, "examples/regression/run-ci.sh"), "--mode", "runtime", "--project", "regression", "--config", filepath.Join(dir, "metis.yaml"), "--suite", source, "--output", output)
+		command.Env = append(os.Environ(), "METIS_BIN="+binary, "METIS_CI_LOG="+alias)
+		if result, err := command.CombinedOutput(); err == nil {
+			t.Fatalf("existing log alias must be rejected: %s", result)
+		}
+		after, err := os.ReadFile(source)
+		if err != nil || string(before) != string(after) {
+			t.Fatal("CI log creation overwrote the suite")
+		}
+		if _, err := os.Stat(output); !os.IsNotExist(err) {
+			t.Fatal("suite executed before refusing the existing log alias")
+		}
+	})
 }
