@@ -1,0 +1,27 @@
+version: "0.2.0.dev0"
+semantic_model:
+  - name: order_details
+    datasets:
+      - name: orders
+        source: analytics.fanout_orders
+        primary_key: [order_id]
+        fields:
+          - {name: order_id, datatype: String, expression: {dialects: [{dialect: ANSI_SQL, expression: orders.order_id}]}}
+          - {name: amount, datatype: Decimal, expression: {dialects: [{dialect: ANSI_SQL, expression: orders.amount}]}}
+      - name: details
+        source: analytics.fanout_details
+        primary_key: [detail_id]
+        fields:
+          - {name: detail_id, datatype: String, expression: {dialects: [{dialect: ANSI_SQL, expression: details.detail_id}]}}
+          - {name: order_id, datatype: String, expression: {dialects: [{dialect: ANSI_SQL, expression: details.order_id}]}}
+          - {name: kind, datatype: String, expression: {dialects: [{dialect: ANSI_SQL, expression: details.kind}]}, dimension: {}}
+    relationships:
+      - name: orders_to_details
+        from: orders
+        to: details
+        from_columns: [order_id]
+        to_columns: [order_id]
+    metrics:
+      - name: revenue
+        datatype: Decimal
+        expression: {dialects: [{dialect: ANSI_SQL, expression: "SUM(orders.amount)"}]}

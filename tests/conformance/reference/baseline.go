@@ -50,6 +50,16 @@ type Case struct {
 // default. Per-case target overrides are intentionally sparse and exist only for
 // backend-specific exceptions that capabilities cannot express precisely.
 var Baseline = []Case{
+	// Hand-calculated combination regressions; all registered native targets
+	// must execute the same logical inputs and output expectations.
+	{Scenario: "calendar_month_end_and_missing_period", Importance: ImportanceRequired, Origin: OriginManualOracle},
+	{Scenario: "rolling_window_before_output_range", Importance: ImportanceRequired, Origin: OriginManualOracle},
+	{Scenario: "nested_derived_order_limit_after_aggregation", Importance: ImportanceRequired, Origin: OriginManualOracle},
+	{Scenario: "aggregate_order_limit_after_grouping", Importance: ImportanceRequired, Origin: OriginManualOracle},
+	{Scenario: "distinct_entity_across_periods_global", Importance: ImportanceRequired, Origin: OriginManualOracle},
+	{Scenario: "distinct_entity_across_periods_grouped", Importance: ImportanceRequired, Origin: OriginManualOracle},
+	{Scenario: "fanout_base_population_unchanged", Importance: ImportanceRequired, Origin: OriginManualOracle},
+	{Scenario: "semi_additive_last_ties_then_account_rollup", Importance: ImportanceRequired, Origin: OriginManualOracle},
 	// Foundational aggregation, grouping, query-shape, and ordering behavior.
 	{Scenario: "simple_metric", Importance: ImportanceRequired, Origin: OriginExternalReference},
 	{Scenario: "multiple_metrics_same_source", Importance: ImportanceRequired, Origin: OriginExternalReference},

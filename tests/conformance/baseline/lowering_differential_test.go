@@ -15,14 +15,18 @@ import (
 // changing shape should be visible by name rather than only by fingerprint.
 func TestCompactCorpusIsRecorded(t *testing.T) {
 	recorded := []string{
+		"aggregate_order_limit_after_grouping",
 		"aggregation_null_zero_negative",
 		"aggregation_variants",
 		"cross_dataset_leaf_metric",
 		"dimensions_only",
 		"dimensions_only_filter_order_limit",
 		"distinct_dimension_values",
+		"distinct_entity_across_periods_global",
+		"distinct_entity_across_periods_grouped",
 		"duplicate_invariant_filtered_fanout",
 		"filters_order_limit",
+		"fanout_base_population_unchanged",
 		"grouping_null_dimension",
 		"joined_dimension_filter",
 		"joined_dimension_filter_order_limit",

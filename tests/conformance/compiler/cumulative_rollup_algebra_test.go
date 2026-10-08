@@ -13,13 +13,14 @@ import (
 	"github.com/meaningforge/metis/renderer/sql"
 	"github.com/meaningforge/metis/resolver"
 	"github.com/meaningforge/metis/serrors"
+	"github.com/meaningforge/metis/tests/conformance/evidence"
 	"github.com/meaningforge/metis/tests/conformance/fixtures"
 )
 
 // cumulativeOverBase rewrites the commerce fixture so cumulative_revenue
 // accumulates a base metric with the given aggregation expression, and compiles
 // it at a monthly grain.
-func cumulativeOverBase(t *testing.T, baseExpression string) (sql.SqlRenderResult, error) {
+func cumulativeOverBase(t *testing.T, baseExpression string, dialects ...string) (sql.SqlRenderResult, error) {
 	t.Helper()
 	const originalBase = `      - name: cumulative_revenue
         datatype: Decimal
@@ -60,7 +61,11 @@ func cumulativeOverBase(t *testing.T, baseExpression string) (sql.SqlRenderResul
 		Metrics:    []query.MetricRef{{Name: "cumulative_revenue"}},
 		Dimensions: []query.DimensionRef{{Name: "order_date", Grain: &grain}},
 	}
-	renderer := mustRenderer(t, "DORIS")
+	dialect := "DORIS"
+	if len(dialects) != 0 {
+		dialect = dialects[0]
+	}
+	renderer := mustRenderer(t, dialect)
 	resolved, err := resolver.New(manifest.NewStore(snapshot)).ResolveForRenderer(context.Background(), semanticQuery, renderer)
 	if err != nil {
 		t.Fatal("resolve:", err)
@@ -74,6 +79,21 @@ func cumulativeOverBase(t *testing.T, baseExpression string) (sql.SqlRenderResul
 		return sql.SqlRenderResult{}, err
 	}
 	return sqlQuery, nil
+}
+
+// The shared global/grouped result cases show why summing DISTINCT partials
+// is not global uniqueness. Every target must refuse a rollup that lost its
+// entity state, rather than rendering SUM(per_period_distinct_count).
+func TestDistinctRegroupRejectsLostStateAcrossTargets(t *testing.T) {
+	for _, target := range evidence.CompilerTargets() {
+		t.Run(target.Dialect, func(t *testing.T) {
+			_, err := cumulativeOverBase(t, "COUNT(DISTINCT orders.customer_id)", target.Dialect)
+			var typed *serrors.Error
+			if !errors.As(err, &typed) || typed.Code != serrors.ErrInvalidMetricRollup || typed.Details["rollup_algebra"] != "HOLISTIC" {
+				t.Fatalf("distinct rollup error = %v, want HOLISTIC invalid metric rollup", err)
+			}
+		})
+	}
 }
 
 // A cumulative metric merges its base metric's partial results. Which operator
