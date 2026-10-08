@@ -1,6 +1,6 @@
 # A2SBench architecture
 
-A2SBench (Agent-to-SQL Benchmark) is the engine-neutral agent-evaluation CLI shipped from
+A2SBench (Agent-to-SQL Benchmark) is the Metis Core agent-evaluation CLI shipped from
 `cmd/a2sbench`. It is separate from the offline `metis` commands: `metis`
 compiles and inspects Ossie models, while A2SBench coordinates benchmark workloads, installed
 Agents, evidence, and reports. It does not create a second semantic authoring,
@@ -8,17 +8,18 @@ compilation, query-serving or project-regression implementation.
 
 The benchmark owns frozen business questions, agent/model identity, budgets,
 attempts, independently reviewed expected results, scoring and reproducible
-evidence. Interface adapters own engine-specific tool names, authentication,
-request/response decoding and runtime assembly. Physical database fixtures are
-execution targets, a separate dimension from the semantic interface under test.
-Adding another semantic engine must add an explicit adapter, not a Metis-shaped
-requirement to the benchmark protocol or a new scoring rule favoring that engine.
+evidence. Metis MCP is the system under test; OKF assets/direct SQL are
+controlled comparison baselines. The Metis integration owns its tool protocol,
+authentication, response decoding and runtime assembly. Physical database
+fixtures are execution targets, not alternative semantic engines under test.
 
-The current executable implements OKF assets and Metis MCP adapters. Some frozen
-suites, scenario queries and evidence decoders are Metis-specific and remain
-identified as such; renaming does not establish arbitrary-engine interoperability.
-Agent-driver extension points are not semantic-engine adapters. The existing
-result oracle judges independently reviewed results rather than matching Metis SQL.
+The purpose is specifically to measure agent use of Metis Core, not to build a
+general multi-semantic-engine benchmark platform. Metis-specific suites, queries
+and evidence decoders are intentional. Different agent/model drivers are still
+supported. Neutrality means equal budgets and comparable conditions, independent
+result expectations and unbiased scoring: success is not defined by matching
+Metis SQL spelling or output aliases. Changing the name does not change frozen
+questions, report semantics or experimental results.
 
 CLI/build/package names use `a2sbench` only; no `s2sbench` command alias is shipped.
 Existing versioned input/driver protocol identifiers and the `.s2sbench` lifecycle

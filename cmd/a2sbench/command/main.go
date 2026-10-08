@@ -10,10 +10,10 @@ import (
 func NewRoot(stdout, stderr io.Writer) *cobra.Command {
 	root := &cobra.Command{
 		Use:   "a2sbench",
-		Short: "A2SBench: Agent-to-SQL benchmark experiments",
-		Long: "A2SBench (Agent-to-SQL Benchmark) evaluates agents against frozen questions and independent result expectations.\n" +
+		Short: "A2SBench: Agent-to-SQL benchmarks for Metis Core",
+		Long: "A2SBench (Agent-to-SQL Benchmark) evaluates how agents use Metis Core to complete analytical tasks.\n" +
 			"It owns experiment budgets, attempts, evidence, scoring and reports, not semantic-layer services.\n" +
-			"Current interface adapters are OKF assets and Metis MCP; this is not a claim of arbitrary engine support.",
+			"Metis MCP is the system under test; OKF assets/direct SQL are controlled baselines with independent result scoring.",
 		SilenceErrors: true,
 		SilenceUsage:  true,
 	}

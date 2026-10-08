@@ -17,6 +17,11 @@ func TestCobraRootExposesPrimaryCommands(t *testing.T) {
 	if err := root.Execute(); err != nil {
 		t.Fatal(err)
 	}
+	for _, purpose := range []string{"Metis Core", "system under test", "controlled baselines", "independent result scoring"} {
+		if !strings.Contains(stdout.String(), purpose) {
+			t.Fatalf("help omits benchmark purpose %q: %s", purpose, stdout.String())
+		}
+	}
 	for _, command := range []string{"gen", "okfgen", "run", "analyze", "report", "attribution-run", "comparison-run", "stop"} {
 		if !strings.Contains(stdout.String(), command) {
 			t.Fatalf("help output does not contain %q:\n%s", command, stdout.String())
