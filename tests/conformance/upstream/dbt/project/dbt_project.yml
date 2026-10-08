@@ -1,0 +1,8 @@
+name: metis_native_ossie
+version: '1.0'
+config-version: 2
+profile: metis_native_ossie
+model-paths: [models]
+models:
+  metis_native_ossie:
+    +materialized: table

@@ -1,0 +1,314 @@
+{
+  "versions": {
+    "dbt-core": "1.12.0",
+    "dbt-duckdb": "1.11.0",
+    "duckdb": "1.5.5",
+    "metricflow": "0.213.0"
+  },
+  "cases": {
+    "basic": {
+      "dbt_exit": 0,
+      "diagnostics": [],
+      "source_sha256": "fc6fece4d2415fe84e136cd07dc3a033329e1e7bca7d4ba1f5ec24bf3376c3dd",
+      "osi_sha256": "90765c06c721e5e119723138b9ee78f35a95e56062d8172d5c945adfe5adbb8e",
+      "semantic_manifest_sha256": "c1740a9e025d6f19baa15aa0fd0641c32144e93ee164ef7567e01792ad3d9ecd",
+      "osi_version": "0.1.1",
+      "metis_exit": 1,
+      "metis_diagnostic": "ERROR: decode ossie document: yaml: unmarshal errors:\n  line 1: field dialects not found in type ossie.Document\n",
+      "metis_compile": "NOT_EXECUTED",
+      "repeat_exit": 0,
+      "repeat_osi_equal": true,
+      "repeat_diagnostics": [],
+      "dbt_build_exit": 0,
+      "dbt_build_diagnostics": [],
+      "independent_fixture_rows": [
+        [
+          "APAC",
+          "120.00"
+        ],
+        [
+          "EMEA",
+          "80.00"
+        ]
+      ],
+      "failed_after_success": {
+        "exit": 2,
+        "diagnostics": [
+          {
+            "data": {
+              "exc": "Invalid enum value: `not_an_aggregation` in enum AggregationType"
+            },
+            "info": {
+              "code": "Z002",
+              "name": "MainEncounteredError",
+              "level": "error",
+              "msg": "[ERROR]: Encountered an error:\nInvalid enum value: `not_an_aggregation` in enum AggregationType",
+              "invocation_id": "f1effd10-6023-456b-8b07-d75b49595376"
+            }
+          }
+        ],
+        "old_osi_still_present": true,
+        "old_osi_unchanged": true
+      }
+    },
+    "window": {
+      "dbt_exit": 0,
+      "diagnostics": [
+        {
+          "data": {},
+          "info": {
+            "code": "D019",
+            "name": "MFCumulativeTypeParamsDeprecation",
+            "level": "warn",
+            "msg": "[WARNING]: Cumulative fields `type_params.window` and\n`type_params.grain_to_date` have been moved and will soon be deprecated. Please\nnest those values under `type_params.cumulative_type_params.window` and\n`type_params.cumulative_type_params.grain_to_date`. See documentation on\nbehavior changes:\nhttps://docs.getdbt.com/reference/global-configs/behavior-changes.",
+            "invocation_id": "d2be677e-7d4d-41da-b341-00d38b6fedb9"
+          }
+        },
+        {
+          "data": {
+            "converter_name": "MSIToOSIConverter",
+            "element_name": "rolling_revenue",
+            "issue_type": "CUMULATIVE_SEMANTICS_LOSS"
+          },
+          "info": {
+            "code": "I078",
+            "name": "MFConverterIssue",
+            "level": "warn",
+            "msg": "[WARNING]: Metric 'rolling_revenue' was included in the OSI document, but its cumulative window and grain semantics cannot be represented.",
+            "invocation_id": "d2be677e-7d4d-41da-b341-00d38b6fedb9"
+          }
+        },
+        {
+          "data": {
+            "converter_name": "MSIToOSIConverter",
+            "element_name": "monthly_revenue",
+            "issue_type": "CUMULATIVE_SEMANTICS_LOSS"
+          },
+          "info": {
+            "code": "I078",
+            "name": "MFConverterIssue",
+            "level": "warn",
+            "msg": "[WARNING]: Metric 'monthly_revenue' was included in the OSI document, but its cumulative window and grain semantics cannot be represented.",
+            "invocation_id": "d2be677e-7d4d-41da-b341-00d38b6fedb9"
+          }
+        },
+        {
+          "data": {
+            "show_all_hint": true,
+            "summaries": [
+              {
+                "event_code": "D019",
+                "event_name": "MFCumulativeTypeParamsDeprecation",
+                "occurrences": 1
+              }
+            ]
+          },
+          "info": {
+            "code": "D028",
+            "name": "DeprecationsSummary",
+            "level": "warn",
+            "msg": "[WARNING][DeprecationsSummary]: Deprecated functionality\nSummary of encountered deprecations:\n- MFCumulativeTypeParamsDeprecation: 1 occurrence\nTo see all deprecation instances instead of just the first occurrence of each,\nrun command again with the `--show-all-deprecations` flag. You may also need to\nrun with `--no-partial-parse` as some deprecations are only encountered during\nparsing.",
+            "invocation_id": "d2be677e-7d4d-41da-b341-00d38b6fedb9"
+          }
+        }
+      ],
+      "source_sha256": "1aeb006c6fb5ae505f355057e25b8e7c8baa6fc5f62b02251006a5633e2b73a8",
+      "default_parse": {
+        "exit": 2,
+        "diagnostics": [
+          {
+            "data": {
+              "msg": "Cumulative fields `type_params.window` and `type_params.grain_to_date` should be nested under `type_params.cumulative_type_params.window` and `type_params.cumulative_type_params.grain_to_date`. Invalid metrics: rolling_revenue. See documentation on behavior changes: https://docs.getdbt.com/reference/global-configs/behavior-changes."
+            },
+            "info": {
+              "code": "I070",
+              "name": "SemanticValidationFailure",
+              "level": "error",
+              "msg": "[WARNING]: Cumulative fields `type_params.window` and `type_params.grain_to_date` should be nested under `type_params.cumulative_type_params.window` and `type_params.cumulative_type_params.grain_to_date`. Invalid metrics: rolling_revenue. See documentation on behavior changes: https://docs.getdbt.com/reference/global-configs/behavior-changes.",
+              "invocation_id": "a42ef720-2e80-48ae-b31c-73889611b424"
+            }
+          },
+          {
+            "data": {
+              "exc": "Parsing Error\n  Semantic Manifest validation failed."
+            },
+            "info": {
+              "code": "Z002",
+              "name": "MainEncounteredError",
+              "level": "error",
+              "msg": "[ERROR]: Encountered an error:\nParsing Error\n  Semantic Manifest validation failed.",
+              "invocation_id": "a42ef720-2e80-48ae-b31c-73889611b424"
+            }
+          }
+        ]
+      },
+      "compatibility_flag": {
+        "require_nested_cumulative_type_params": false
+      },
+      "osi_sha256": "974e8281d88334408cde8fe5e15526f2f7d77cdd9967b0098f9bb96ccc33697c",
+      "semantic_manifest_sha256": "0b38de3f9ff9944e9dfe40537992dd186c1074e8799af51e04f491ebec02ec1e",
+      "osi_version": "0.1.1",
+      "metis_exit": 1,
+      "metis_diagnostic": "ERROR: decode ossie document: yaml: unmarshal errors:\n  line 1: field dialects not found in type ossie.Document\n",
+      "metis_compile": "NOT_EXECUTED",
+      "repeat_exit": 0,
+      "repeat_osi_equal": true,
+      "repeat_diagnostics": [
+        {
+          "data": {},
+          "info": {
+            "code": "D019",
+            "name": "MFCumulativeTypeParamsDeprecation",
+            "level": "warn",
+            "msg": "[WARNING]: Cumulative fields `type_params.window` and\n`type_params.grain_to_date` have been moved and will soon be deprecated. Please\nnest those values under `type_params.cumulative_type_params.window` and\n`type_params.cumulative_type_params.grain_to_date`. See documentation on\nbehavior changes:\nhttps://docs.getdbt.com/reference/global-configs/behavior-changes.",
+            "invocation_id": "42b08c40-3c8d-44b0-9133-4b970a920d79"
+          }
+        },
+        {
+          "data": {
+            "converter_name": "MSIToOSIConverter",
+            "element_name": "rolling_revenue",
+            "issue_type": "CUMULATIVE_SEMANTICS_LOSS"
+          },
+          "info": {
+            "code": "I078",
+            "name": "MFConverterIssue",
+            "level": "warn",
+            "msg": "[WARNING]: Metric 'rolling_revenue' was included in the OSI document, but its cumulative window and grain semantics cannot be represented.",
+            "invocation_id": "42b08c40-3c8d-44b0-9133-4b970a920d79"
+          }
+        },
+        {
+          "data": {
+            "converter_name": "MSIToOSIConverter",
+            "element_name": "monthly_revenue",
+            "issue_type": "CUMULATIVE_SEMANTICS_LOSS"
+          },
+          "info": {
+            "code": "I078",
+            "name": "MFConverterIssue",
+            "level": "warn",
+            "msg": "[WARNING]: Metric 'monthly_revenue' was included in the OSI document, but its cumulative window and grain semantics cannot be represented.",
+            "invocation_id": "42b08c40-3c8d-44b0-9133-4b970a920d79"
+          }
+        },
+        {
+          "data": {
+            "show_all_hint": true,
+            "summaries": [
+              {
+                "event_code": "D019",
+                "event_name": "MFCumulativeTypeParamsDeprecation",
+                "occurrences": 1
+              }
+            ]
+          },
+          "info": {
+            "code": "D028",
+            "name": "DeprecationsSummary",
+            "level": "warn",
+            "msg": "[WARNING][DeprecationsSummary]: Deprecated functionality\nSummary of encountered deprecations:\n- MFCumulativeTypeParamsDeprecation: 1 occurrence\nTo see all deprecation instances instead of just the first occurrence of each,\nrun command again with the `--show-all-deprecations` flag. You may also need to\nrun with `--no-partial-parse` as some deprecations are only encountered during\nparsing.",
+            "invocation_id": "42b08c40-3c8d-44b0-9133-4b970a920d79"
+          }
+        }
+      ]
+    },
+    "visibility": {
+      "dbt_exit": 0,
+      "diagnostics": [
+        {
+          "data": {
+            "converter_name": "MSIToOSIConverter",
+            "element_name": "customer",
+            "issue_type": "NATURAL_ENTITY_DROPPED"
+          },
+          "info": {
+            "code": "I078",
+            "name": "MFConverterIssue",
+            "level": "warn",
+            "msg": "[WARNING]: Entity 'customer' was excluded from the OSI document: natural entities have no equivalent in the OSI format.",
+            "invocation_id": "f4b669fe-c636-465d-948f-b79aec6326b3"
+          }
+        },
+        {
+          "data": {
+            "converter_name": "MSIToOSIConverter",
+            "element_name": "private_revenue",
+            "issue_type": "PRIVATE_METRIC_DROPPED"
+          },
+          "info": {
+            "code": "I078",
+            "name": "MFConverterIssue",
+            "level": "warn",
+            "msg": "[WARNING]: Metric 'private_revenue' was excluded from the OSI document: private metrics are not included in OSI output.",
+            "invocation_id": "f4b669fe-c636-465d-948f-b79aec6326b3"
+          }
+        }
+      ],
+      "source_sha256": "8f8d1794e3b44d780bad17a530eea501925c081dc251d6ed79d6872f727b04e1",
+      "osi_sha256": "9c08150deba9d4bc4b970b748eb635998e31a6417ce0e60a13acaff11618fb0c",
+      "semantic_manifest_sha256": "13b4f3d38010a5d052a0c65aac99f4b44833261e2ccf3a9cfcdfba51af118c7a",
+      "osi_version": "0.1.1",
+      "metis_exit": 1,
+      "metis_diagnostic": "ERROR: decode ossie document: yaml: unmarshal errors:\n  line 1: field dialects not found in type ossie.Document\n",
+      "metis_compile": "NOT_EXECUTED",
+      "repeat_exit": 0,
+      "repeat_osi_equal": true,
+      "repeat_diagnostics": [
+        {
+          "data": {
+            "converter_name": "MSIToOSIConverter",
+            "element_name": "customer",
+            "issue_type": "NATURAL_ENTITY_DROPPED"
+          },
+          "info": {
+            "code": "I078",
+            "name": "MFConverterIssue",
+            "level": "warn",
+            "msg": "[WARNING]: Entity 'customer' was excluded from the OSI document: natural entities have no equivalent in the OSI format.",
+            "invocation_id": "378e2d1f-7399-41f1-946b-f43602f47d34"
+          }
+        },
+        {
+          "data": {
+            "converter_name": "MSIToOSIConverter",
+            "element_name": "private_revenue",
+            "issue_type": "PRIVATE_METRIC_DROPPED"
+          },
+          "info": {
+            "code": "I078",
+            "name": "MFConverterIssue",
+            "level": "warn",
+            "msg": "[WARNING]: Metric 'private_revenue' was excluded from the OSI document: private metrics are not included in OSI output.",
+            "invocation_id": "378e2d1f-7399-41f1-946b-f43602f47d34"
+          }
+        }
+      ]
+    },
+    "invalid": {
+      "dbt_exit": 2,
+      "diagnostics": [
+        {
+          "data": {
+            "exc": "Invalid enum value: `not_an_aggregation` in enum AggregationType"
+          },
+          "info": {
+            "code": "Z002",
+            "name": "MainEncounteredError",
+            "level": "error",
+            "msg": "[ERROR]: Encountered an error:\nInvalid enum value: `not_an_aggregation` in enum AggregationType",
+            "invocation_id": "d87f653b-38e8-436d-8eec-c8782457ed7d"
+          }
+        }
+      ],
+      "source_sha256": "d7e844e52bedbce0193f851044e8754e9cab79dd91ff6d7ebb121b5508f10aa7",
+      "osi_present": false,
+      "metis_compile": "NOT_EXECUTED"
+    }
+  },
+  "scope": "native artifacts; no converter or publication",
+  "metis_commit": "1866998401d8174719d7cddc49c5b295531a5e63",
+  "python_version": "3.13.7",
+  "native_parser_version": "2.0.5",
+  "captured_on": "2026-10-08"
+}

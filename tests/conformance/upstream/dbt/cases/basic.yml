@@ -1,0 +1,32 @@
+version: 2
+models:
+  - name: orders
+    semantic_model: {enabled: true}
+    agg_time_dimension: ordered_at
+    columns:
+      - name: order_id
+        data_type: bigint
+        entity: {name: order, type: primary}
+      - name: customer_id
+        data_type: bigint
+        entity: {name: customer, type: foreign}
+      - name: ordered_at
+        data_type: date
+        dimension: {type: time}
+        granularity: day
+      - name: amount
+        data_type: decimal(18,2)
+    metrics:
+      - name: revenue
+        type: simple
+        agg: sum
+        expr: amount
+  - name: customers
+    semantic_model: {enabled: true}
+    columns:
+      - name: customer_id
+        data_type: bigint
+        entity: {name: customer, type: primary}
+      - name: region
+        data_type: varchar
+        dimension: {type: categorical}

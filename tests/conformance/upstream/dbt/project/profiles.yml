@@ -1,0 +1,8 @@
+metis_native_ossie:
+  target: local
+  outputs:
+    local:
+      type: duckdb
+      path: "{{ env_var('DBT_NATIVE_DATABASE_PATH') }}"
+      schema: main
+      threads: 1
