@@ -14,7 +14,7 @@ import (
 )
 
 func initProject(args []string) int {
-	fs := flag.NewFlagSet("metis project init", flag.ContinueOnError)
+	fs := flag.NewFlagSet("metis semantic init", flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
 	catalog := fs.String("catalog", "", "versioned catalog evidence (YAML or JSON)")
 	mapping := fs.String("mapping", "", "explicit authoring map (YAML or JSON)")
@@ -26,7 +26,7 @@ func initProject(args []string) int {
 		return 2
 	}
 	if strings.TrimSpace(*catalog) == "" || strings.TrimSpace(*mapping) == "" || strings.TrimSpace(*output) == "" || fs.NArg() != 0 {
-		fmt.Fprintln(os.Stderr, "metis project init: --catalog, --mapping, and --output are required; no positional arguments")
+		fmt.Fprintln(os.Stderr, "metis semantic init: --catalog, --mapping, and --output are required; no positional arguments")
 		return 2
 	}
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -35,13 +35,13 @@ func initProject(args []string) int {
 	if err != nil {
 		var finding *authoring.Finding
 		if errors.As(err, &finding) {
-			fmt.Fprintln(os.Stderr, "metis project init:", finding)
+			fmt.Fprintln(os.Stderr, "metis semantic init:", finding)
 			if finding.InvalidInput {
 				return 2
 			}
 			return 1
 		}
-		fmt.Fprintln(os.Stderr, "metis project init: generation or I/O failed")
+		fmt.Fprintln(os.Stderr, "metis semantic init: generation or I/O failed")
 		return 2
 	}
 	fmt.Fprintf(os.Stdout, "candidate created: %s (project=%s model=%s); review authoring-report.json before adoption\n", *output, report.Project, report.Model)

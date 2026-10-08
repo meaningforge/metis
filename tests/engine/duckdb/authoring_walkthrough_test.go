@@ -77,7 +77,7 @@ func TestDuckDBAuthoringWalkthroughThroughCLI(t *testing.T) {
 	if strings.Contains(string(body), "internal_note") || strings.Contains(string(body), "total_revenue") {
 		t.Fatal("generator inferred or included unselected semantics")
 	}
-	run(binary, "project", "validate", "--offline", "--project", "sales", "--config", filepath.Join(work, "candidate-sales/project.yaml"))
+	run(binary, "semantic", "validate", "--offline", "--project", "sales", "--config", filepath.Join(work, "candidate-sales/project.yaml"))
 	reviewed, err := os.ReadFile(filepath.Join(work, "model-reviewed.ossie.yaml"))
 	if err != nil {
 		t.Fatal(err)
@@ -87,7 +87,7 @@ func TestDuckDBAuthoringWalkthroughThroughCLI(t *testing.T) {
 	}
 	for _, inventory := range []string{"queries.json", "queries-filtered.json"} {
 		output := filepath.Join(work, inventory+"-report.json")
-		run(binary, "project", "validate", "--online", "--project", "sales", "--config", filepath.Join(work, "metis.yaml"), "--queries", filepath.Join(work, inventory), "--output", output)
+		run(binary, "semantic", "validate", "--online", "--project", "sales", "--config", filepath.Join(work, "metis.yaml"), "--queries", filepath.Join(work, inventory), "--output", output)
 		data, err := os.ReadFile(output)
 		if err != nil {
 			t.Fatal(err)
@@ -97,7 +97,7 @@ func TestDuckDBAuthoringWalkthroughThroughCLI(t *testing.T) {
 			t.Fatalf("online report=%s", data)
 		}
 	}
-	run(binary, "project", "test", "--mode", "runtime", "--project", "sales", "--config", filepath.Join(work, "metis.yaml"), "--suite", filepath.Join(work, "results.yaml"), "--output", filepath.Join(work, "results.json"))
+	run(binary, "semantic", "test", "--mode", "runtime", "--project", "sales", "--config", filepath.Join(work, "metis.yaml"), "--suite", filepath.Join(work, "results.yaml"), "--output", filepath.Join(work, "results.json"))
 	data, err := os.ReadFile(filepath.Join(work, "results.json"))
 	if err != nil {
 		t.Fatal(err)
@@ -111,7 +111,7 @@ func TestDuckDBAuthoringWalkthroughThroughCLI(t *testing.T) {
 		t.Fatal(err)
 	}
 	output := filepath.Join(work, "missing-column.json")
-	args := []string{"project", "validate", "--online", "--project", "sales", "--config", filepath.Join(work, "metis.yaml"), "--queries", filepath.Join(work, "queries.json"), "--output", output}
+	args := []string{"semantic", "validate", "--online", "--project", "sales", "--config", filepath.Join(work, "metis.yaml"), "--queries", filepath.Join(work, "queries.json"), "--output", output}
 	if _, err := exec.CommandContext(ctx, binary, args...).CombinedOutput(); err == nil {
 		t.Fatal("accepted missing physical column")
 	}

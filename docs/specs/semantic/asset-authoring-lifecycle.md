@@ -6,7 +6,7 @@ The same loading path is used by bootstrap and the offline `metis` tools.
 
 ## Source authority
 
-`metis project init` can create a reviewable local project from a versioned
+`metis semantic init` can create a reviewable local project from a versioned
 catalog snapshot and explicit field map using the
 [offline authoring contract](catalog-authoring.md). Catalog evidence records
 physical facts; business meaning, uniqueness and relationships require author
@@ -32,7 +32,7 @@ are validated against the assembled Project, including cross-document references
 
 For business expectations beyond structural validation, authors can keep a
 [project regression suite](../testing/project-compile-regression.md) beside their
-models and run `metis project test` locally or in existing CI. Compile mode checks
+models and run `metis semantic test` locally or in existing CI. Compile mode checks
 the compilation contract without a database; runtime mode checks metric results
 against an externally prepared fixture. Review expected values independently of
 the model implementation. These checks do not test custom host authorization or
@@ -54,7 +54,7 @@ semantics. See [model quality diagnostics](model-quality-diagnostics.md).
 Comparison is deterministic and does not infer renames from similarity.
 Governance changes participate in affected asset digests.
 
-The offline CLI provides `metis project validate [--offline]`, `metis project inspect`,
-`metis project diff`, and `metis model format`. See the [project README](../../../README.md)
+The offline CLI provides `metis semantic validate [--offline]`, `metis semantic inspect`,
+`metis semantic diff`, and `metis model format`. See the [project README](../../../README.md)
 for the supported commands. Source validation and comparison do not replace a
 running generation; that is a separate [embedding operation](../operations/semantic-runtime-activation.md).

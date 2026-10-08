@@ -5,8 +5,8 @@ This directory contains reusable application workflows shipped through the
 
 | Package | Responsibility | CLI entry point |
 | --- | --- | --- |
-| [authoring](authoring/) | Normalize bounded catalog evidence, validate explicit mappings, generate a reviewable Ossie candidate, and publish local files safely. | `metis catalog inspect`, `metis project init` |
-| [regression](regression/) | Validate project-owned suites, invoke compile/query services, compare reviewed expectations, and produce JSON/JUnit reports. | `metis project test` |
+| [authoring](authoring/) | Normalize bounded catalog evidence, validate explicit mappings, generate a reviewable Ossie candidate, and publish local files safely. | `metis catalog inspect`, `metis semantic init` |
+| [regression](regression/) | Validate project-owned suites, invoke compile/query services, compare reviewed expectations, and produce JSON/JUnit reports. | `metis semantic test` |
 
 ## Dependencies and ownership
 
@@ -33,6 +33,13 @@ capabilities. Repository [tests](../../tests/) verify Metis itself, while
 project-testing workflow has different ownership from those internal facilities.
 
 ## Contracts
+
+`metis semantic` owns authoring and project-owned compile/result checks. It must
+not add agent runners, frozen benchmark suites, scoring or paired experiments:
+those belong to `s2sbench`. Conversely, S2SBench consumes the semantic runtime;
+it is not a second authoring CLI. Sharing application services is allowed;
+duplicating these command workflows or depending on benchmark implementations
+from Metis tooling is not.
 
 Keep business decisions explicit: generation produces a review candidate;
 regression compares independently reviewed expectations. Fixture provisioning,

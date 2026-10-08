@@ -1,14 +1,14 @@
 # Catalog-assisted authoring
 
-`metis project init` creates a local review candidate from a versioned catalog
+`metis semantic init` creates a local review candidate from a versioned catalog
 snapshot and an explicit authoring map. It reuses Ossie formatting, project
 loading, and quality checks. It works without a running server, database
 connection, secrets, or repository test files.
 
 ```sh
-metis project init --catalog ./catalog.json --mapping ./model-map.yaml \
+metis semantic init --catalog ./catalog.json --mapping ./model-map.yaml \
   --output ./candidate-sales
-metis project validate --project sales --config ./candidate-sales/project.yaml
+metis semantic validate --project sales --config ./candidate-sales/project.yaml
 ```
 
 The [examples](../../../examples/authoring/README.md) provide synthetic Doris and
@@ -241,7 +241,7 @@ symlinks are always refused, including a destination created concurrently.
 There is no force, merge, or overwrite option. Files are owner-only (0600) and
 directories private (0700); failure cleans this invocation's staging directory.
 The parent must already exist. Generate into another directory to compare changes
-using the existing `metis project diff` workflow.
+using the existing `metis semantic diff` workflow.
 
 Exit 0 means a validated local candidate exists with its report. Exit 1 means
 an authoring finding prevents generation; exit 2 means malformed input, command

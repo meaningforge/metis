@@ -2,7 +2,7 @@
 
 ## Purpose and ownership
 
-`metis project test` is developer tooling for a project's authored business
+`metis semantic test` is developer tooling for a project's authored business
 definitions, intended for local use and the author's existing CI. It is not a
 general test framework or an engine capability. Internal conformance tests
 verify Metis itself; host integration tests verify custom authorization; neither
@@ -15,7 +15,7 @@ policy assertions are outside the scoped v1, not committed follow-up phases.
 
 ## Offline compilation
 
-`metis project test --mode compile` checks a complete semantic project's
+`metis semantic test --mode compile` checks a complete semantic project's
 compilation contract without connecting to a database, resolving secrets, or
 running SQL. It uses the project's normal source loader and `CompileService`
 with an explicit Renderer dialect. It does not test result values, database
@@ -23,7 +23,7 @@ permissions, or a deployment's host authorization policy. Runtime metric-result
 suites are available separately with `--mode runtime`.
 
 ```sh
-metis project test --mode compile --project demo \
+metis semantic test --mode compile --project demo \
   --config ./examples/demo/project.yaml \
   --suite ./examples/demo/checks/compile.yaml \
   --dialect DORIS --output ./compile-report.json
@@ -110,7 +110,7 @@ Principal with `semantic:execute` and unrestricted compatibility policies; it
 does not validate custom host authorization or tenant isolation.
 
 ```sh
-metis project test --mode runtime --project regression \
+metis semantic test --mode runtime --project regression \
   --config ./examples/regression/metis-doris.yaml \
   --suite ./examples/regression/results.yaml \
   --output ./results.json --junit-output ./results.xml

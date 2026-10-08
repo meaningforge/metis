@@ -201,5 +201,5 @@ does not expose raw planner graphs, SQLPlan, or renderer-private state.
 ## Metis offline CLI
 
 The `metis` executable owns local Semantic-to-SQL compilation and source tools.
-Its offline command groups are `metis query`, `metis model`, and `metis project`.
+Its offline command groups are `metis query`, `metis model`, and `metis semantic`.
 They do not open database connections or resolve secrets.

@@ -78,7 +78,7 @@ func runCatalog(args []string) int {
 	if err := authoring.WriteSnapshot(ctx, *output, snapshot); err != nil {
 		return catalogFailure(err)
 	}
-	fmt.Fprintln(os.Stdout, "catalog snapshot created; review evidence before metis project init")
+	fmt.Fprintln(os.Stdout, "catalog snapshot created; review evidence before metis semantic init")
 	return 0
 }
 

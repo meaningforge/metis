@@ -2,6 +2,18 @@ package main
 
 import "testing"
 
+func TestMetisAuthoringCannotImportBenchmarkImplementation(t *testing.T) {
+	module := "example.com/metis"
+	for _, owner := range []string{module + "/cmd/metis", module + "/app/tooling/regression", module + "/app/tooling/authoring"} {
+		if !isForbiddenMetisToolingImport(module, owner, module+"/cmd/s2sbench/bench/runner") {
+			t.Fatalf("benchmark dependency accepted for %s", owner)
+		}
+		if isForbiddenMetisToolingImport(module, owner, module+"/app/service/semantic") {
+			t.Fatalf("shared semantic service rejected for %s", owner)
+		}
+	}
+}
+
 func TestBoundaryMatchersRejectBothDependencyDirectionsAndRuntimePaths(t *testing.T) {
 	module := "example.com/metis"
 	if !isForbiddenProductionImport(module, module+"/tests/conformance/scenarios") {

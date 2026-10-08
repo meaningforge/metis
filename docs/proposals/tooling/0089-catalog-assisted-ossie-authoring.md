@@ -20,7 +20,7 @@ adopts them; generation never publishes or activates a semantic model.
 The implementation supports Doris and ClickHouse; optional DuckDB follows
 the same catalog contract without changing the default CGO-free binary.
 
-The offline `metis project init` slice is implemented as documented in the
+The offline `metis semantic init` slice is implemented as documented in the
 [current authoring contract](../../specs/semantic/catalog-authoring.md). It uses
 versioned catalog evidence and an explicit map without database access. Online
 `metis catalog inspect` now captures exact Doris and ClickHouse column inventories
@@ -64,11 +64,11 @@ metis catalog inspect --config ./metis.yaml --project sales \
   --output ./authoring/catalog.json
 
 # New offline command: reproducible from checked-in inputs.
-metis project init --catalog ./authoring/catalog.json \
+metis semantic init --catalog ./authoring/catalog.json \
   --mapping ./authoring/model-map.yaml --output ./candidate-sales
 
 # Existing validation command; optional online validation is RFC-0088.
-metis project validate --project sales --config ./candidate-sales/project.yaml
+metis semantic validate --project sales --config ./candidate-sales/project.yaml
 ```
 
 `metis catalog inspect` can run before a semantic model exists. Given the explicit
@@ -265,7 +265,7 @@ was produced, even when authoring is incomplete; it never means ready to deploy.
 The report directs authors to run optional RFC-0088 online validation against
 the eventual target, followed by an explicitly authorized test query if they
 need evidence that its execution role can read data. Neither step is performed
-implicitly by `metis project init`.
+implicitly by `metis semantic init`.
 
 ### File and error behavior
 
@@ -273,7 +273,7 @@ Refuse an existing output directory; V1 has no force/merge/in-place update mode.
 Stage all files privately on the same filesystem, validate them, then atomically
 rename the directory. A failure leaves no advertised partial project. Use
 owner-only file permissions. Re-running into a different directory and using
-the existing `metis project diff` is the supported review workflow.
+the existing `metis semantic diff` is the supported review workflow.
 
 Unknown schema versions/fields, invalid mappings, identifier collisions, missing
 selected relations/columns, and unsupported types have stable authoring diagnostic
@@ -284,7 +284,7 @@ secret values are redacted centrally. Do not derive actions by parsing messages.
 Generation exits 0 on a validated candidate with a complete report, 1 on a
 generation/inspection finding that prevents output, and 2 on command/input/I/O
 failure. Pending author review is visible in the report and does not silently
-activate the candidate. Normal `metis project validate` eligibility semantics still
+activate the candidate. Normal `metis semantic validate` eligibility semantics still
 apply before an author adopts it.
 
 A managed host may import generated files into its existing mutable Draft or
@@ -308,7 +308,7 @@ Core validation result or catalog digest as a host publication approval.
 
 ## Rollout and migration
 
-1. Implement offline `metis project init` from versioned catalog fixtures and explicit
+1. Implement offline `metis semantic init` from versioned catalog fixtures and explicit
    maps; it can ship before online inspection.
 2. Reuse the shared catalog capability for Doris/ClickHouse `metis catalog inspect`.
 3. Add complete Doris and ClickHouse tutorials using small disposable datasets,

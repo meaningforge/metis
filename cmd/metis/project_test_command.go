@@ -16,7 +16,7 @@ import (
 )
 
 func testProject(args []string) int {
-	fs := flag.NewFlagSet("metis project test", flag.ContinueOnError)
+	fs := flag.NewFlagSet("metis semantic test", flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
 	mode := fs.String("mode", "", "test mode: compile or runtime")
 	project := fs.String("project", "", "stable project ID")
@@ -34,17 +34,17 @@ func testProject(args []string) int {
 	}
 	if (*mode != "compile" && *mode != "runtime") || strings.TrimSpace(*project) == "" || strings.TrimSpace(*config) == "" ||
 		strings.TrimSpace(*suitePath) == "" || (*mode == "compile" && strings.TrimSpace(*dialect) == "") || (*mode == "runtime" && *dialect != "") || strings.TrimSpace(*output) == "" || fs.NArg() != 0 {
-		fmt.Fprintln(os.Stderr, "metis project test: --mode compile|runtime, --project, --config, --suite, and --output are required; --dialect is required only for compile; no positional arguments")
+		fmt.Fprintln(os.Stderr, "metis semantic test: --mode compile|runtime, --project, --config, --suite, and --output are required; --dialect is required only for compile; no positional arguments")
 		return 2
 	}
 	jsonPath, jsonPathErr := canonicalReportPath(*output)
 	xmlPath, xmlPathErr := canonicalReportPath(*junitOutput)
 	if jsonPathErr != nil || (*junitOutput != "" && xmlPathErr != nil) {
-		fmt.Fprintln(os.Stderr, "metis project test: output parent directory must exist")
+		fmt.Fprintln(os.Stderr, "metis semantic test: output parent directory must exist")
 		return 2
 	}
 	if *junitOutput != "" && jsonPath == xmlPath {
-		fmt.Fprintln(os.Stderr, "metis project test: JSON and JUnit output paths must differ")
+		fmt.Fprintln(os.Stderr, "metis semantic test: JSON and JUnit output paths must differ")
 		return 2
 	}
 	for index, path := range []string{*output, *junitOutput} {
@@ -54,7 +54,7 @@ func testProject(args []string) int {
 		for _, input := range []string{*suitePath, *config} {
 			same, err := sameProjectTestFile(path, input)
 			if err != nil || same {
-				fmt.Fprintln(os.Stderr, "metis project test: report output conflicts with an input or cannot be checked safely")
+				fmt.Fprintln(os.Stderr, "metis semantic test: report output conflicts with an input or cannot be checked safely")
 				return 2
 			}
 		}
@@ -63,13 +63,13 @@ func testProject(args []string) int {
 			format = "junit"
 		}
 		if err := regression.CheckReportOutput(path, format, *overwrite); err != nil {
-			fmt.Fprintln(os.Stderr, "metis project test:", err)
+			fmt.Fprintln(os.Stderr, "metis semantic test:", err)
 			return 2
 		}
 	}
 	suite, digest, err := regression.LoadSuite(*suitePath)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "metis project test: invalid suite: %v\n", err)
+		fmt.Fprintf(os.Stderr, "metis semantic test: invalid suite: %v\n", err)
 		return 2
 	}
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -82,7 +82,7 @@ func testProject(args []string) int {
 	} else {
 		backends, backendErr := defaultBackends()
 		if backendErr != nil {
-			fmt.Fprintln(os.Stderr, "metis project test: backend assembly failed")
+			fmt.Fprintln(os.Stderr, "metis semantic test: backend assembly failed")
 			return 2
 		}
 		report, err = regression.RunRuntime(ctx, suite, digest, regression.RuntimeOptions{
@@ -90,16 +90,16 @@ func testProject(args []string) int {
 		})
 	}
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "metis project test: invalid input: %v\n", err)
+		fmt.Fprintf(os.Stderr, "metis semantic test: invalid input: %v\n", err)
 		return 2
 	}
 	if err := regression.WriteReport(*output, report, *overwrite); err != nil {
-		fmt.Fprintf(os.Stderr, "metis project test: write report: %v\n", err)
+		fmt.Fprintf(os.Stderr, "metis semantic test: write report: %v\n", err)
 		return 2
 	}
 	if *junitOutput != "" {
 		if err := regression.WriteJUnitReport(*junitOutput, report, *overwrite); err != nil {
-			fmt.Fprintf(os.Stderr, "metis project test: write JUnit report: %v\n", err)
+			fmt.Fprintf(os.Stderr, "metis semantic test: write JUnit report: %v\n", err)
 			return 2
 		}
 	}

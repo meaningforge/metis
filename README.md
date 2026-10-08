@@ -141,7 +141,11 @@ Explain generates SQL without executing it.
 
 ## Offline tools
 
-The `metis model`, `metis project`, and `metis query` commands work offline. Use
+Semantic authoring commands use `metis semantic`; the former `metis project`
+group is removed without an alias. `--project` and `project.yaml` still identify
+the Project namespace and its manifest.
+
+The `metis model`, `metis semantic`, and `metis query` commands work offline. Use
 them to validate and inspect models, compare projects, or generate SQL without
 starting a server, connecting to a database, or resolving secrets.
 
@@ -164,16 +168,16 @@ driver. Values are never interpolated into SQL text.
 | --- | --- |
 | `metis query compile` | Compile a semantic request into SQL and parameters as JSON. |
 | `metis model validate`, `metis model inspect` | Validate an Ossie document or inspect its metadata. |
-| `metis project validate [--offline]`, `metis project inspect` | Load and check a complete semantic project without database connections. |
-| `metis project validate --online` | Inspect query dependencies and check Doris/ClickHouse or optional DuckDB EXPLAIN acceptance. |
-| `metis project diff` | Compare two local semantic project inputs. |
-| `metis project init` | Generate a reviewable Ossie project from catalog evidence and an explicit map, offline. |
-| `metis project test --mode compile` | Check project-owned compile expectations in CI without connecting to a database. |
-| `metis project test --mode runtime` | Assert metric results against an externally prepared database fixture; emit JSON and optional JUnit. |
+| `metis semantic validate [--offline]`, `metis semantic inspect` | Load and check a complete semantic project without database connections. |
+| `metis semantic validate --online` | Inspect query dependencies and check Doris/ClickHouse or optional DuckDB EXPLAIN acceptance. |
+| `metis semantic diff` | Compare two local semantic project inputs. |
+| `metis semantic init` | Generate a reviewable Ossie project from catalog evidence and an explicit map, offline. |
+| `metis semantic test --mode compile` | Check project-owned compile expectations in CI without connecting to a database. |
+| `metis semantic test --mode runtime` | Assert metric results against an externally prepared database fixture; emit JSON and optional JUnit. |
 | `metis model format` | Format a model file. |
 
 ```sh
-bin/metis project validate --project demo --config examples/demo/project.yaml
+bin/metis semantic validate --project demo --config examples/demo/project.yaml
 bin/metis model inspect --model examples/demo/models/sales.ossie.yaml
 ```
 
@@ -181,7 +185,7 @@ Validation is offline by default. Explicit online validation requires a deployme
 configuration, query inventory and a fresh report path:
 
 ```sh
-bin/metis project validate --online --project sales --config ./metis.yaml \
+bin/metis semantic validate --online --project sales --config ./metis.yaml \
   --queries ./queries.json --output ./validation.json
 ```
 
@@ -197,7 +201,7 @@ project. The command writes a private JSON report and exits nonzero on a failed
 or incomplete case:
 
 ```sh
-bin/metis project test --mode compile --project demo \
+bin/metis semantic test --mode compile --project demo \
   --config examples/demo/project.yaml --suite examples/demo/checks/compile.yaml \
   --dialect DORIS --output ./compile-report.json
 ```
@@ -217,9 +221,9 @@ To start a model from metadata, use the
 [offline authoring example](examples/authoring/README.md):
 
 ```sh
-bin/metis project init --catalog examples/authoring/catalog-doris.json \
+bin/metis semantic init --catalog examples/authoring/catalog-doris.json \
   --mapping examples/authoring/model-map.yaml --output ./candidate-sales
-bin/metis project validate --project sales --config ./candidate-sales/project.yaml
+bin/metis semantic validate --project sales --config ./candidate-sales/project.yaml
 ```
 
 The generator selects only mapped fields and optional technical row counts.
@@ -237,7 +241,7 @@ Only explicitly selected, qualified relations are inspected; there is no databas
 crawl or row sampling. The command authorizes before reading deployment/source
 configuration or resolving credentials. Local CLI authoring uses the operator's
 OS/database identity; remote embedders must enforce Project `author` and their
-physical metadata access policy. The snapshot feeds `project init`; successful
+physical metadata access policy. The snapshot feeds `semantic init`; successful
 inspection does not prove SELECT permission. Follow the
 [Doris/ClickHouse table-to-query walkthrough](examples/authoring/live/README.md)
 for disposable setup data, explicit business-model review, and verified query
@@ -268,6 +272,13 @@ S2SBench evaluates how an agent completes analytical tasks through semantic
 interfaces. It runs frozen scenario suites, records attempts and query evidence,
 and produces machine-readable reports. Use it to investigate whether a change to
 Metis helps agents discover the right data and produce correct analytical results.
+
+These tools have separate responsibilities: `metis semantic test` checks an
+author's explicit compile/result expectations without running an agent, while
+`s2sbench` owns frozen benchmark suites, agent runners, scoring and comparisons.
+Metis does not expose benchmark commands; S2SBench does not replace semantic
+authoring, catalog capture or project-owned regression commands. Both use the
+existing semantic/query services rather than implementing another query engine.
 
 A run selects one interface: `metis-mcp` for Metis tools, or `okf` for
 catalog-derived semantic files. Running the same suite with the same agent and
@@ -323,7 +334,7 @@ Agent benchmark runs are separate from the standard correctness tests.
 2. Add your Ossie model files under `models/`.
 3. Update `project.yaml` to select those files and register your project in
    `metis.yaml`.
-4. Validate the project with `metis project validate`, then start `metis serve` or
+4. Validate the project with `metis semantic validate`, then start `metis serve` or
    `metis mcp` with your runtime configuration.
 
 Model paths are resolved relative to the project manifest. A runtime can register

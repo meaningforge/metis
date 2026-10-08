@@ -9,7 +9,7 @@
 
 ## Decision and scope revision
 
-Keep `metis project test` as a small developer-tooling command for semantic
+Keep `metis semantic test` as a small developer-tooling command for semantic
 project authors. It answers: **does my authored model still produce the reviewed
 business answer for this fixture?** It is not an engine capability, a general
 testing framework, or a replacement for Metis's internal correctness tests.
@@ -37,7 +37,7 @@ installation just to invoke the existing services.
 
 | Question | Owner |
 | --- | --- |
-| Does an authored metric match this project's business expectation? | Project-owned suite via `metis project test` |
+| Does an authored metric match this project's business expectation? | Project-owned suite via `metis semantic test` |
 | Does Metis implement a semantic operation correctly across engines? | Internal conformance and real-engine harnesses |
 | Does a deployment enforce identities and data policies? | Host/application integration tests |
 | Can an Agent complete an analytical task? | S2SBench |
@@ -48,12 +48,12 @@ Internal tests remain authoritative for their distinct responsibilities.
 ## Included v1 capabilities
 
 ```sh
-metis project test --mode compile --project demo \
+metis semantic test --mode compile --project demo \
   --config ./examples/demo/project.yaml \
   --suite ./examples/demo/checks/compile.yaml \
   --dialect DORIS --output ./compile.json
 
-metis project test --mode runtime --project regression \
+metis semantic test --mode runtime --project regression \
   --config ./examples/regression/metis-doris.yaml \
   --suite ./examples/regression/results.yaml \
   --output ./results.json --junit-output ./results.xml

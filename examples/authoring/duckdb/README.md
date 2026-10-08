@@ -38,10 +38,10 @@ After accepting it for this disposable sample, explicitly adopt it:
 
 ```sh
 cp "$DEMO/model-reviewed.ossie.yaml" "$DEMO/candidate-sales/models/sales.ossie.yaml"
-"$METIS_BIN" project validate --offline --project sales --config "$DEMO/candidate-sales/project.yaml"
-"$METIS_BIN" project validate --online --project sales --config "$DEMO/metis.yaml" \
+"$METIS_BIN" semantic validate --offline --project sales --config "$DEMO/candidate-sales/project.yaml"
+"$METIS_BIN" semantic validate --online --project sales --config "$DEMO/metis.yaml" \
   --queries "$DEMO/queries-filtered.json" --output "$DEMO/validation.json"
-"$METIS_BIN" project test --mode runtime --project sales --config "$DEMO/metis.yaml" \
+"$METIS_BIN" semantic test --mode runtime --project sales --config "$DEMO/metis.yaml" \
   --suite "$DEMO/results.yaml" --output "$DEMO/results.json"
 ```
 

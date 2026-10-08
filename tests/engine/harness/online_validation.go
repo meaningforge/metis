@@ -67,7 +67,7 @@ func checkOnlineValidationFailures(t *testing.T, ctx context.Context, binary, wo
 				t.Fatal(err)
 			}
 			output := filepath.Join(work, scenario+"-report.json")
-			cmd := exec.CommandContext(ctx, binary, "project", "validate", "--online", "--project", "sales", "--config", filepath.Join(work, "metis.yaml"), "--queries", input, "--output", output)
+			cmd := exec.CommandContext(ctx, binary, "semantic", "validate", "--online", "--project", "sales", "--config", filepath.Join(work, "metis.yaml"), "--queries", input, "--output", output)
 			_, commandErr := cmd.CombinedOutput()
 			data, err = os.ReadFile(output)
 			if err != nil {
@@ -128,7 +128,7 @@ func checkOnlineValidationFailures(t *testing.T, ctx context.Context, binary, wo
 		}
 		t.Setenv(key, "metis_wrong_validation_password")
 		output := filepath.Join(work, "bad-credentials.json")
-		cmd := exec.CommandContext(ctx, binary, "project", "validate", "--online", "--project", "sales", "--config", filepath.Join(work, "metis.yaml"), "--queries", filepath.Join(work, "queries.json"), "--output", output)
+		cmd := exec.CommandContext(ctx, binary, "semantic", "validate", "--online", "--project", "sales", "--config", filepath.Join(work, "metis.yaml"), "--queries", filepath.Join(work, "queries.json"), "--output", output)
 		stdout, err := cmd.CombinedOutput()
 		if err == nil {
 			t.Fatal("accepted invalid database credentials")

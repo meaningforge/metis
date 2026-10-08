@@ -37,6 +37,16 @@ func check() error {
 	if err := checkProductionImports(module); err != nil {
 		return err
 	}
+	// Check the complete default command/tooling closure, not just direct imports.
+	metisDependencies, err := commandOutput("go", "list", "-deps", "-test", "./cmd/metis", "./app/tooling/...")
+	if err != nil {
+		return err
+	}
+	for _, dependency := range strings.Fields(metisDependencies) {
+		if isForbiddenMetisToolingImport(module, module+"/cmd/metis", dependency) {
+			return fmt.Errorf("Metis command/tooling dependency reaches benchmark implementation %q", dependency)
+		}
+	}
 	for _, args := range [][]string{{"list", "-deps", "./cmd/s2sbench/..."}, {"list", "-deps", "-test", "./cmd/s2sbench/..."}} {
 		output, err := commandOutput("go", args...)
 		if err != nil {
@@ -84,6 +94,9 @@ func checkProductionImports(module string) error {
 			continue
 		}
 		for _, dependency := range pkg.Imports {
+			if isForbiddenMetisToolingImport(module, pkg.ImportPath, dependency) {
+				return fmt.Errorf("Metis command/tooling package %q imports benchmark implementation %q", pkg.ImportPath, dependency)
+			}
 			if isForbiddenProductionImport(module, dependency) {
 				return fmt.Errorf("production package %q imports test-owned package %q", pkg.ImportPath, dependency)
 			}
@@ -126,6 +139,13 @@ func checkTestImports(module string) error {
 
 func isForbiddenProductionImport(module, imported string) bool {
 	return imported == module+"/tests" || strings.HasPrefix(imported, module+"/tests/")
+}
+
+func isForbiddenMetisToolingImport(module, owner, imported string) bool {
+	metisCommand := owner == module+"/cmd/metis" || strings.HasPrefix(owner, module+"/cmd/metis/")
+	authorTooling := owner == module+"/app/tooling" || strings.HasPrefix(owner, module+"/app/tooling/")
+	benchmark := imported == module+"/cmd/s2sbench" || strings.HasPrefix(imported, module+"/cmd/s2sbench/")
+	return (metisCommand || authorTooling) && benchmark
 }
 
 func isForbiddenTestImport(prefix, imported string) bool {
