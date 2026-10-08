@@ -1,9 +1,9 @@
 //go:build duckdb
 
-// Package fixture owns embedded DuckDB fixture setup plus S2SBench's
+// Package fixture owns embedded DuckDB fixture setup plus A2SBench's
 // deliberately arbitrary-SQL execution. Real-engine conformance uses the
 // shared production Runner harness; direct writable connections are used only
-// to seed isolated test databases and inspect S2SBench query schemas.
+// to seed isolated test databases and inspect A2SBench query schemas.
 package fixture
 
 import (

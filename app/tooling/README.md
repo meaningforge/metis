@@ -36,7 +36,7 @@ project-testing workflow has different ownership from those internal facilities.
 
 `metis semantic` owns authoring and project-owned compile/result checks. It must
 not add agent runners, frozen benchmark suites, scoring or paired experiments:
-those belong to `s2sbench`. Conversely, S2SBench consumes the semantic runtime;
+those belong to `a2sbench`. Conversely, A2SBench consumes the semantic runtime;
 it is not a second authoring CLI. Sharing application services is allowed;
 duplicating these command workflows or depending on benchmark implementations
 from Metis tooling is not.

@@ -10,7 +10,7 @@ for required in ('README.md', 'LICENSE'):
     if not (root / required).is_file() or not (root / required).stat().st_size:
         sys.exit(f'Missing or empty required file: {required}')
 
-excluded = {'.git', 'bin', 'dist', 'node_modules', 'vendor', 'licenses', 's2sbench-results', '.workload', '.workload.partial'}
+excluded = {'.git', 'bin', 'dist', 'node_modules', 'vendor', 'licenses', 'a2sbench-results', '.workload', '.workload.partial'}
 errors = []
 count = 0
 for doc in sorted(root.rglob('*.md')):

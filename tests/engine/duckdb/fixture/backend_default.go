@@ -11,7 +11,7 @@ import (
 	"github.com/meaningforge/metis/tests/conformance/scenarios"
 )
 
-// Backend keeps S2SBench buildable in the default CGO-free flavor. Live
+// Backend keeps A2SBench buildable in the default CGO-free flavor. Live
 // embedded execution is intentionally available only with -tags duckdb.
 type Backend struct{}
 

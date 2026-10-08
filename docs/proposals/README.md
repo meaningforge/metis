@@ -89,9 +89,9 @@ Only engine, semantic-model, query-interface, and developer-tool designs are inc
 - [RFC-0068: OKF-Ossie Agent SQL Readiness Evaluation](tooling/0068-okf-ossie-agent-sql-readiness-evaluation.md) — Superseded
 - [RFC-0070: Production Runner Real-Engine Conformance](tooling/0070-production-runner-real-engine-conformance.md) — Implemented
 - [RFC-0072: Unified AgentBench Semantic-Interface Frame](tooling/0072-unified-agentbench-semantic-interface-frame.md) — Implemented
-- [RFC-0073: S2SBench Oracle Authority and Validation Tiers](tooling/0073-s2sbench-oracle-authority-and-validation.md) — Draft
-- [RFC-0074: S2SBench diagnostic fidelity and token efficiency](tooling/0074-s2sbench-diagnostic-fidelity-and-token-efficiency.md) — Implemented
-- [RFC-0082: Promote S2SBench to a Community CLI](tooling/0082-s2sbench-community-cli.md) — Implemented
+- [RFC-0073: A2SBench Oracle Authority and Validation Tiers](tooling/0073-a2sbench-oracle-authority-and-validation.md) — Draft
+- [RFC-0074: A2SBench diagnostic fidelity and token efficiency](tooling/0074-a2sbench-diagnostic-fidelity-and-token-efficiency.md) — Implemented
+- [RFC-0082: Promote A2SBench to a Community CLI](tooling/0082-a2sbench-community-cli.md) — Implemented
 - [RFC-0088: Online Semantic Validation](tooling/0088-online-semantic-validation.md) — Implemented (scoped v1; Doris parameterized engine validation deferred)
 - [RFC-0089: Catalog-assisted Ossie Authoring](tooling/0089-catalog-assisted-ossie-authoring.md) — Implemented for Doris/ClickHouse and optional DuckDB
 - [RFC-0090: Project Semantic Regression Suites](tooling/0090-project-semantic-regression-suites.md) — Implemented (scoped v1)

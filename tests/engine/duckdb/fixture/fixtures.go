@@ -28,7 +28,7 @@ func (b *Backend) PrepareFixture(ctx context.Context, id conformance.ID) error {
 }
 
 // resetSchema removes every table from the prior scenario. Conformance never
-// relies on cross-fixture state, and S2SBench must not expose stale physical
+// relies on cross-fixture state, and A2SBench must not expose stale physical
 // tables from an earlier scenario to the raw-assets arm.
 func (b *Backend) resetSchema(ctx context.Context) error {
 	return b.execute(ctx,

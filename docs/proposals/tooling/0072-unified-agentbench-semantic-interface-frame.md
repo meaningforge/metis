@@ -14,7 +14,7 @@
 
 > **Historical naming:** this RFC was authored while the harness was named
 > AgentBench. RFC-0074 renamed the active harness and current paths/commands to
-> S2SBench and `tests/s2sbench`. The legacy terms below describe the accepted
+> A2SBench and `tests/a2sbench`. The legacy terms below describe the accepted
 > migration history; they are not current developer instructions.
 
 ## Decision
