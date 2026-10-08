@@ -10,10 +10,13 @@ engine-neutral scoring authority. Current suites/decoders may be adapter-specifi
 support for an additional semantic engine requires an explicit implemented adapter.
 
 The executable/build/package names are `a2sbench`; the old CLI name is not an
-alias. Wire schema and generic-driver version IDs retain their historical
-`s2sbench-*` values, and lifecycle control retains `<output>.s2sbench/`. These are
-data/control contracts, not CLI aliases. Existing artifacts are never rewritten
-for branding, and executable/process identity checks remain unchanged.
+alias. New single-arm and comparison reports use `a2sbench-arm-report-v2` and
+`a2sbench-comparison-report-v3`; their scores and result fields are unchanged.
+Input/workload, run-manifest and generic-driver protocol IDs retain their
+historical values, and lifecycle control retains `<output>.s2sbench/`. These are
+input/control contracts, not CLI aliases. Migrating existing reports is an
+explicit metadata-only operation, never a rerun or a new experimental result.
+Executable/process identity checks remain unchanged.
 
 ## Commands and configuration
 

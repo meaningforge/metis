@@ -138,6 +138,9 @@ func TestBuildComparisonReportAlignsArmsHorizontallyByQuestionNumber(t *testing.
 	if err != nil {
 		t.Fatal(err)
 	}
+	if report.SchemaVersion != "a2sbench-comparison-report-v3" {
+		t.Fatalf("unexpected report identity: %s", report.SchemaVersion)
+	}
 	if len(report.Questions) != 2 || report.Questions[1].QuestionNumber != 2 {
 		t.Fatalf("questions = %#v", report.Questions)
 	}
@@ -146,6 +149,16 @@ func TestBuildComparisonReportAlignsArmsHorizontallyByQuestionNumber(t *testing.
 	}
 	if report.Pairwise[0].Delta != 0.5 {
 		t.Fatalf("delta = %v, want 0.5", report.Pairwise[0].Delta)
+	}
+}
+
+func TestSingleArmReportUsesA2SBenchIdentity(t *testing.T) {
+	report, err := BuildReport(completedSmokeCollection(t, ArmOKF))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if report.SchemaVersion != "a2sbench-arm-report-v2" || report.Arm != ArmOKF {
+		t.Fatalf("report naming changed tested arm: %#v", report)
 	}
 }
 

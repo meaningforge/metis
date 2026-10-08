@@ -21,12 +21,17 @@ Agent-driver extension points are not semantic-engine adapters. The existing
 result oracle judges independently reviewed results rather than matching Metis SQL.
 
 CLI/build/package names use `a2sbench` only; no `s2sbench` command alias is shipped.
-Existing versioned artifact/protocol identifiers and the `.s2sbench` lifecycle
+Existing versioned input/driver protocol identifiers and the `.s2sbench` lifecycle
 directory are deliberately retained so a branding change does not silently
-rewrite evidence, break wrappers or allow two differently named control leases
+break wrappers or allow two differently named control leases
 to own one output. Executable identity checks still apply: do not resume/stop a
 live old executable with a different binary. Complete or stop existing runs
 with the executable that started them before upgrading.
+
+New single-arm/comparison report identifiers use the A2SBench prefix. Existing
+reports may be explicitly migrated for branding without changing experiment
+identity, scoring, results, timestamps or tested engine/arm names. Such a
+metadata migration is not newly collected benchmark evidence.
 
 The executable is assembled in `cmd/a2sbench/command`. Runtime types and
 behavior live below `cmd/a2sbench/bench`; these packages are implementation

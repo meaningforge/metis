@@ -488,7 +488,7 @@ func BuildReport(collection Collection) (Report, error) {
 		}
 		seenAttempts[key][attempt.Attempt] = true
 	}
-	report := Report{SchemaVersion: "s2sbench-arm-report-v2", Suite: collection.Manifest.Suite, Arm: collection.Manifest.Arm, Conclusion: string(collection.Manifest.Suite) + "_single_arm_only", Valid: true}
+	report := Report{SchemaVersion: "a2sbench-arm-report-v2", Suite: collection.Manifest.Suite, Arm: collection.Manifest.Arm, Conclusion: string(collection.Manifest.Suite) + "_single_arm_only", Valid: true}
 	for questionIndex, spec := range collection.Manifest.Scenarios {
 		questionNumber := questionIndex + 1
 		outcome := ArmOutcome{QuestionNumber: questionNumber, Scenario: spec.Name, Question: spec.Question, Stratum: string(spec.Stratum), Repetitions: collection.Manifest.Budget.Repetitions}

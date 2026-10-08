@@ -64,7 +64,7 @@ func BuildComparisonReport(collections ...Collection) (ComparisonReport, error) 
 		return ComparisonReport{}, fmt.Errorf("validate input 1 manifest: %w", err)
 	}
 	report := ComparisonReport{
-		SchemaVersion: "s2sbench-comparison-report-v3", Suite: base.Manifest.Suite,
+		SchemaVersion: "a2sbench-comparison-report-v3", Suite: base.Manifest.Suite,
 		Summaries:  make(map[Arm]ComparedArmSummary, len(collections)),
 		Conclusion: string(base.Manifest.Suite) + "_comparison", Valid: true,
 	}

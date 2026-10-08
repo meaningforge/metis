@@ -275,6 +275,11 @@ machine-readable reports. A semantic engine is a tested interface adapter, not
 the benchmark's identity or scoring authority. Current adapters are OKF assets
 and Metis MCP; arbitrary semantic engines are not yet supported.
 
+New report identifiers use the `a2sbench` prefix. Branding migrations must
+preserve experiment identities, tested interface names, scores and raw results;
+they do not constitute new benchmark runs. Input and agent-driver protocols
+retain their existing versions independently of the executable name.
+
 These tools have separate responsibilities: `metis semantic test` checks an
 author's explicit compile/result expectations without running an agent, while
 `a2sbench` owns frozen benchmark suites, agent runners, scoring and comparisons.
