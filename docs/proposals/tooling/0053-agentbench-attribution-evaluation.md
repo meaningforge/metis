@@ -15,7 +15,7 @@
 
 > **Current parameter transport:** SQL and parameters are now carried separately
 > to database drivers. The broker materialization described below is historical;
-> see the [S2SBench contract](../../specs/testing/s2sbench-cli.md).
+> see the [A2SBench contract](../../specs/testing/a2sbench-cli.md).
 
 ## Summary
 

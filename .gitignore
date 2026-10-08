@@ -6,7 +6,7 @@
 __pycache__/
 .workload/
 .workload.partial/
-/s2sbench-results/
+/a2sbench-results/
 tests/benchmarks/agent-attribution/results/
 tests/benchmarks/agent-comparison/results/
 tests/benchmarks/okf-ossie-sql-readiness/results/

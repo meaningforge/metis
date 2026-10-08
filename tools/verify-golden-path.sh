@@ -13,7 +13,7 @@ quickstart_manifest="examples/demo/metis.yaml"
 go build -trimpath -o "$tmp/metis" ./cmd/metis
 
 # Semantic authoring replaces the project group; benchmark commands stay in
-# S2SBench. Check the real executable, including help dispatch and exit codes.
+# A2SBench. Check the real executable, including help dispatch and exit codes.
 for subcommand in init validate inspect diff test; do
   "$tmp/metis" semantic "$subcommand" --help >"$tmp/help.txt" 2>&1
   if "$tmp/metis" project "$subcommand" --help >"$tmp/retired.txt" 2>&1; then

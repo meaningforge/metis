@@ -17,7 +17,7 @@ semantic command supports compile and metric-result checks only; adding analytic
 snapshot grammars or host-policy testing is not required by scoped RFC-0090.
 See the [project suite contract](project-compile-regression.md).
 
-`s2sbench` alone owns agent experiment commands, scenario selection, scoring and
+`a2sbench` alone owns agent experiment commands, scenario selection, scoring and
 paired comparisons. `metis semantic` alone owns semantic authoring and
 project-owned regression checks; neither CLI duplicates the other's workflows.
 The boundary gate rejects Metis command/tooling imports of benchmark-owned
@@ -218,7 +218,7 @@ independently from its physical wire encoding and retains the logical kind of
 its column.
 
 Raw engine connections remain permitted only for fixture DDL/DML, readiness
-checks, Driver-level contract tests, and S2SBench's deliberately arbitrary SQL
+checks, Driver-level contract tests, and A2SBench's deliberately arbitrary SQL
 surface. Optimizer differential tests execute both complete compiler artifacts
 through production Runner. Focused attribution evidence projections use the
 test-only `ProductionExecution.RunRawQuery` boundary with an explicit

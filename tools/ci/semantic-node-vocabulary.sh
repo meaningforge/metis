@@ -4,7 +4,7 @@ set -euo pipefail
 production_files=()
 # Release lifecycle terminology does not describe SemanticPlan nodes and is
 # deliberately outside this vocabulary guard.
-for root in app cmd/s2sbench ossie planner resolver; do
+for root in app cmd/a2sbench ossie planner resolver; do
   while IFS= read -r -d '' file; do
     production_files+=("$file")
   done < <(find "$root" -type f -name '*.go' ! -name '*_test.go' \

@@ -52,6 +52,6 @@ Current, testable contracts for Metis Core. Start with the public contract and g
 - [Testing Architecture Contract](testing/architecture.md)
 - [Optimizer Differential Conformance Contract](testing/optimizer-differential-conformance.md)
 - [Project compile regression suite](testing/project-compile-regression.md)
-- [S2SBench CLI contract](testing/s2sbench-cli.md)
+- [A2SBench CLI contract](testing/a2sbench-cli.md)
 - [Semantic Context Determinism](testing/semantic-context-determinism.md)
 - [Semantic Plan Quality Conformance Contract](testing/semantic-plan-quality-conformance.md)

@@ -1,4 +1,4 @@
-.PHONY: check release-check golden-path docs-check ci-contract-check test test-unit test-samples test-conformance test-e2e test-duckdb-backend test-engine-clickhouse test-engine-clickhouse-container test-engine-doris test-engine-doris-container semantic-correctness-coverage semantic-target-evidence okf-readiness-conformance fmt fmt-check vet validate ossie-sync smoke docker-build metis-build metis-smoke s2sbench-build s2sbench-boundary-check ossie-conformance clickhouse-conformance reference-conformance
+.PHONY: check release-check golden-path docs-check ci-contract-check test test-unit test-samples test-conformance test-e2e test-duckdb-backend test-engine-clickhouse test-engine-clickhouse-container test-engine-doris test-engine-doris-container semantic-correctness-coverage semantic-target-evidence okf-readiness-conformance fmt fmt-check vet validate ossie-sync smoke docker-build metis-build metis-smoke a2sbench-build a2sbench-boundary-check ossie-conformance clickhouse-conformance reference-conformance
 
 # Standard developer/CI correctness gate. Keep the release-facing quickstart
 # executable here so README/CLI/path drift is caught on ordinary pull requests.
@@ -29,7 +29,7 @@ ci-contract-check:
 	bash tools/ci/metric-evaluation-authority.sh
 	bash tools/ci/semantic-node-vocabulary.sh
 	bash tools/ci/backend-extension-boundaries.sh
-	$(MAKE) s2sbench-boundary-check
+	$(MAKE) a2sbench-boundary-check
 
 # Fast in-process Go tests. Conformance and real-engine packages have dedicated
 # targets below so each correctness layer runs exactly once.
@@ -70,9 +70,9 @@ test-e2e:
 # execution, and result normalization.
 # DuckDB is one explicit CGO build flavor. This single gate covers the
 # production Backend, runtime composition, the complete shared real-engine
-# scenario corpus, and S2SBench's embedded execution fixture.
+# scenario corpus, and A2SBench's embedded execution fixture.
 test-duckdb-backend:
-	CGO_ENABLED=1 go test -tags duckdb ./execution/backend/duckdb ./cmd/metis ./cmd/s2sbench/... ./tests/engine/duckdb ./tests/benchmarks/s2sbench -count=1
+	CGO_ENABLED=1 go test -tags duckdb ./execution/backend/duckdb ./cmd/metis ./cmd/a2sbench/... ./tests/engine/duckdb ./tests/benchmarks/a2sbench -count=1
 
 test-engine-clickhouse:
 	@go run ./tests/engine/datasource/cmd/require -datasource clickhouse
@@ -126,12 +126,12 @@ reference-conformance:
 metis-build:
 	go build -o bin/metis ./cmd/metis
 
-s2sbench-build:
-	CGO_ENABLED=1 go build -tags duckdb -o bin/s2sbench ./cmd/s2sbench
+a2sbench-build:
+	CGO_ENABLED=1 go build -tags duckdb -o bin/a2sbench ./cmd/a2sbench
 
-s2sbench-boundary-check:
-	go test ./tools/ci/s2sbenchboundary
-	go run ./tools/ci/s2sbenchboundary
+a2sbench-boundary-check:
+	go test ./tools/ci/a2sbenchboundary
+	go run ./tools/ci/a2sbenchboundary
 
 metis-smoke: test-samples
 

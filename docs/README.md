@@ -20,8 +20,8 @@ drivers. Start with the [project quickstart](../README.md).
   [data access policy](specs/operations/data-access-policy.md), and
   [Renderer/Driver extension authoring](specs/sql/extension-authoring.md).
 - **Evaluate changes:** [testing architecture](specs/testing/architecture.md),
-  [S2SBench CLI](specs/testing/s2sbench-cli.md), and
-  [S2SBench design](design/tooling/s2sbench.md).
+  [A2SBench CLI](specs/testing/a2sbench-cli.md), and
+  [A2SBench design](design/tooling/a2sbench.md).
 
 ## Documentation roles
 
@@ -54,7 +54,7 @@ Several names changed during development:
 | `physical`, `renderer/sqlquery` | `renderer/sql`: SQL text, dialect, and separate parameters |
 | `Catalog` | `manifest.SemanticManifest` and its derived `SemanticGraph` |
 | `CompileTarget`, semantic `Engine`, `ExecutionBinding` | Explicit compile dialect; runtime Project → semantic model → applied DataSource → Backend |
-| `AgentBench`, `tests/agentbench`, `tests/s2sbench` | `cmd/s2sbench`; black-box coverage under `tests/benchmarks` |
+| `AgentBench`, `tests/agentbench`, `tests/a2sbench` | `cmd/a2sbench`; black-box coverage under `tests/benchmarks` |
 | SQL parameter materialization | Preserve SQL and parameters separately; database drivers bind values |
 
 Use the current CLI help and specifications for commands. Historical pseudo-code,

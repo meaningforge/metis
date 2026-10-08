@@ -48,7 +48,7 @@ same runtime services that Go applications can embed directly.
 | [`metis`](#run-from-source) | Validate and compile semantic models offline, manage local projects, or run the standalone semantic runtime. |
 | [MCP](#connect-an-mcp-client) | Give an agent tools for semantic discovery, SQL compilation, and bounded analytics over stdio or HTTP. |
 | [REST](#serve-mcp-and-rest-over-http) | Integrate semantic discovery, compilation, explanation, and analytics into applications. |
-| [`s2sbench`](#s2sbench-agent-analytics-benchmarks) | Run repeatable agent analytics experiments and inspect correctness, readiness, and execution evidence. |
+| [`a2sbench`](#a2sbench-agent-analytics-benchmarks) | Run repeatable agent analytics experiments and inspect correctness, readiness, and execution evidence. |
 | [Go packages](#embed-in-a-go-application) | Compose a runtime with your own configuration, policies, and database integrations. |
 
 ## Run from source
@@ -266,17 +266,24 @@ the default build. Compile-only deployments
 require no database credentials. The execution runtime manages connections,
 secrets, cancellation, timeouts, and output limits.
 
-## `s2sbench`: Agent analytics benchmarks
+## `a2sbench`: Agent analytics benchmarks
 
-S2SBench evaluates how an agent completes analytical tasks through semantic
-interfaces. It runs frozen scenario suites, records attempts and query evidence,
-and produces machine-readable reports. Use it to investigate whether a change to
-Metis helps agents discover the right data and produce correct analytical results.
+A2SBench (Agent-to-SQL Benchmark) evaluates agents, not a particular semantic-layer
+engine. It runs frozen questions with explicit budgets, scores independently
+reviewed result expectations, records attempts and query evidence, and produces
+machine-readable reports. A semantic engine is a tested interface adapter, not
+the benchmark's identity or scoring authority. Current adapters are OKF assets
+and Metis MCP; arbitrary semantic engines are not yet supported.
+
+New report identifiers use the `a2sbench` prefix. Branding migrations must
+preserve experiment identities, tested interface names, scores and raw results;
+they do not constitute new benchmark runs. Input and agent-driver protocols
+retain their existing versions independently of the executable name.
 
 These tools have separate responsibilities: `metis semantic test` checks an
 author's explicit compile/result expectations without running an agent, while
-`s2sbench` owns frozen benchmark suites, agent runners, scoring and comparisons.
-Metis does not expose benchmark commands; S2SBench does not replace semantic
+`a2sbench` owns frozen benchmark suites, agent runners, scoring and comparisons.
+Metis does not expose benchmark commands; A2SBench does not replace semantic
 authoring, catalog capture or project-owned regression commands. Both use the
 existing semantic/query services rather than implementing another query engine.
 
@@ -287,9 +294,9 @@ model through each interface enables a paired comparison.
 Build with embedded DuckDB support and inspect the available commands:
 
 ```sh
-make s2sbench-build
-bin/s2sbench --help
-bin/s2sbench run --help
+make a2sbench-build
+bin/a2sbench --help
+bin/a2sbench run --help
 ```
 
 Agent runs require an installed, authenticated agent CLI and model access. The
@@ -298,34 +305,34 @@ also requires CGO and a C toolchain. Start with the `smoke` suite and set the
 model identifiers to those used by your agent:
 
 ```sh
-bin/s2sbench run \
+bin/a2sbench run \
   --suite smoke \
   --arm metis-mcp \
   --agent codex \
   --model '<model-id>' \
   --provider '<provider>' \
   --model-version '<model-version>' \
-  --output ./s2sbench-results/smoke-metis
+  --output ./a2sbench-results/smoke-metis
 ```
 
 Completed runs contain `manifest.json`, `collection.json`, `attempts.jsonl`, and
 `report.json`. Repeat an interrupted command with `--resume` to keep completed
-work. Use `--detach` for a background run and `s2sbench stop <output-directory>`
+work. Use `--detach` for a background run and `a2sbench stop <output-directory>`
 to stop it.
 
 For a paired experiment, repeat the run with `--arm okf` and a separate output
 directory, then compare both collections:
 
 ```sh
-bin/s2sbench analyze \
-  --input ./s2sbench-results/smoke-okf \
-  --input ./s2sbench-results/smoke-metis \
-  --output ./s2sbench-results/comparison.json
+bin/a2sbench analyze \
+  --input ./a2sbench-results/smoke-okf \
+  --input ./a2sbench-results/smoke-metis \
+  --output ./a2sbench-results/comparison.json
 ```
 
 Additional commands cover workload generation (`gen`), catalog-derived file
 creation (`okfgen`), reports (`report`), and attribution and comparison
-experiments. Use `bin/s2sbench <command> --help` for their inputs and options.
+experiments. Use `bin/a2sbench <command> --help` for their inputs and options.
 Agent benchmark runs are separate from the standard correctness tests.
 
 ## Use your own models
@@ -405,5 +412,5 @@ available in [NOTICE](NOTICE), [THIRD_PARTY_NOTICES](THIRD_PARTY_NOTICES), and
 ## Design and RFCs
 
 See the [documentation guide](docs/README.md) for architecture, public contracts,
-model authoring, execution, and S2SBench. [Core RFCs](docs/proposals/README.md)
+model authoring, execution, and A2SBench. [Core RFCs](docs/proposals/README.md)
 record proposals and design rationale, with explicit lifecycle status.

@@ -40,7 +40,7 @@ installation just to invoke the existing services.
 | Does an authored metric match this project's business expectation? | Project-owned suite via `metis semantic test` |
 | Does Metis implement a semantic operation correctly across engines? | Internal conformance and real-engine harnesses |
 | Does a deployment enforce identities and data policies? | Host/application integration tests |
-| Can an Agent complete an analytical task? | S2SBench |
+| Can an Agent complete an analytical task? | A2SBench |
 
 Project suites do not prove engine support, tenant isolation, or Agent quality.
 Internal tests remain authoritative for their distinct responsibilities.
@@ -172,7 +172,7 @@ is a reason to investigate, not permission to regenerate expectations. The
 business-regression example and its reviewed fix.
 
 Existing models, REST/MCP interfaces, analytics services, internal tests, and
-S2SBench retain their contracts. No migration is required for shipped suites.
+A2SBench retain their contracts. No migration is required for shipped suites.
 
 ## References
 

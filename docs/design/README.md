@@ -25,4 +25,4 @@ Explanations of the current Metis Core architecture and package responsibilities
 
 ## Tooling
 
-- [S2SBench architecture](tooling/s2sbench.md)
+- [A2SBench architecture](tooling/a2sbench.md)
