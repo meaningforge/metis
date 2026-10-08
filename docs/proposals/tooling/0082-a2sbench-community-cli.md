@@ -16,12 +16,13 @@
 
 This RFC proposes promoting A2SBench from repository-local test machinery into a first-class community CLI alongside `metis`.
 
-The CLI is now named `a2sbench` (Agent-to-SQL Benchmark), not an engine-branded
-validation tool. It owns reproducible agent experiments, frozen workload inputs,
-independent result scoring and evidence reports. Metis is a tested interface
-adapter; semantic project authoring, compilation and serving remain with `metis`.
-Current implemented arms are OKF assets and Metis MCP, not arbitrary-engine
-support. See the [current CLI contract](../../specs/testing/a2sbench-cli.md) for
+The CLI is now named `a2sbench` (Agent-to-SQL Benchmark) and specifically
+evaluates agent use of Metis Core. It owns reproducible experiments, frozen
+workload inputs, independent result scoring and evidence reports. Metis MCP is
+the system under test; OKF assets/direct SQL are controlled baselines, not a
+multi-semantic-engine expansion roadmap. Neutrality means unbiased scoring and
+comparable conditions. Semantic authoring, compilation and serving remain with
+`metis`. See the [current CLI contract](../../specs/testing/a2sbench-cli.md) for
 the command migration and retained artifact/driver/control identities.
 
 The target ownership model is:

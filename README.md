@@ -266,14 +266,15 @@ the default build. Compile-only deployments
 require no database credentials. The execution runtime manages connections,
 secrets, cancellation, timeouts, and output limits.
 
-## `a2sbench`: Agent analytics benchmarks
+## `a2sbench`: Agent benchmarks for Metis Core
 
-A2SBench (Agent-to-SQL Benchmark) evaluates agents, not a particular semantic-layer
-engine. It runs frozen questions with explicit budgets, scores independently
-reviewed result expectations, records attempts and query evidence, and produces
-machine-readable reports. A semantic engine is a tested interface adapter, not
-the benchmark's identity or scoring authority. Current adapters are OKF assets
-and Metis MCP; arbitrary semantic engines are not yet supported.
+A2SBench (Agent-to-SQL Benchmark) evaluates how agents use **Metis Core** to
+complete analytical tasks. It runs frozen questions with explicit budgets,
+scores independently reviewed result expectations, records attempts and query
+evidence, and produces machine-readable reports. Metis MCP is the system under
+test; OKF assets/direct SQL provide controlled baselines. Neutrality means fair
+scoring and comparable experimental conditions, not a multi-semantic-engine
+platform. The oracle must not favor Metis SQL spelling or output aliases.
 
 New report identifiers use the `a2sbench` prefix. Branding migrations must
 preserve experiment identities, tested interface names, scores and raw results;

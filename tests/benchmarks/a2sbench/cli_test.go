@@ -29,8 +29,8 @@ func TestBuiltCLIWorksOutsideRepository(t *testing.T) {
 	if err != nil {
 		t.Fatalf("run copied a2sbench: %v\n%s", err, output)
 	}
-	if !strings.Contains(string(output), "a2sbench [command]") || !strings.Contains(string(output), "Agent-to-SQL") {
-		t.Fatalf("missing neutral benchmark identity: %s", output)
+	if !strings.Contains(string(output), "a2sbench [command]") || !strings.Contains(string(output), "Agent-to-SQL") || !strings.Contains(string(output), "Metis Core") || !strings.Contains(string(output), "controlled baselines") {
+		t.Fatalf("missing Metis Core benchmark purpose: %s", output)
 	}
 	for _, name := range []string{"semantic", "catalog", "serve"} {
 		command := exec.Command(binary, name)

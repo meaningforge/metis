@@ -3,11 +3,13 @@
 This specification defines the current executable and lifecycle contract for
 the A2SBench community CLI.
 
-A2SBench means Agent-to-SQL Benchmark. It owns agent experiments, budgets,
-evidence, scoring and reports, not semantic-layer authoring or serving commands.
-Metis is one implemented interface adapter alongside OKF assets, not a required
-engine-neutral scoring authority. Current suites/decoders may be adapter-specific;
-support for an additional semantic engine requires an explicit implemented adapter.
+A2SBench means Agent-to-SQL Benchmark. It evaluates agent use of Metis Core and
+owns experiment budgets, evidence, scoring and reports, not semantic-layer
+authoring or serving commands. Metis MCP is the system under test; OKF assets
+and direct SQL are controlled baselines. Metis-specific suites and evidence
+decoders are intentional, not a requirement to generalize semantic-engine
+adapters. Fairness requires independent expected results, equal budgets and
+comparable conditions; scoring must not favor Metis SQL text or output aliases.
 
 The executable/build/package names are `a2sbench`; the old CLI name is not an
 alias. New single-arm and comparison reports use `a2sbench-arm-report-v2` and
