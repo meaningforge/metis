@@ -1,0 +1,66 @@
+version: 2
+models:
+- name: orders
+  semantic_model:
+    enabled: true
+  agg_time_dimension: ordered_at
+  columns:
+  - name: order_id
+    data_type: bigint
+    entity:
+      name: order
+      type: primary
+  - name: customer_id
+    data_type: bigint
+    entity:
+      name: customer
+      type: foreign
+  - name: ordered_at
+    data_type: date
+    dimension:
+      type: time
+    granularity: day
+  - name: amount
+    data_type: decimal(18,2)
+  metrics:
+  - name: revenue
+    type: simple
+    agg: sum
+    expr: amount
+  - name: private_revenue
+    type: simple
+    agg: sum
+    expr: amount
+    hidden: true
+- name: customers
+  semantic_model:
+    enabled: true
+  columns:
+  - name: customer_id
+    data_type: bigint
+  - name: region
+    data_type: varchar
+    dimension:
+      type: categorical
+  - name: customer_code
+    data_type: varchar
+    entity:
+      name: customer
+      type: natural
+  - name: valid_from
+    data_type: timestamp
+    granularity: day
+    dimension:
+      type: time
+      validity_params:
+        is_start: true
+        is_end: false
+  - name: valid_to
+    data_type: timestamp
+    granularity: day
+    dimension:
+      type: time
+      validity_params:
+        is_start: false
+        is_end: true
+  primary_entity: customer
