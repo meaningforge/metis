@@ -15,6 +15,10 @@ type ID string
 const (
 	Commerce                   ID = "commerce"
 	CommerceAdversarial        ID = "commerce_adversarial"
+	CommercePeriodEdges        ID = "commerce_period_edges"
+	CommerceOrdering           ID = "commerce_ordering"
+	CommerceRolling            ID = "commerce_rolling"
+	OrderDetails               ID = "order_details"
 	DistinctValues             ID = "distinct_values"
 	DefinitionFilters          ID = "definition_filters"
 	Conversion                 ID = "conversion"
@@ -27,6 +31,7 @@ const (
 	CustomCalendarGrainToDate  ID = "custom_calendar_grain_to_date"
 	CustomCalendarSemiAdditive ID = "custom_calendar_semi_additive"
 	SemiAdditiveTieBreak       ID = "semi_additive_tie_break"
+	SemiAdditiveTieRollup      ID = "semi_additive_tie_rollup"
 	SemiAdditiveNullSkip       ID = "semi_additive_null_skip"
 	SemiAdditiveQueriedWindow  ID = "semi_additive_queried_window"
 	SemiAdditiveWindowGrouping ID = "semi_additive_window_grouping"
@@ -61,6 +66,9 @@ type Definition struct {
 //
 //go:embed commerce.ossie.yaml
 var CommerceModelYAML []byte
+
+//go:embed order_details.ossie.yaml
+var OrderDetailsModelYAML []byte
 
 // DistinctValuesModelYAML isolates query-intent behavior that does not require
 // the larger commerce semantic world.
@@ -135,6 +143,18 @@ var SemiAdditiveEdgesModelYAML []byte
 var AmbiguousPathsModelYAML []byte
 
 var definitions = map[ID]Definition{
+	SemiAdditiveTieRollup: {
+		ID: SemiAdditiveTieRollup, Project: ConformanceProject, Model: string(SemiAdditiveTieRollup),
+		Document: renamedFixtureDocument(replaceFixtureDocument(SemiAdditiveEdgesModelYAML,
+			`"aggregation":"last","window_groupings":["warehouse"]}`,
+			`"aggregation":"last","tie_break_dimension":"snapshot_sequence","window_groupings":["warehouse"]}`), SemiAdditiveEdgesModel, string(SemiAdditiveTieRollup)),
+	},
+	OrderDetails: {ID: OrderDetails, Project: ConformanceProject, Model: "order_details", Document: OrderDetailsModelYAML},
+	CommerceRolling: {
+		ID: CommerceRolling, Project: ConformanceProject, Model: string(CommerceRolling),
+		Document: renamedFixtureDocument(replaceFixtureDocument(CommerceModelYAML,
+			`"window":{"type":"unbounded"}`, `"window":{"type":"rolling","count":3,"unit":"month"}`), CommerceModel, string(CommerceRolling)),
+	},
 	Commerce: {
 		ID:       Commerce,
 		Project:  ConformanceProject,
@@ -153,6 +173,15 @@ var definitions = map[ID]Definition{
 		Model:    DistinctValuesModel,
 		Document: DistinctValuesModelYAML,
 	},
+	CommercePeriodEdges: {
+		ID: CommercePeriodEdges, Project: ConformanceProject, Model: string(CommercePeriodEdges),
+		Document: renamedFixtureDocument(replaceFixtureDocument(CommerceModelYAML, "    metrics:\n", `    metrics:
+      - name: unique_order_customers
+        datatype: Integer
+        expression: {dialects: [{dialect: ANSI_SQL, expression: "COUNT(DISTINCT orders.customer_id)"}]}
+`), CommerceModel, string(CommercePeriodEdges)),
+	},
+	CommerceOrdering: {ID: CommerceOrdering, Project: ConformanceProject, Model: CommerceModel, Document: CommerceModelYAML},
 	DefinitionFilters: {
 		ID:       DefinitionFilters,
 		Project:  ConformanceProject,

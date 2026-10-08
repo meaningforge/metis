@@ -67,8 +67,8 @@ func TestSQLPlanRenderersAreDeterministicAndImmutableAcrossFullCorpus(t *testing
 				}
 				compared++
 			}
-			if compared != 97 {
-				t.Fatalf("compared %d scenarios, want 97", compared)
+			if compared != 105 {
+				t.Fatalf("compared %d scenarios, want 105", compared)
 			}
 		})
 	}

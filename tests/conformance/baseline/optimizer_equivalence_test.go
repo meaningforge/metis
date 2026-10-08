@@ -169,6 +169,7 @@ func TestOptimizationStillChangesTheQueriesItShould(t *testing.T) {
 		"metric_filter_hidden_metric",
 		"metric_filter_multi_metric",
 		"nested_derived_metric",
+		"nested_derived_order_limit_after_aggregation",
 		"ratio_empty_population_null",
 		"ratio_metric",
 		"semantic_extension_derived_metric",

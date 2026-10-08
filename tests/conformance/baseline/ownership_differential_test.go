@@ -117,10 +117,10 @@ func (c differentialCoverage) assert(t *testing.T) {
 		have int
 		want int
 	}{
-		{"nodes", c.stages, 48},
-		{"nodes carrying joins", c.joins, 22},
-		{"nodes carrying an output grain", c.grain, 37},
-		{"nodes carrying predicates", c.predicates, 16},
+		{"nodes", c.stages, 52},
+		{"nodes carrying joins", c.joins, 23},
+		{"nodes carrying an output grain", c.grain, 39},
+		{"nodes carrying predicates", c.predicates, 18},
 	} {
 		if recorded.have != recorded.want {
 			t.Errorf("%s = %d, recorded %d", recorded.what, recorded.have, recorded.want)

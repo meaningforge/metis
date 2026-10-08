@@ -33,8 +33,12 @@ func IDs() []conformance.ID {
 }
 
 var datasets = map[conformance.ID]func() []Table{
+	conformance.OrderDetails:               orderDetails,
 	conformance.Commerce:                   commerce,
 	conformance.CommerceAdversarial:        commerceAdversarial,
+	conformance.CommercePeriodEdges:        commercePeriodEdges,
+	conformance.CommerceOrdering:           commerceOrdering,
+	conformance.CommerceRolling:            commercePeriodEdges,
 	conformance.TemporalRelationship:       temporalRelationship,
 	conformance.DistinctValues:             distinctValues,
 	conformance.DefinitionFilters:          definitionFilters,
@@ -48,6 +52,7 @@ var datasets = map[conformance.ID]func() []Table{
 	conformance.CustomCalendarGrainToDate:  customCalendarGrainToDate,
 	conformance.CustomCalendarSemiAdditive: customCalendarSemiAdditive,
 	conformance.SemiAdditiveTieBreak:       semiAdditiveTieBreak,
+	conformance.SemiAdditiveTieRollup:      semiAdditiveTieBreak,
 	conformance.SemiAdditiveNullSkip:       semiAdditiveNullSkip,
 	conformance.SemiAdditiveQueriedWindow:  semiAdditiveQueriedWindow,
 	conformance.SemiAdditiveWindowGrouping: semiAdditiveWindowGrouping,
@@ -128,6 +133,32 @@ func commerceAdversarial() []Table {
 		t("geography", []string{"region_code"}, geographyColumns, r("r1", "JP"), r("r2", "DE")),
 		t("product", []string{"product_id"}, productColumns,
 			r("p1", "electronics", "acme"), r("p2", "apparel", "contoso"), r("p3", "electronics", "acme")),
+	}
+}
+
+// Reuse the semantic model; only the discriminating logical data changes.
+func commercePeriodEdges() []Table {
+	tables := commerce()
+	tables[0].Rows = [][]any{
+		r("o1", "c1", "p1", "2026-01-31", "2026-01-31", "2026-01-31", 10, 0, "paid"),
+		r("o2", "c1", "p1", "2026-03-31", "2026-03-31", "2026-03-31", 30, 0, "paid"),
+	}
+	return tables
+}
+
+func commerceOrdering() []Table {
+	tables := commerce()
+	tables[0].Rows[0][6], tables[0].Rows[0][7] = 50, 0
+	tables[0].Rows[1][6], tables[0].Rows[1][7] = 70, 0
+	tables[0].Rows[2][6], tables[0].Rows[2][7] = 100, 90
+	return tables
+}
+
+func orderDetails() []Table {
+	return []Table{
+		t("fanout_orders", []string{"order_id"}, []Column{c("order_id", String), c("amount", Decimal)}, r("o1", 100), r("o2", 50)),
+		t("fanout_details", []string{"detail_id"}, []Column{c("detail_id", String), c("order_id", String), c("kind", String)},
+			r("d1", "o1", "all"), r("d2", "o1", "all"), r("d3", "o1", "all"), r("d4", "o2", "all"), r("d5", "o2", "all")),
 	}
 }
 

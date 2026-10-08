@@ -43,6 +43,7 @@ var semanticCalendarCompositionScenarios = []Scenario{
 
 func init() {
 	compositionScenarios = append(compositionScenarios, semanticCompositionScenarios...)
+	compositionScenarios = append(compositionScenarios, combinationRegressions...)
 	calendarScenarios = append(calendarScenarios, semanticCalendarCompositionScenarios...)
 	Core = concatScenarios(
 		metricScenarios,
