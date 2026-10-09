@@ -1,6 +1,7 @@
 package query
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 )
@@ -71,8 +72,16 @@ func decodeFilterValue(raw json.RawMessage) (any, error) {
 		return nil, nil
 	}
 	var value any
-	if err := json.Unmarshal(raw, &value); err != nil {
+	decoder := json.NewDecoder(bytes.NewReader(raw))
+	decoder.UseNumber()
+	if err := decoder.Decode(&value); err != nil {
 		return nil, err
+	}
+	if n, ok := value.(json.Number); ok {
+		return ParseFilterNumber(string(n))
+	}
+	if value == nil {
+		return nil, nil
 	}
 	if isFilterScalar(value) {
 		return value, nil
@@ -81,7 +90,15 @@ func decodeFilterValue(raw json.RawMessage) (any, error) {
 	if !ok {
 		return nil, fmt.Errorf("filter value must be a scalar or flat scalar array")
 	}
-	for _, item := range items {
+	for i, item := range items {
+		if n, ok := item.(json.Number); ok {
+			checked, err := ParseFilterNumber(string(n))
+			if err != nil {
+				return nil, err
+			}
+			items[i] = checked
+			continue
+		}
 		if !isFilterScalar(item) && item != nil {
 			return nil, fmt.Errorf("filter array values must be scalar")
 		}

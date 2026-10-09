@@ -38,8 +38,9 @@ Numeric filter literals must survive the existing query API's `float64` boundary
 without changing their decimal round-trip value; integer literals must also be
 exactly representable. Lossy values such as `9007199254740993` or
 `0.10000000000000000001` are rejected before execution, including inside arrays.
-Normal literals such as `0.1` and `1.25` remain supported. This tool-layer check
-does not change REST/MCP decoding or introduce a new numeric filter type. Quoted
+Normal literals such as `0.1` and `1.25` remain supported. The tool reuses the
+shared query guard also enforced by REST, MCP and offline CLI decoding; this
+does not introduce a new numeric filter type. Quoted
 values remain strings, not a workaround that coerces strings into exact numbers.
 Filter numbers use bounded JSON decimal syntax (up to 256 characters and a
 three-digit exponent); YAML base prefixes, leading zeros, digit separators,

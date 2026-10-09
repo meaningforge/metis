@@ -30,6 +30,23 @@ type Filter struct {
 	Value any    `json:"value,omitempty"`
 }
 
+// The offline op spelling differs, but numeric operands share the public guard.
+func (f *Filter) UnmarshalJSON(data []byte) error {
+	var header struct {
+		Field string `json:"field"`
+		Op    string `json:"op"`
+	}
+	if err := json.Unmarshal(data, &header); err != nil {
+		return err
+	}
+	var common query.Filter
+	if err := json.Unmarshal(data, &common); err != nil {
+		return err
+	}
+	f.Field, f.Op, f.Value = header.Field, header.Op, common.Value
+	return nil
+}
+
 type Dimension struct {
 	Name  string           `json:"name"`
 	Grain *query.TimeGrain `json:"grain,omitempty"`

@@ -25,6 +25,17 @@ Planner, optimizer, and compiler still receive the same canonical
 
 Natural-language interpretation remains outside Metis Core.
 
+Numeric filter operands use the shared float64 boundary: their original JSON
+decimal value must survive JSON round trip unchanged, and integral values must
+also be exactly representable as float64 integers. This applies to scalars and
+every `in`, `not_in`, or `between` array member. `0.1` remains supported;
+`9007199254740993`, `0.10000000000000000001`, overflow, and nonzero underflow
+are rejected as invalid input, without echoing the operand. Numbers are bounded
+to 256 characters and a three-digit exponent. REST, MCP (before SDK numeric
+coercion), offline CLI, and semantic regression suites share this rule. Quoted
+values remain strings; this protection is not an exact Integer/Decimal parameter
+pipeline and cannot recover precision already lost by a caller before encoding.
+
 `attribute_metric` contains no dialect, DataSource, target, Renderer, Driver,
 limit, ordering, top-k, or raw predicate field. Its periods are exact RFC3339
 instants with explicit offsets. Agents select refs and periods, but must not
