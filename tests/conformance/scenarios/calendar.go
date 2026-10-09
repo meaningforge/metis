@@ -73,6 +73,19 @@ var calendarScenarios = []Scenario{
 		ResultLiteral{"2026-01-26", "70"},
 	),
 	resultFixtureScenario(
+		fixtures.CustomCalendarRolling,
+		"custom_calendar_rolling_filter_preserves_lookback",
+		CategoryTime,
+		[]Capability{CapabilityAggregation, CapabilityDimension, CapabilityFilter, CapabilityCumulative, CapabilityCustomCalendar, CapabilityDenseCalendar},
+		func() query.SemanticQuery {
+			q := customGrainQuery(fixtures.CustomCalendarRolling, "rolling_3_fiscal_week_revenue", "calendar_day", query.TimeGrain("fiscal_week"))
+			q.Filters = []query.Filter{{Field: "calendar_day", Operator: query.FilterBetween, Value: []string{"2026-01-19", "2026-01-26"}}}
+			return q
+		}(),
+		ResultLiteral{"2026-01-19", "40"},
+		ResultLiteral{"2026-01-26", "70"},
+	),
+	resultFixtureScenario(
 		fixtures.CustomCalendarGrainToDate,
 		"custom_calendar_fiscal_quarter_to_date",
 		CategoryTime,

@@ -279,6 +279,10 @@ var compilerExpectations = map[string]CompilerExpectation{
 	"custom_calendar_rolling_three_fiscal_weeks": {
 		Fragments: []string{"rolling_3_fiscal_week_revenue", "__periods", "__metis_dense_ordinal", "ROWS BETWEEN 2 PRECEDING AND CURRENT ROW"},
 	},
+	"custom_calendar_rolling_filter_preserves_lookback": {
+		Fragments:  []string{"rolling_3_fiscal_week_revenue", "__periods", "__metis_dense_ordinal", "ROWS BETWEEN 2 PRECEDING AND CURRENT ROW", "WHERE"},
+		Parameters: 3,
+	},
 	"custom_calendar_fiscal_quarter_to_date": {
 		Fragments: []string{"fiscal_quarter_to_date_revenue", "__metis_custom_gtd_periods", "fiscal_quarter_start", "ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW"},
 	},

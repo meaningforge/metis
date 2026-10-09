@@ -121,6 +121,7 @@ var Baseline = []Case{
 	{Scenario: "offset_to_grain_missing_boundary_stays_zero", Importance: ImportanceRequired, Origin: OriginManualOracle},
 	{Scenario: "custom_calendar_dense_missing_period", Importance: ImportanceRequired, Origin: OriginManualOracle},
 	{Scenario: "custom_calendar_cumulative_with_filter", Importance: ImportanceRequired, Origin: OriginManualOracle},
+	{Scenario: "custom_calendar_rolling_filter_preserves_lookback", Importance: ImportanceRequired, Origin: OriginManualOracle},
 	{Scenario: "custom_calendar_semi_additive_last_snapshot", Importance: ImportanceRequired, Origin: OriginManualOracle},
 
 	// Adversarial data-shape pressure. These cases intentionally reuse the

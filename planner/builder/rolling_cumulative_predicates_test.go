@@ -65,3 +65,93 @@ func TestRollingCumulativeRangeSupportsHourTimestamp(t *testing.T) {
 		t.Fatalf("hourly widened predicates = %#v", got)
 	}
 }
+
+func TestCustomRollingCumulativeRangeKeepsOutputAndOnlyUpperBoundsSource(t *testing.T) {
+	baseTime := &ossie.Field{Name: "calendar_day"}
+	bucket := &ossie.Field{Name: "fiscal_week_start"}
+	predicate := semanticplan.Predicate{
+		Dataset: "calendar",
+		Field:   baseTime,
+		Filter:  query.Filter{Field: "calendar_day", Operator: query.FilterBetween, Value: []string{"2026-01-19", "2026-01-26"}},
+	}
+	owned := predicate
+	graph := semanticPlanForTest(semanticplan.SemanticPlan{}, []semanticNodeFixture{
+		{
+			ID:   "revenue",
+			Kind: semanticplan.SemanticPlanNodeSourceAggregate,
+			Predicates: []semanticNodePredicateFixture{{
+				Scope:       semanticplan.SemanticPredicatePreAggregation,
+				OwnerNodeID: "revenue",
+				Proof:       semanticplan.SemanticPredicateProofSourceOwnership,
+				Predicate:   &owned,
+			}},
+			Node: semanticplan.SourceAggregateNode{},
+		},
+		{
+			ID:     "rolling_revenue",
+			Kind:   semanticplan.SemanticPlanNodeCumulativeWindow,
+			Inputs: []semanticNodeInputFixture{{NodeID: "revenue"}},
+			Node: semanticplan.CumulativeWindowNode{
+				Spec: ossie.CumulativeMetricSpec{
+					TimeDimension: "calendar_day",
+					Window:        ossie.CumulativeWindow{Type: "rolling", Count: 3, Unit: "fiscal_week"},
+				},
+				CustomCalendarRolling: &semanticplan.CustomCalendarCumulativePlan{Grain: query.TimeGrain("fiscal_week")},
+			},
+		},
+	})
+	groups := []semanticplan.GroupBy{{
+		Name:    "calendar_day",
+		Dataset: "calendar",
+		Field:   bucket,
+		CustomCalendar: &semanticplan.CustomCalendarGrouping{
+			Grain:         query.TimeGrain("fiscal_week"),
+			Dataset:       "calendar",
+			BaseTimeField: baseTime,
+			BucketField:   bucket,
+		},
+	}}
+
+	if err := ApplyRollingCumulativeReadRanges(graph, groups, []semanticplan.Predicate{predicate}); err != nil {
+		t.Fatal(err)
+	}
+	read := semanticPlanNodePredicates(graph.Nodes[0])
+	if len(read) != 1 || read[0].Filter.Operator != query.FilterLTE || read[0].Filter.Value != "2026-01-26" {
+		t.Fatalf("source predicates = %#v, want only inclusive upper bound", read)
+	}
+	if len(graph.Output.Predicates) != 1 || graph.Output.Predicates[0].Name != "calendar_day" || graph.Output.Predicates[0].Filter.Operator != query.FilterBetween {
+		t.Fatalf("output predicates = %#v, want original visible range", graph.Output.Predicates)
+	}
+}
+
+func TestCustomRollingCumulativeLowerBoundReadsFullOrdinalHistory(t *testing.T) {
+	baseTime := &ossie.Field{Name: "calendar_day"}
+	bucket := &ossie.Field{Name: "fiscal_week_start"}
+	predicate := semanticplan.Predicate{Dataset: "calendar", Field: baseTime, Filter: query.Filter{Field: "calendar_day", Operator: query.FilterGTE, Value: "2026-01-19"}}
+	owned := predicate
+	graph := semanticPlanForTest(semanticplan.SemanticPlan{}, []semanticNodeFixture{
+		{ID: "revenue", Kind: semanticplan.SemanticPlanNodeSourceAggregate, Predicates: []semanticNodePredicateFixture{{Scope: semanticplan.SemanticPredicatePreAggregation, OwnerNodeID: "revenue", Proof: semanticplan.SemanticPredicateProofSourceOwnership, Predicate: &owned}}, Node: semanticplan.SourceAggregateNode{}},
+		{ID: "rolling_revenue", Kind: semanticplan.SemanticPlanNodeCumulativeWindow, Inputs: []semanticNodeInputFixture{{NodeID: "revenue"}}, Node: semanticplan.CumulativeWindowNode{
+			Spec:                  ossie.CumulativeMetricSpec{TimeDimension: "calendar_day", Window: ossie.CumulativeWindow{Type: "rolling", Count: 3, Unit: "fiscal_week"}},
+			CustomCalendarRolling: &semanticplan.CustomCalendarCumulativePlan{Grain: query.TimeGrain("fiscal_week")},
+		}},
+	})
+	groups := []semanticplan.GroupBy{{Name: "calendar_day", Dataset: "calendar", Field: bucket, CustomCalendar: &semanticplan.CustomCalendarGrouping{Grain: query.TimeGrain("fiscal_week"), Dataset: "calendar", BaseTimeField: baseTime, BucketField: bucket}}}
+
+	if err := ApplyRollingCumulativeReadRanges(graph, groups, []semanticplan.Predicate{predicate}); err != nil {
+		t.Fatal(err)
+	}
+	if got := semanticPlanNodePredicates(graph.Nodes[0]); len(got) != 0 {
+		t.Fatalf("source predicates = %#v, want full ordinal history", got)
+	}
+	if len(graph.Output.Predicates) != 1 || graph.Output.Predicates[0].Filter.Value != "2026-01-19" {
+		t.Fatalf("output predicates = %#v", graph.Output.Predicates)
+	}
+}
+
+func TestCustomRollingCumulativeRejectsNonRangeTimeFilter(t *testing.T) {
+	predicate := semanticplan.Predicate{Field: &ossie.Field{Name: "calendar_day"}, Filter: query.Filter{Field: "calendar_day", Operator: query.FilterEQ, Value: "2026-01-19"}}
+	if _, err := customRollingReadPredicate(predicate); err == nil {
+		t.Fatal("expected non-range custom rolling filter rejection")
+	}
+}

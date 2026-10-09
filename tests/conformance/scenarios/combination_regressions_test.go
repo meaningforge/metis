@@ -7,7 +7,7 @@ import "testing"
 func TestCombinationRiskGroupsHaveIndependentResultOracles(t *testing.T) {
 	groups := map[string][]string{
 		"calendar":              {"calendar_month_end_and_missing_period", "custom_calendar_dense_missing_period", "offset_to_grain_missing_boundary_stays_zero"},
-		"rolling input range":   {"rolling_window_before_output_range", "custom_calendar_rolling_three_fiscal_weeks"},
+		"rolling input range":   {"rolling_window_before_output_range", "custom_calendar_rolling_three_fiscal_weeks", "custom_calendar_rolling_filter_preserves_lookback"},
 		"final order and limit": {"nested_derived_order_limit_after_aggregation", "aggregate_order_limit_after_grouping"},
 		"distinct regroup":      {"distinct_entity_across_periods_global", "distinct_entity_across_periods_grouped"},
 		"fanout":                {"fanout_base_population_unchanged", "duplicate_invariant_filtered_fanout"},

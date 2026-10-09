@@ -190,47 +190,101 @@ func applyRollingCumulativeReadRanges(plan *semanticplan.SemanticPlan, groups []
 		unit    query.TimeGrain
 		sources map[string]struct{}
 	}
-	byID, lookbacks := semanticplan.NodesByID(plan.Nodes), map[string]lookback{}
+	type readPlan struct {
+		builtIn       *lookback
+		customSources map[string]struct{}
+	}
+	byID, readPlans := semanticplan.NodesByID(plan.Nodes), map[string]readPlan{}
 	for _, node := range plan.Nodes {
 		cumulative, ok := node.(semanticplan.CumulativeWindowNode)
 		if !ok || cumulative.Spec.Window.Type != "rolling" {
 			continue
 		}
-		candidate := lookback{count: -(cumulative.Spec.Window.Count - 1), unit: query.TimeGrain(cumulative.Spec.Window.Unit), sources: map[string]struct{}{}}
-		collectSourceNodeIDs(cumulative.Base.ID, byID, candidate.sources, map[string]bool{})
-		current, ok := lookbacks[cumulative.Spec.TimeDimension]
-		if !ok {
-			lookbacks[cumulative.Spec.TimeDimension] = candidate
+		current := readPlans[cumulative.Spec.TimeDimension]
+		if cumulative.CustomCalendarRolling != nil {
+			if current.customSources == nil {
+				current.customSources = map[string]struct{}{}
+			}
+			collectSourceNodeIDs(cumulative.Base.ID, byID, current.customSources, map[string]bool{})
+			readPlans[cumulative.Spec.TimeDimension] = current
 			continue
 		}
-		if candidate.count < current.count {
-			current.count, current.unit = candidate.count, candidate.unit
+		candidate := lookback{count: -(cumulative.Spec.Window.Count - 1), unit: query.TimeGrain(cumulative.Spec.Window.Unit), sources: map[string]struct{}{}}
+		collectSourceNodeIDs(cumulative.Base.ID, byID, candidate.sources, map[string]bool{})
+		if current.builtIn == nil {
+			current.builtIn = &candidate
+		} else {
+			if candidate.count < current.builtIn.count {
+				current.builtIn.count, current.builtIn.unit = candidate.count, candidate.unit
+			}
+			for source := range candidate.sources {
+				current.builtIn.sources[source] = struct{}{}
+			}
 		}
-		for source := range candidate.sources {
-			current.sources[source] = struct{}{}
-		}
-		lookbacks[cumulative.Spec.TimeDimension] = current
+		readPlans[cumulative.Spec.TimeDimension] = current
 	}
 	for _, predicate := range predicates {
 		if predicate.Field == nil {
 			continue
 		}
-		lookback, ok := lookbacks[predicate.Field.Name]
+		readPlan, ok := readPlans[predicate.Field.Name]
 		if !ok {
 			continue
 		}
-		if matchingTimeGroupName(groups, predicate, predicate.Field.Name) == "" {
+		outputName := matchingTimeGroupName(groups, predicate, predicate.Field.Name)
+		if outputName == "" {
 			return &serrors.Error{Code: serrors.ErrIncompatibleQueryGrain, Message: "rolling cumulative filter requires its time dimension in query grain", Details: map[string]any{"time_dimension": predicate.Field.Name}}
 		}
-		expanded, err := expandHistoricalPredicate(predicate, lookback.count, lookback.unit)
-		if err != nil {
-			return err
+		if len(readPlan.customSources) != 0 {
+			readPredicate, err := customRollingReadPredicate(predicate)
+			if err != nil {
+				return err
+			}
+			appendPostPredicate(plan, semanticplan.PostEvaluationPredicate{Name: outputName, Filter: predicate.Filter})
+			removeSourcePredicate(plan, predicate, readPlan.customSources)
+			if readPredicate != nil {
+				for source := range readPlan.customSources {
+					appendSourcePredicate(plan, source, *readPredicate)
+				}
+			}
 		}
-		for source := range lookback.sources {
-			appendSourcePredicate(plan, source, expanded)
+		if readPlan.builtIn != nil {
+			expanded, err := expandHistoricalPredicate(predicate, readPlan.builtIn.count, readPlan.builtIn.unit)
+			if err != nil {
+				return err
+			}
+			for source := range readPlan.builtIn.sources {
+				appendSourcePredicate(plan, source, expanded)
+			}
 		}
 	}
 	return nil
+}
+
+// customRollingReadPredicate keeps only an output range's upper bound on the
+// source read. The lower bound cannot be shifted with Gregorian arithmetic:
+// the custom dense calendar supplies the preceding logical ordinals instead.
+func customRollingReadPredicate(predicate semanticplan.Predicate) (*semanticplan.Predicate, error) {
+	if err := validateTimeRelativeRangeOperator(predicate); err != nil {
+		return nil, err
+	}
+	read := predicate
+	switch predicate.Filter.Operator {
+	case query.FilterBetween:
+		values, err := twoDateStrings(predicate.Filter.Value)
+		if err != nil {
+			return nil, timeOffsetFilterError(predicate, err)
+		}
+		read.Filter.Operator = query.FilterLTE
+		read.Filter.Value = values[1]
+		return &read, nil
+	case query.FilterLTE, query.FilterLT:
+		return &read, nil
+	case query.FilterGTE, query.FilterGT:
+		return nil, nil
+	default:
+		return nil, &serrors.Error{Code: serrors.ErrUnsupportedTimeFilter, Message: "unsupported custom rolling time filter", Details: map[string]any{"field": predicate.Filter.Field, "operator": predicate.Filter.Operator}}
+	}
 }
 
 func applyGrainToDateReadRanges(plan *semanticplan.SemanticPlan, groups []semanticplan.GroupBy, predicates []semanticplan.Predicate) error {

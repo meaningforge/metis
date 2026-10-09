@@ -76,6 +76,12 @@ Attribution period evidence remains canonical RFC3339 in semantic explain and fi
 
 Dense calendar domains that apply across nodes are plan-owned. Built-in and custom dense-calendar lowering consumes `SemanticPlan.DenseCalendar` and `SemanticPlan.CustomDenseCalendar`. Per-node custom-calendar domains live directly on the declaring concrete node, and consumers that need a query-wide view compute it from the nodes rather than reading a parallel index.
 
+For a filtered custom-calendar rolling window, the visible time predicate is
+owned by the final output contract. Source reads may retain the predicate's
+upper bound, but must not apply its lower bound before evaluation: the preceding
+logical periods come from the declared dense ordinal domain, not from Gregorian
+date arithmetic or fixed-duration conversion.
+
 ## Semantic optimization
 
 Semantic plan rewrites operate behind the `SemanticPlanOptimizationRule` contract. A semantic plan rule receives only a bounded `SemanticPlanOptimizationState` — the plan's nodes plus the explicitly permitted query-shape and output context — and never the whole plan. Flattening the DAG into `SemanticPlan` did not widen that surface: the state is transient and unexported, it is not a stored IR, and applying a rewrite explicitly writes back to the plan and revalidates it.
