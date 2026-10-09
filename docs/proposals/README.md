@@ -43,6 +43,8 @@ Only engine, semantic-model, query-interface, and developer-tool designs are inc
 
 ## Semantic
 
+- [Bounded Boolean Filter Predicates](semantic/boolean-filter-predicates.md) — Draft; RFC number pending review
+
 - [RFC-0013: Time Offset Alignment Semantics](semantic/0013-time-offset-alignment.md) — Implemented
 - [RFC-0014: Metric Fill Policy](semantic/0014-metric-fill-policy.md) — Implemented
 - [RFC-0015: Semi-Additive Rollup and Composability](semantic/0015-semi-additive-rollup-composability.md) — Implemented
