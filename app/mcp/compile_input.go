@@ -16,6 +16,7 @@ func compileInputSchema() *jsonschema.Schema {
 	if err != nil {
 		panic(fmt.Sprintf("build compile MCP input schema: %v", err))
 	}
+	attachPredicateSchema(schema)
 
 	dialect, ok := schema.Properties["dialect"]
 	if !ok {

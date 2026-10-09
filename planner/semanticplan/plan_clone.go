@@ -1,5 +1,7 @@
 package semanticplan
 
+import "github.com/meaningforge/metis/query"
+
 // ClonePlan returns an independently owned semantic-plan snapshot suitable for
 // planning rewrites and deterministic observation. Optimization trace is
 // deliberately omitted: it describes how a plan was reached, not the plan's
@@ -15,7 +17,8 @@ func ClonePlan(input *SemanticPlan) *SemanticPlan {
 	for i := range plan.Projections {
 		plan.Projections[i].Datasets = append([]string(nil), input.Projections[i].Datasets...)
 	}
-	plan.Predicates = append([]Predicate(nil), input.Predicates...)
+	plan.Predicates = clonePredicates(input.Predicates)
+	plan.BooleanPredicates = cloneBooleanPredicates(input.BooleanPredicates)
 	plan.Groups = append([]GroupBy(nil), input.Groups...)
 	plan.Sorts = append([]Sort(nil), input.Sorts...)
 	plan.OptimizationTrace = nil
@@ -38,6 +41,50 @@ func ClonePlan(input *SemanticPlan) *SemanticPlan {
 	return &plan
 }
 
+func cloneBooleanPredicates(predicates []BooleanPredicate) []BooleanPredicate {
+	if predicates == nil {
+		return nil
+	}
+	out := make([]BooleanPredicate, len(predicates))
+	for i, predicate := range predicates {
+		out[i].Kind = predicate.Kind
+		if predicate.Leaf != nil {
+			leaf := clonePredicate(*predicate.Leaf)
+			out[i].Leaf = &leaf
+		}
+		out[i].Children = cloneBooleanPredicates(predicate.Children)
+	}
+	return out
+}
+
+func clonePredicates(predicates []Predicate) []Predicate {
+	if predicates == nil {
+		return nil
+	}
+	out := make([]Predicate, len(predicates))
+	for i := range predicates {
+		out[i] = clonePredicate(predicates[i])
+	}
+	return out
+}
+
+func clonePredicate(predicate Predicate) Predicate {
+	out := predicate
+	out.Filter = cloneQueryFilter(predicate.Filter)
+	return out
+}
+
+func cloneQueryFilter(filter query.Filter) query.Filter {
+	out := filter
+	if filter.Children != nil {
+		out.Children = make([]query.Filter, len(filter.Children))
+		for i := range filter.Children {
+			out.Children[i] = cloneQueryFilter(filter.Children[i])
+		}
+	}
+	return out
+}
+
 // CloneDenseCalendarPlan returns an independently owned dense-calendar plan.
 func CloneDenseCalendarPlan(in *DenseCalendarPlan) *DenseCalendarPlan {
 	if in == nil {
@@ -48,8 +95,8 @@ func CloneDenseCalendarPlan(in *DenseCalendarPlan) *DenseCalendarPlan {
 		field := *in.TimeField
 		out.TimeField = &field
 	}
-	out.OutputPredicates = append([]Predicate(nil), in.OutputPredicates...)
-	out.ReadPredicates = append([]Predicate(nil), in.ReadPredicates...)
+	out.OutputPredicates = clonePredicates(in.OutputPredicates)
+	out.ReadPredicates = clonePredicates(in.ReadPredicates)
 	return &out
 }
 

@@ -297,13 +297,18 @@ func planFieldDispositions() []planFieldDisposition {
 		{
 			typ: reflect.TypeOf(semanticplan.SemanticPlan{}),
 			projected: []string{
-				"Model", "Root", "Joins", "Projections", "Predicates", "Groups", "Sorts",
+				"Model", "Root", "Joins", "Projections", "Predicates", "BooleanPredicates", "Groups", "Sorts",
 				"Limit", "SharedGrain", "DenseCalendar", "CustomDenseCalendar",
 				"Requested", "Nodes", "Output", "PolicyScope",
 			},
 			excluded: map[string]string{
 				"OptimizationTrace": "how the plan was reached, not what it is",
 			},
+		},
+		{
+			typ:       reflect.TypeOf(semanticplan.BooleanPredicate{}),
+			projected: []string{"Kind", "Leaf", "Children"},
+			excluded:  map[string]string{},
 		},
 		{
 			typ:       reflect.TypeOf(semanticplan.SemanticOutputContract{}),
@@ -609,6 +614,12 @@ func populatedFixturePlan() *semanticplan.SemanticPlan {
 		Predicates: []semanticplan.Predicate{{
 			Filter:  query.Filter{Field: "status", Operator: query.FilterEQ, Value: "paid"},
 			Dataset: "orders", Field: field, Expression: dateExpression,
+		}},
+		BooleanPredicates: []semanticplan.BooleanPredicate{{
+			Kind: query.PredicateOr,
+			Children: []semanticplan.BooleanPredicate{{
+				Leaf: &semanticplan.Predicate{Filter: query.Filter{Field: "region", Operator: query.FilterEQ, Value: "APAC"}, Dataset: "orders", Field: field, Expression: dateExpression},
+			}},
 		}},
 		Groups: []semanticplan.GroupBy{{
 			Name: "order_date", Dataset: "orders", Field: field, Grain: &grain,

@@ -180,6 +180,13 @@ func buildSQLPlanBlockFromQueryShape(shape sqlQueryShape, expressionDialect stri
 		}
 		block.Predicates = append(block.Predicates, sqlplan.Predicate{Left: left, Operator: predicate.Filter.Operator, Values: values})
 	}
+	for _, predicate := range shape.BooleanPredicates {
+		lowered, err := booleanPredicateSQLPlan(predicate, expressionDialect)
+		if err != nil {
+			return sqlplan.QueryBlock{}, err
+		}
+		block.BooleanPredicates = append(block.BooleanPredicates, lowered)
+	}
 	for _, group := range shape.Groups {
 		resolved := group.Expression
 		if group.CustomCalendar != nil {
@@ -208,6 +215,31 @@ func buildSQLPlanBlockFromQueryShape(shape sqlQueryShape, expressionDialect stri
 		block.OrderBy = append(block.OrderBy, sqlplan.Order{Expr: expr, Direction: sort.Direction})
 	}
 	return block, nil
+}
+
+func booleanPredicateSQLPlan(predicate semanticplan.BooleanPredicate, expressionDialect string) (sqlplan.BooleanPredicate, error) {
+	out := sqlplan.BooleanPredicate{Kind: predicate.Kind}
+	if predicate.Leaf != nil {
+		left, err := fieldSQLPlanExpr(predicate.Leaf.Dataset, predicate.Leaf.Expression, nil, expressionDialect)
+		if err != nil {
+			return out, err
+		}
+		values, err := predicateValues(predicate.Leaf.Filter.Operator, predicate.Leaf.Filter.Value)
+		if err != nil {
+			return out, &serrors.Error{Code: serrors.ErrInvalidFilterValue, Message: "invalid predicate value", Details: map[string]any{"field": predicate.Leaf.Filter.Field, "cause": err.Error()}}
+		}
+		leaf := sqlplan.Predicate{Left: left, Operator: predicate.Leaf.Filter.Operator, Values: values}
+		out.Leaf = &leaf
+		return out, nil
+	}
+	for _, child := range predicate.Children {
+		lowered, err := booleanPredicateSQLPlan(child, expressionDialect)
+		if err != nil {
+			return out, err
+		}
+		out.Children = append(out.Children, lowered)
+	}
+	return out, nil
 }
 
 func projectionSQLPlanExpr(projection semanticplan.Projection, expressionDialect string) (sqlplan.Expr, error) {

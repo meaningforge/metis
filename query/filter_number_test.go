@@ -14,7 +14,7 @@ func TestFilterNumberPrecisionAtSharedBoundary(t *testing.T) {
 		for _, operand := range []string{literal, "[9007199254740992," + literal + "]", "[" + literal + ",1]"} {
 			for _, outerUseNumber := range []bool{false, true} {
 				var q SemanticQuery
-				body := `{"filters":[{"field":"amount","operator":"between","value":` + operand + `}]}`
+				body := `{"filters":{"kind":"filter","filter":{"field":"amount","operator":"between","value":` + operand + `}}}`
 				d := json.NewDecoder(bytes.NewBufferString(body))
 				if outerUseNumber {
 					d.UseNumber()

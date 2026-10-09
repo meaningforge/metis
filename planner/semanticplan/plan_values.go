@@ -131,6 +131,11 @@ type Predicate struct {
 	Field      *ossie.Field
 	Expression expression.ResolvedExpression
 }
+type BooleanPredicate struct {
+	Kind     query.PredicateKind
+	Leaf     *Predicate
+	Children []BooleanPredicate
+}
 type GroupBy struct {
 	Name           string
 	Dataset        string

@@ -162,6 +162,7 @@ func TestPlanFingerprintsAreDeterministic(t *testing.T) {
 // names catches one scenario disappearing while another takes its place.
 func TestOptimizationStillChangesTheQueriesItShould(t *testing.T) {
 	rewritten := []string{
+		"boolean_filter_with_derived_metric",
 		"derived_metric",
 		"derived_null_negative_inputs",
 		"metric_definition_filter_post_aggregation",

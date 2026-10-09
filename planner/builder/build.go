@@ -81,6 +81,9 @@ func Build(ctx context.Context, q *resolver.SemanticQuerySpec, evaluationPlan *e
 	for _, f := range q.Filters {
 		plan.Predicates = append(plan.Predicates, semanticplan.Predicate{Filter: f.Filter, Dataset: f.Dataset, Field: f.Field, Expression: f.Expression})
 	}
+	for _, predicate := range q.BooleanFilters {
+		plan.BooleanPredicates = append(plan.BooleanPredicates, lowerBooleanPredicate(predicate))
+	}
 	for _, s := range q.OrderBy {
 		sortPlan := semanticplan.Sort{Name: s.Name, Direction: s.Direction, Metric: s.Metric, Field: s.Field, Dataset: s.Dataset, Expression: s.Expression}
 		switch s.Kind {
@@ -104,6 +107,13 @@ func Build(ctx context.Context, q *resolver.SemanticQuerySpec, evaluationPlan *e
 	construction, err := lowerMetricEvaluationPlan(q, evaluationPlan, metricEvaluationRequired, plan.Groups, evaluationPredicates)
 	if err != nil {
 		return nil, err
+	}
+	if len(plan.BooleanPredicates) != 0 {
+		for _, node := range construction.Nodes {
+			if node.Kind() == semanticplan.SemanticPlanNodeConversion {
+				return nil, &serrors.Error{Code: serrors.ErrInvalidQuery, Message: "boolean OR/NOT predicates are not supported for conversion metrics in v1"}
+			}
+		}
 	}
 
 	// Source and node planning. It decides how each settled evaluation is
@@ -208,6 +218,18 @@ func Build(ctx context.Context, q *resolver.SemanticQuerySpec, evaluationPlan *e
 	return &BuildResult{Plan: plan, OptimizationMode: OptimizationDirect}, nil
 }
 
+func lowerBooleanPredicate(predicate resolver.ResolvedPredicate) semanticplan.BooleanPredicate {
+	out := semanticplan.BooleanPredicate{Kind: predicate.Kind}
+	if predicate.Leaf != nil {
+		leaf := semanticplan.Predicate{Filter: predicate.Leaf.Filter, Dataset: predicate.Leaf.Dataset, Field: predicate.Leaf.Field, Expression: predicate.Leaf.Expression}
+		out.Leaf = &leaf
+	}
+	for _, child := range predicate.Children {
+		out.Children = append(out.Children, lowerBooleanPredicate(child))
+	}
+	return out
+}
+
 // planSemanticSources is the source-node planning phase of the planner's
 // evaluation-to-plan boundary. It runs after metric evaluation construction has
 // settled dependency closure, metric kind, and typed payloads, and it consumes
@@ -272,6 +294,11 @@ func validateResolvedExpressions(q *resolver.SemanticQuerySpec) error {
 			}
 		}
 	}
+	for _, predicate := range q.BooleanFilters {
+		if err := validateResolvedBooleanPredicate(predicate, require); err != nil {
+			return err
+		}
+	}
 	for _, order := range q.OrderBy {
 		if err := require("order", order.Name, order.Expression, order.Kind == resolver.OrderTargetMetric); err != nil {
 			return err
@@ -279,6 +306,18 @@ func validateResolvedExpressions(q *resolver.SemanticQuerySpec) error {
 	}
 	if q.TimeSpine != nil {
 		if err := require("time_spine", q.TimeSpine.QueryTimeDimension, q.TimeSpine.Expression, false); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func validateResolvedBooleanPredicate(predicate resolver.ResolvedPredicate, require func(string, string, expression.ResolvedExpression, bool) error) error {
+	if predicate.Leaf != nil {
+		return require("boolean filter", predicate.Leaf.Filter.Field, predicate.Leaf.Expression, false)
+	}
+	for _, child := range predicate.Children {
+		if err := validateResolvedBooleanPredicate(child, require); err != nil {
 			return err
 		}
 	}

@@ -34,7 +34,7 @@ func CollectRequirements(plan *semanticplan.SemanticPlan) (Requirements, error) 
 		metricNodes: map[string]struct{}{},
 		datasets:    map[string]struct{}{},
 	}
-	hasConsumers := len(plan.Projections) > 0 || len(plan.Predicates) > 0 || len(plan.Groups) > 0 || len(plan.Sorts) > 0
+	hasConsumers := len(plan.Projections) > 0 || len(plan.Predicates) > 0 || len(plan.BooleanPredicates) > 0 || len(plan.Groups) > 0 || len(plan.Sorts) > 0
 	if plan.Root.Name != "" {
 		requirements.datasets[plan.Root.Name] = struct{}{}
 	}
@@ -52,6 +52,18 @@ func CollectRequirements(plan *semanticplan.SemanticPlan) (Requirements, error) 
 		if predicate.Dataset != "" {
 			requirements.datasets[predicate.Dataset] = struct{}{}
 		}
+	}
+	var requireBooleanDatasets func(semanticplan.BooleanPredicate)
+	requireBooleanDatasets = func(predicate semanticplan.BooleanPredicate) {
+		if predicate.Leaf != nil && predicate.Leaf.Dataset != "" {
+			requirements.datasets[predicate.Leaf.Dataset] = struct{}{}
+		}
+		for _, child := range predicate.Children {
+			requireBooleanDatasets(child)
+		}
+	}
+	for _, predicate := range plan.BooleanPredicates {
+		requireBooleanDatasets(predicate)
 	}
 	for _, group := range plan.Groups {
 		if group.Dataset != "" {

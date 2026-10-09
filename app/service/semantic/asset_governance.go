@@ -303,7 +303,7 @@ func (s *DiscoveryService) authorizeSemanticQueryAssets(ctx context.Context, sem
 
 func semanticQueryFields(semanticQuery query.SemanticQuery) []string {
 	fields := make([]string, 0, len(semanticQuery.Filters)+len(semanticQuery.OrderBy))
-	for _, filter := range semanticQuery.Filters {
+	for _, filter := range semanticQuery.Filters.Leaves() {
 		fields = append(fields, filter.Field)
 	}
 	for _, order := range semanticQuery.OrderBy {

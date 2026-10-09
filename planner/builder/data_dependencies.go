@@ -68,6 +68,12 @@ func RequiredDataDependencies(q *resolver.SemanticQuerySpec, metrics *evaluation
 		}
 		predicates = append(predicates, semanticplan.Predicate{Filter: filter.Filter, Dataset: filter.Dataset, Field: filter.Field, Expression: filter.Expression})
 	}
+	for _, filter := range booleanFilterLeaves(q.BooleanFilters) {
+		if filter == nil || filter.Field == nil {
+			return DataDependencies{}, fmt.Errorf("resolved boolean filter field is required")
+		}
+		c.field(filter.Dataset, filter.Field.Name)
+	}
 	for _, order := range q.OrderBy {
 		if order.Kind == resolver.OrderTargetDimension {
 			if order.Field == nil {
@@ -141,6 +147,7 @@ func RequiredDataDependencies(q *resolver.SemanticQuerySpec, metrics *evaluation
 				if err != nil {
 					return DataDependencies{}, err
 				}
+				requirement = includeBooleanFilterDatasets(requirement, q.BooleanFilters)
 				sourceGroups, sourcePredicates := groups, pre
 				if conversionSide[node.ID] {
 					sourceGroups, sourcePredicates = nil, nil

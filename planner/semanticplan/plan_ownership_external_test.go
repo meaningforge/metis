@@ -110,6 +110,25 @@ type ownershipContract struct {
 }
 
 var contracts = map[reflect.Type]ownershipContract{
+	reflect.TypeOf(semanticplan.BooleanPredicate{}): {
+		uncloned: func(original, clone reflect.Value, path string) []string {
+			if !reflect.DeepEqual(original.Interface(), clone.Interface()) {
+				return []string{path + " (boolean predicate changed)"}
+			}
+			return nil
+		},
+		shared: func(original, clone reflect.Value, path string) []aliasPoint {
+			from := original.Interface().(semanticplan.BooleanPredicate)
+			to := clone.Interface().(semanticplan.BooleanPredicate)
+			if from.Leaf != nil && from.Leaf == to.Leaf {
+				return []aliasPoint{{path: path + ".Leaf", typ: reflect.TypeOf(from.Leaf)}}
+			}
+			if len(from.Children) != 0 && len(to.Children) != 0 && &from.Children[0] == &to.Children[0] {
+				return []aliasPoint{{path: path + ".Children", typ: reflect.TypeOf(from.Children)}}
+			}
+			return nil
+		},
+	},
 	reflect.TypeOf((*semanticplan.RelationPolicy)(nil)): {
 		uncloned: func(original, clone reflect.Value, path string) []string {
 			if !reflect.DeepEqual(original.Interface(), clone.Interface()) {
@@ -159,6 +178,25 @@ var contracts = map[reflect.Type]ownershipContract{
 }
 
 var seeders = map[reflect.Type]func(seed string) reflect.Value{
+	reflect.TypeOf(query.Filter{}): func(seed string) reflect.Value {
+		return reflect.ValueOf(query.Filter{
+			Kind:     query.PredicateOr,
+			Field:    seed + ".field",
+			Operator: query.FilterEQ,
+			Value:    seed + ".value",
+			Children: []query.Filter{{Field: seed + ".child", Operator: query.FilterNEQ, Value: seed}},
+		})
+	},
+	reflect.TypeOf(semanticplan.BooleanPredicate{}): func(seed string) reflect.Value {
+		return reflect.ValueOf(semanticplan.BooleanPredicate{
+			Kind: query.PredicateOr,
+			Leaf: &semanticplan.Predicate{Dataset: seed + ".leaf"},
+			Children: []semanticplan.BooleanPredicate{{
+				Kind: query.PredicateNot,
+				Leaf: &semanticplan.Predicate{Dataset: seed + ".child"},
+			}},
+		})
+	},
 	reflect.TypeOf((*semanticplan.RelationPolicy)(nil)): func(seed string) reflect.Value {
 		policy, err := semanticplan.NewRelationPolicy(seed, seed, []semanticplan.RelationPredicate{{Field: seed, Column: seed, Datatype: ossie.DataTypeString, Operator: query.FilterEQ, Values: []any{seed}}})
 		if err != nil {

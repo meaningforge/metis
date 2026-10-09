@@ -17,12 +17,12 @@ func TestOfflineRequestUsesSharedFilterPrecisionGuard(t *testing.T) {
 		return LoadRequestFile(path)
 	}
 	for _, operand := range []string{"9007199254740993", "0.10000000000000000001", "[9007199254740992,9007199254740993]", "[0,1e-400]"} {
-		if _, err := decodeQueryRequest([]byte(`{"filters":[{"field":"amount","op":"in","value":` + operand + `}]}`)); err == nil {
+		if _, err := decodeQueryRequest([]byte(`{"filters":{"kind":"filter","filter":{"field":"amount","operator":"in","value":` + operand + `}}}`)); err == nil {
 			t.Fatalf("accepted lossy operand %s", operand)
 		}
 	}
 	for _, operand := range []string{"0.1", "9007199254740992", "[0.1,2]"} {
-		if _, err := decodeQueryRequest([]byte(`{"filters":[{"field":"amount","op":"in","value":` + operand + `}]}`)); err != nil {
+		if _, err := decodeQueryRequest([]byte(`{"filters":{"kind":"filter","filter":{"field":"amount","operator":"in","value":` + operand + `}}}`)); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -30,7 +30,7 @@ func TestOfflineRequestUsesSharedFilterPrecisionGuard(t *testing.T) {
 
 func TestOfflineCompatibleDecimalReachesCompiler(t *testing.T) {
 	var req QueryRequest
-	if err := json.Unmarshal([]byte(`{"metrics":["total_revenue"],"filters":[{"field":"total_revenue","op":">=","value":0.1}]}`), &req); err != nil {
+	if err := json.Unmarshal([]byte(`{"metrics":["total_revenue"],"filters":{"kind":"filter","filter":{"field":"total_revenue","operator":"gte","value":0.1}}}`), &req); err != nil {
 		t.Fatal(err)
 	}
 	result, err := Compile(context.Background(), testDocument(), "DUCKDB", req, false)
@@ -39,5 +39,12 @@ func TestOfflineCompatibleDecimalReachesCompiler(t *testing.T) {
 	}
 	if len(result.Parameters) != 1 || result.Parameters[0].Value != float64(0.1) {
 		t.Fatalf("decimal binding changed: %#v", result.Parameters)
+	}
+}
+
+func TestOfflineRequestRejectsLegacyFilterArray(t *testing.T) {
+	var req QueryRequest
+	if err := json.Unmarshal([]byte(`{"metrics":["total_revenue"],"filters":[{"field":"region","operator":"eq","value":"APAC"}]}`), &req); err == nil {
+		t.Fatal("expected legacy filter array to be rejected")
 	}
 }

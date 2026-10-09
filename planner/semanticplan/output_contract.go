@@ -56,6 +56,9 @@ func CloneOutputContract(in SemanticOutputContract) SemanticOutputContract {
 	for i := range out.Projections {
 		out.Projections[i].Datasets = append([]string(nil), in.Projections[i].Datasets...)
 	}
+	for i := range out.Predicates {
+		out.Predicates[i].Filter = cloneQueryFilter(in.Predicates[i].Filter)
+	}
 	if in.Limit != nil {
 		limit := *in.Limit
 		out.Limit = &limit

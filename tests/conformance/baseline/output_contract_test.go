@@ -98,8 +98,8 @@ func TestFinalPredicatesSurviveIntoTheOutputContract(t *testing.T) {
 				}
 			}
 			sort.Strings(carried)
-			if len(carried) != 11 {
-				t.Errorf("%d scenarios carry final predicates, recorded 11:\n  %s\n\n"+
+			if len(carried) != 12 {
+				t.Errorf("%d scenarios carry final predicates, recorded 12:\n  %s\n\n"+
 					"Re-record a deliberate change; a fall means the contract is carrying less than it reads.",
 					len(carried), strings.Join(carried, "\n  "))
 			}
@@ -122,11 +122,11 @@ func (c outputCoverage) assert(t *testing.T) {
 		have int
 		want int
 	}{
-		{"plans with projections", c.projections, 105},
-		{"plans with an output grain", c.grain, 85},
+		{"plans with projections", c.projections, 110},
+		{"plans with an output grain", c.grain, 86},
 		{"plans with ordering", c.ordering, 8},
 		{"plans with a limit", c.limit, 8},
-		{"plans with final predicates", c.predicates, 11},
+		{"plans with final predicates", c.predicates, 12},
 	} {
 		if recorded.have != recorded.want {
 			t.Errorf("%s = %d, recorded %d.\n\nThe contract's reach changed; re-record a deliberate move.",

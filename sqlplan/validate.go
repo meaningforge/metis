@@ -139,6 +139,11 @@ func validateBlock(block *QueryBlock, position int, positions map[QueryBlockID]i
 			return fmt.Errorf("predicate %d: %w", i, err)
 		}
 	}
+	for i, predicate := range block.BooleanPredicates {
+		if err := validateBooleanPredicate(predicate, aliases, rendererDialect); err != nil {
+			return fmt.Errorf("boolean predicate %d: %w", i, err)
+		}
+	}
 	for i, expr := range block.GroupBy {
 		if err := validateExpr(expr, aliases, rendererDialect); err != nil {
 			return fmt.Errorf("grouping expression %d: %w", i, err)
@@ -154,6 +159,35 @@ func validateBlock(block *QueryBlock, position int, positions map[QueryBlockID]i
 	}
 	if block.Limit != nil && *block.Limit < 0 {
 		return fmt.Errorf("limit must not be negative")
+	}
+	return nil
+}
+
+func validateBooleanPredicate(predicate BooleanPredicate, aliases map[string]bool, rendererDialect string) error {
+	if predicate.Leaf != nil {
+		if predicate.Kind != "" || len(predicate.Children) != 0 {
+			return fmt.Errorf("leaf has logical payload")
+		}
+		if err := validateExpr(predicate.Leaf.Left, aliases, rendererDialect); err != nil {
+			return err
+		}
+		return validatePredicateCardinality(predicate.Leaf.Operator, len(predicate.Leaf.Values))
+	}
+	if predicate.Kind == query.PredicateNot {
+		if len(predicate.Children) != 1 {
+			return fmt.Errorf("not requires one child")
+		}
+	} else if predicate.Kind == query.PredicateAnd || predicate.Kind == query.PredicateOr {
+		if len(predicate.Children) < 2 || len(predicate.Children) > 32 {
+			return fmt.Errorf("and/or requires 2 to 32 children")
+		}
+	} else {
+		return fmt.Errorf("unsupported logical kind %q", predicate.Kind)
+	}
+	for _, child := range predicate.Children {
+		if err := validateBooleanPredicate(child, aliases, rendererDialect); err != nil {
+			return err
+		}
 	}
 	return nil
 }

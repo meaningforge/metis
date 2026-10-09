@@ -58,6 +58,11 @@ cases:
         model: sales
         metrics: [{name: total_revenue}]
         dimensions: [{name: region}]
+        filters:
+          kind: or
+          children:
+            - {kind: filter, filter: {field: region, operator: eq, value: APAC}}
+            - {kind: filter, filter: {field: segment, operator: eq, value: enterprise}}
     expect:
       outcome: success
       output_schema:

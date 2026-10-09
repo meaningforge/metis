@@ -9,6 +9,7 @@ import (
 	"github.com/meaningforge/metis/manifest"
 	"github.com/meaningforge/metis/ossie"
 	"github.com/meaningforge/metis/planner/semanticplan"
+	"github.com/meaningforge/metis/resolver"
 	"github.com/meaningforge/metis/serrors"
 )
 
@@ -17,6 +18,48 @@ import (
 type SourceRequirement struct {
 	Root     string
 	Datasets []string
+}
+
+func includeBooleanFilterDatasets(requirement SourceRequirement, predicates []resolver.ResolvedPredicate) SourceRequirement {
+	set := make(map[string]struct{}, len(requirement.Datasets))
+	for _, dataset := range requirement.Datasets {
+		set[dataset] = struct{}{}
+	}
+	var visit func(resolver.ResolvedPredicate)
+	visit = func(predicate resolver.ResolvedPredicate) {
+		if predicate.Leaf != nil {
+			if predicate.Leaf.Dataset != "" {
+				set[predicate.Leaf.Dataset] = struct{}{}
+			}
+			return
+		}
+		for _, child := range predicate.Children {
+			visit(child)
+		}
+	}
+	for _, predicate := range predicates {
+		visit(predicate)
+	}
+	requirement.Datasets = sortedSet(set)
+	return requirement
+}
+
+func booleanFilterLeaves(predicates []resolver.ResolvedPredicate) []*resolver.ResolvedFilter {
+	var leaves []*resolver.ResolvedFilter
+	var visit func(resolver.ResolvedPredicate)
+	visit = func(predicate resolver.ResolvedPredicate) {
+		if predicate.Leaf != nil {
+			leaves = append(leaves, predicate.Leaf)
+			return
+		}
+		for _, child := range predicate.Children {
+			visit(child)
+		}
+	}
+	for _, predicate := range predicates {
+		visit(predicate)
+	}
+	return leaves
 }
 
 // BuildMetricSourceRequirement determines the unique directed source root for

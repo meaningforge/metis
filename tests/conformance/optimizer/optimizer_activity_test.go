@@ -62,8 +62,8 @@ func TestOptimizerDifferentialCorpusDistribution(t *testing.T) {
 	noop := len(byExpectation[scenarios.OptimizerNoOp])
 	t.Logf("optimizer differential corpus: rewrites-plan=%d no-op=%d total=%d", rewrites, noop, rewrites+noop)
 
-	if rewrites != 6 || noop != 22 {
-		t.Fatalf("corpus distribution = rewrites-plan %d, no-op %d; want 6 and 22.\n"+
+	if rewrites != 7 || noop != 23 {
+		t.Fatalf("corpus distribution = rewrites-plan %d, no-op %d; want 7 and 23.\n"+
 			"Update this only alongside a deliberate change to the corpus -- a drop in "+
 			"rewrites-plan means the suite proves less than it did.", rewrites, noop)
 	}

@@ -12,15 +12,16 @@ type Plan struct {
 type QueryBlockID string
 
 type QueryBlock struct {
-	ID          QueryBlockID
-	Inputs      []QueryInput
-	From        RelationRef
-	Projections []Projection
-	Joins       []Join
-	Predicates  []Predicate
-	GroupBy     []Expr
-	OrderBy     []Order
-	Limit       *int
+	ID                QueryBlockID
+	Inputs            []QueryInput
+	From              RelationRef
+	Projections       []Projection
+	Joins             []Join
+	Predicates        []Predicate
+	BooleanPredicates []BooleanPredicate
+	GroupBy           []Expr
+	OrderBy           []Order
+	Limit             *int
 }
 
 type QueryInputMode string
@@ -77,6 +78,12 @@ type Predicate struct {
 	Left     Expr
 	Operator query.FilterOperator
 	Values   []any
+}
+
+type BooleanPredicate struct {
+	Kind     query.PredicateKind
+	Leaf     *Predicate
+	Children []BooleanPredicate
 }
 
 type Order struct {

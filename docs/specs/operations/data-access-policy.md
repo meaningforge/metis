@@ -81,6 +81,13 @@ preserved-row semantics. All values use physical parameters. A renderer that
 cannot implement this relation form MUST reject it, never ignore constraints.
 Runner consumes only the completed artifact and output schema.
 
+Query-owned boolean predicates never absorb policy constraints. Effective
+population remains mandatory relation constraints AND the complete user
+predicate. A user's `or` or `not` cannot negate, replace, or branch around a
+policy. Policy parameters bind on each constrained source before user-predicate
+parameters, and denied fields fail before credentials, connection, or Runner
+work even when they appear in a branch that could otherwise be inactive.
+
 Compile, validate and explain use this common preflight. query_metrics,
 get_dimension_values, attribute_metric and compare_metrics use it before
 execution. Multi-query operations evaluate the union once and prepare every

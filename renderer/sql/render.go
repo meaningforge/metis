@@ -171,8 +171,9 @@ func (state renderState) renderBlockBody(behavior Behavior, block sqlplan.QueryB
 		b.WriteString("\n")
 	}
 
-	if len(block.Predicates) > 0 {
+	if len(block.Predicates) > 0 || len(block.BooleanPredicates) > 0 {
 		b.WriteString("WHERE ")
+		wrote := false
 		for i, predicate := range block.Predicates {
 			if i > 0 {
 				b.WriteString(" AND ")
@@ -189,6 +190,19 @@ func (state renderState) renderBlockBody(behavior Behavior, block sqlplan.QueryB
 			for _, value := range values {
 				params = append(params, QueryParameter{Value: value})
 			}
+			wrote = true
+		}
+		for _, predicate := range block.BooleanPredicates {
+			if wrote {
+				b.WriteString(" AND ")
+			}
+			fragment, values, err := renderBooleanPredicate(behavior, predicate)
+			if err != nil {
+				return "", nil, err
+			}
+			b.WriteString(fragment)
+			params = append(params, values...)
+			wrote = true
 		}
 		b.WriteString("\n")
 	}
@@ -228,6 +242,47 @@ func (state renderState) renderBlockBody(behavior Behavior, block sqlplan.QueryB
 	}
 	b.WriteString(behavior.StatementSuffix())
 	return strings.TrimSpace(b.String()), params, nil
+}
+
+func renderBooleanPredicate(behavior Behavior, predicate sqlplan.BooleanPredicate) (string, []QueryParameter, error) {
+	if predicate.Leaf != nil {
+		left, err := RenderExpression(behavior, predicate.Leaf.Left)
+		if err != nil {
+			return "", nil, err
+		}
+		fragment, values, err := renderPredicate(behavior, predicate.Leaf.Operator, predicate.Leaf.Values)
+		if err != nil {
+			return "", nil, err
+		}
+		params := make([]QueryParameter, len(values))
+		for i, value := range values {
+			params[i] = QueryParameter{Value: value}
+		}
+		return "(" + left + fragment + ")", params, nil
+	}
+	parts := make([]string, 0, len(predicate.Children))
+	var params []QueryParameter
+	for _, child := range predicate.Children {
+		fragment, values, err := renderBooleanPredicate(behavior, child)
+		if err != nil {
+			return "", nil, err
+		}
+		parts = append(parts, fragment)
+		params = append(params, values...)
+	}
+	switch predicate.Kind {
+	case query.PredicateAnd:
+		return "(" + strings.Join(parts, " AND ") + ")", params, nil
+	case query.PredicateOr:
+		return "(" + strings.Join(parts, " OR ") + ")", params, nil
+	case query.PredicateNot:
+		if len(parts) != 1 {
+			return "", nil, fmt.Errorf("NOT predicate requires one child")
+		}
+		return "(NOT " + parts[0] + ")", params, nil
+	default:
+		return "", nil, fmt.Errorf("unsupported boolean predicate kind %q", predicate.Kind)
+	}
 }
 
 func (state renderState) renderRelation(behavior Behavior, relation sqlplan.RelationRef, inputs map[string]sqlplan.QueryInput, visible map[sqlplan.QueryBlockID]string) (string, []QueryParameter, error) {

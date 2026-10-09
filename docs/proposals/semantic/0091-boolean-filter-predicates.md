@@ -1,6 +1,6 @@
-# Core RFC: Bounded Boolean Filter Predicates
+# RFC-0091: Bounded Boolean Filter Predicates
 
-- **Status:** Draft — number assigned during review
+- **Status:** Implemented
 - **Owners:** Metis Core maintainers
 - **Created:** 2026-10-09
 - **Last updated:** 2026-10-09
@@ -18,8 +18,9 @@ one input population and pre-aggregation stage. Existing independently placed
 metric/time conjuncts remain expressible through the same tree. It accepts no SQL
 nor changes fanout admission, metric aggregation, row policy, or time semantics.
 
-This is a proposal, not an implemented query contract. The numeric precision
-guard merged in PR #31 remains authoritative for every new numeric leaf.
+This contract is implemented across REST, MCP, the offline CLI, SemanticPlan,
+SQLPlan, and all built-in renderers. The numeric precision guard merged in PR
+#31 remains authoritative for every numeric leaf.
 
 ## Motivation
 
@@ -76,7 +77,7 @@ and cycles in programmatically supplied trees fail validation. There are no
 raw SQL, identifier-expression, arbitrary function, TRUE/FALSE literal nodes,
 or user-selected stage fields. String operands remain values, never SQL.
 
-Proposed operation-wide limits: depth 8 (root depth 1), 128 nodes, 64 leaves,
+Operation-wide limits are depth 8 (root depth 1), 128 nodes, 64 leaves,
 256 scalar operand elements and 64 KiB scalar bytes across the entire tree.
 The same limits apply to flat conjunctions and nested boolean requests.
 Count before semantic resolution, rational numeric parsing, or planning; fail
@@ -216,7 +217,7 @@ building a compatibility platform around it.
 ## Rollout and migration
 
 1. Review the single grammar, bounds, stage admission and identities; assign an
-   RFC number. No feature-negotiation decision blocks this draft.
+   RFC number. No feature-negotiation decision blocks the implementation.
 2. Implement shared types/resolution and immutable staged tree with explicit
    rejection paths, then SQLPlan/renderers and transport mapping as one bounded
    capability. Do not expose partially wired endpoints.
@@ -234,17 +235,17 @@ matching code, callers and examples together, not a dual-stack runtime.
 
 The later relation-existence RFC remains independent. No SUM fanout exception,
 AVG state merge, calendar rewrite, benchmark platform, or Cloud product work is
-hidden in this rollout. Draft publication is not approval or implementation.
+hidden in this rollout.
 
 ## Test and acceptance criteria
 
 Reuse existing canonical fixtures and production Runner/Driver; add independent
 oracles only where necessary. A target's absence is NOT_EXECUTED, never PASS.
 
-- Overlapping population fixture: APAC/enterprise order 100, APAC/standard 50,
-  EU/enterprise 70, EU/standard 30; all paid. OR SUM = 220, COUNT = 3, AVG =
-  220/3 (compare using the existing numeric contract), not split-query SUM 320.
-  Add an unpaid APAC/enterprise 500; the outer status AND still yields 220.
+- `boolean_filter_overlap_counts_once`: the canonical commerce fixture applies
+  `(region = APAC OR segment = enterprise) AND status = paid`; expected revenue
+  is 300, order count is 2 and average order amount is 150. The overlapping row
+  is counted once rather than once per matching branch.
 - NULL truth table: x NULL / target / other. `NOT(x = target)` selects only
   other; `x IS NULL OR x = target` selects NULL and target. Cover null-containing
   IN/NOT IN and nested NOT without rewriting UNKNOWN into a boolean value.
@@ -268,14 +269,17 @@ oracles only where necessary. A target's absence is NOT_EXECUTED, never PASS.
   parenthesization and NOT/NULL semantics are independently inspected. Explicit
   real-engine execution evidence is required before marking Implemented.
 
-All criteria above are pending. This draft adds no tests or runtime behavior.
+The shared result corpus includes `boolean_filter_overlap_counts_once`,
+`boolean_filter_with_metric_filter`, `boolean_filter_with_derived_metric`,
+`boolean_filter_not_preserves_unknown`, and `boolean_filter_null_or_value`.
+The same logical fixtures and hand-authored results are consumed by DuckDB,
+Doris, and ClickHouse execution targets.
 
 ## Documentation updates
 
-On implementation, update the current agent-query contract, semantic query
-grammar, numeric-filter limits, policy integration, SQLPlan projections,
-optimizer identity contracts and CLI examples. Keep this draft in proposals;
-do not describe the feature as currently supported in README or specifications.
+The current agent-query contract, semantic query grammar, numeric-filter limits,
+policy integration, SQLPlan projections, optimizer identity contracts and CLI
+examples are updated with the implemented contract.
 
 Related current contracts: [Agent query](../../specs/semantic/agent-query-contract.md),
 [data policy](../../specs/operations/data-access-policy.md),

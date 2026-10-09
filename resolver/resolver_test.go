@@ -183,6 +183,68 @@ func TestResolveMetricAndDimensionAcrossRelationship(t *testing.T) {
 	}
 }
 
+func TestResolveBooleanPredicateSameDataset(t *testing.T) {
+	r := newResolver(t)
+	resolved, err := r.Resolve(context.Background(), query.SemanticQuery{
+		Model:   "sales",
+		Metrics: []query.MetricRef{{Name: "total_revenue"}},
+		Filters: query.Predicate{query.Logical(query.PredicateOr,
+			query.Leaf("region", query.FilterEQ, "APAC"),
+			query.Leaf("region", query.FilterEQ, "EMEA"),
+		)},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(resolved.BooleanFilters) != 1 || resolved.BooleanFilters[0].Kind != query.PredicateOr || len(resolved.BooleanFilters[0].Children) != 2 {
+		t.Fatalf("unexpected boolean filters: %#v", resolved.BooleanFilters)
+	}
+}
+
+func TestResolveRootAndStagesBooleanAndMetricLeavesIndependently(t *testing.T) {
+	r := newResolver(t)
+	resolved, err := r.Resolve(context.Background(), query.SemanticQuery{
+		Model:   "sales",
+		Metrics: []query.MetricRef{{Name: "total_revenue"}},
+		Filters: query.Predicate{query.Logical(query.PredicateAnd,
+			query.Logical(query.PredicateOr,
+				query.Leaf("region", query.FilterEQ, "APAC"),
+				query.Leaf("region", query.FilterEQ, "EMEA"),
+			),
+			query.Leaf("total_revenue", query.FilterGT, 100),
+		)},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(resolved.BooleanFilters) != 1 || len(resolved.Filters) != 1 || resolved.Filters[0].Kind != resolver.FilterTargetMetric {
+		t.Fatalf("unexpected staged filters: boolean=%#v flat=%#v", resolved.BooleanFilters, resolved.Filters)
+	}
+}
+
+func TestResolveBooleanPredicateRejectsUnsafeStagesAndDatasets(t *testing.T) {
+	r := newResolver(t)
+	for name, predicate := range map[string]query.Filter{
+		"cross_dataset": query.Logical(query.PredicateOr,
+			query.Leaf("orders.customer_id", query.FilterEQ, "1"),
+			query.Leaf("region", query.FilterEQ, "APAC"),
+		),
+		"time": query.Logical(query.PredicateNot,
+			query.Leaf("order_date", query.FilterGTE, "2026-01-01"),
+		),
+		"metric": query.Logical(query.PredicateNot,
+			query.Leaf("total_revenue", query.FilterGT, 10),
+		),
+	} {
+		t.Run(name, func(t *testing.T) {
+			_, err := r.Resolve(context.Background(), query.SemanticQuery{Model: "sales", Metrics: []query.MetricRef{{Name: "total_revenue"}}, Filters: query.Predicate{predicate}})
+			if err == nil {
+				t.Fatal("expected boolean predicate to be rejected")
+			}
+		})
+	}
+}
+
 func TestResolveRejectsAmbiguousRelationshipPathWithCandidates(t *testing.T) {
 	r := newResolverFromYAML(t, ambiguousRelationshipModel)
 	_, err := r.Resolve(context.Background(), query.SemanticQuery{

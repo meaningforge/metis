@@ -6,15 +6,16 @@ type Explanation struct {
 }
 
 type BlockExplanation struct {
-	ID          QueryBlockID            `json:"id"`
-	Inputs      []InputExplanation      `json:"inputs"`
-	SourceKind  string                  `json:"source_kind"`
-	Projections []ProjectionExplanation `json:"projections"`
-	Joins       []JoinExplanation       `json:"joins"`
-	Predicates  []PredicateExplanation  `json:"predicates"`
-	GroupBy     []string                `json:"group_by"`
-	OrderBy     []string                `json:"order_by"`
-	HasLimit    bool                    `json:"has_limit"`
+	ID                QueryBlockID                  `json:"id"`
+	Inputs            []InputExplanation            `json:"inputs"`
+	SourceKind        string                        `json:"source_kind"`
+	Projections       []ProjectionExplanation       `json:"projections"`
+	Joins             []JoinExplanation             `json:"joins"`
+	Predicates        []PredicateExplanation        `json:"predicates"`
+	BooleanPredicates []BooleanPredicateExplanation `json:"boolean_predicates,omitempty"`
+	GroupBy           []string                      `json:"group_by"`
+	OrderBy           []string                      `json:"order_by"`
+	HasLimit          bool                          `json:"has_limit"`
 }
 
 type InputExplanation struct {
@@ -39,6 +40,12 @@ type PredicateExplanation struct {
 	LeftKind   string `json:"left_kind"`
 	ValueCount int    `json:"value_count"`
 	Values     string `json:"values"`
+}
+
+type BooleanPredicateExplanation struct {
+	Kind     string                        `json:"kind"`
+	Leaf     *PredicateExplanation         `json:"leaf,omitempty"`
+	Children []BooleanPredicateExplanation `json:"children,omitempty"`
 }
 
 func Explain(plan *Plan) (Explanation, error) {
@@ -70,6 +77,9 @@ func Explain(plan *Plan) (Explanation, error) {
 		for j, predicate := range block.Predicates {
 			explained.Predicates[j] = PredicateExplanation{Operator: string(predicate.Operator), LeftKind: exprKind(predicate.Left), ValueCount: len(predicate.Values), Values: "<redacted>"}
 		}
+		for _, predicate := range block.BooleanPredicates {
+			explained.BooleanPredicates = append(explained.BooleanPredicates, explainBooleanPredicate(predicate))
+		}
 		for j, expr := range block.GroupBy {
 			explained.GroupBy[j] = exprKind(expr)
 		}
@@ -79,6 +89,18 @@ func Explain(plan *Plan) (Explanation, error) {
 		out.Blocks[i] = explained
 	}
 	return out, nil
+}
+
+func explainBooleanPredicate(predicate BooleanPredicate) BooleanPredicateExplanation {
+	out := BooleanPredicateExplanation{Kind: string(predicate.Kind)}
+	if predicate.Leaf != nil {
+		leaf := PredicateExplanation{Operator: string(predicate.Leaf.Operator), LeftKind: exprKind(predicate.Leaf.Left), ValueCount: len(predicate.Leaf.Values), Values: "<redacted>"}
+		out.Leaf = &leaf
+	}
+	for _, child := range predicate.Children {
+		out.Children = append(out.Children, explainBooleanPredicate(child))
+	}
+	return out
 }
 
 func relationKind(relation RelationRef) string {

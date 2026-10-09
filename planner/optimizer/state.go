@@ -12,6 +12,7 @@ type State struct {
 	Joins                    []semanticplan.Join
 	Projections              []semanticplan.Projection
 	Predicates               []semanticplan.Predicate
+	BooleanPredicates        []semanticplan.BooleanPredicate
 	Groups                   []semanticplan.GroupBy
 	Sorts                    []semanticplan.Sort
 	Requested                []string
@@ -53,7 +54,7 @@ func NewState(plan *semanticplan.SemanticPlan) *State {
 	if plan == nil {
 		return nil
 	}
-	return &State{Root: plan.Root, Joins: plan.Joins, Projections: plan.Projections, Predicates: plan.Predicates, Groups: plan.Groups, Sorts: plan.Sorts, Requested: plan.Requested, Nodes: plan.Nodes, OutputGrain: plan.Output.Grain, PostEvaluationPredicates: plan.Output.Predicates, DenseCalendar: plan.DenseCalendar, CustomDenseCalendar: plan.CustomDenseCalendar}
+	return &State{Root: plan.Root, Joins: plan.Joins, Projections: plan.Projections, Predicates: plan.Predicates, BooleanPredicates: plan.BooleanPredicates, Groups: plan.Groups, Sorts: plan.Sorts, Requested: plan.Requested, Nodes: plan.Nodes, OutputGrain: plan.Output.Grain, PostEvaluationPredicates: plan.Output.Predicates, DenseCalendar: plan.DenseCalendar, CustomDenseCalendar: plan.CustomDenseCalendar}
 }
 
 // View projects the bounded rewrite surface as a SemanticPlan for legacy rule
@@ -62,14 +63,14 @@ func (state *State) View() *semanticplan.SemanticPlan {
 	if state == nil {
 		return nil
 	}
-	return &semanticplan.SemanticPlan{Root: state.Root, Joins: state.Joins, Projections: state.Projections, Predicates: state.Predicates, Groups: state.Groups, Sorts: state.Sorts, Requested: state.Requested, Nodes: state.Nodes, DenseCalendar: state.DenseCalendar, CustomDenseCalendar: state.CustomDenseCalendar, Output: semanticplan.SemanticOutputContract{Projections: state.Projections, Grain: state.OutputGrain, Predicates: state.PostEvaluationPredicates, OrderBy: state.Sorts}}
+	return &semanticplan.SemanticPlan{Root: state.Root, Joins: state.Joins, Projections: state.Projections, Predicates: state.Predicates, BooleanPredicates: state.BooleanPredicates, Groups: state.Groups, Sorts: state.Sorts, Requested: state.Requested, Nodes: state.Nodes, DenseCalendar: state.DenseCalendar, CustomDenseCalendar: state.CustomDenseCalendar, Output: semanticplan.SemanticOutputContract{Projections: state.Projections, Grain: state.OutputGrain, Predicates: state.PostEvaluationPredicates, OrderBy: state.Sorts}}
 }
 
 func (state *State) Update(plan *semanticplan.SemanticPlan) {
 	if state == nil || plan == nil {
 		return
 	}
-	state.Root, state.Joins, state.Projections, state.Predicates, state.Groups, state.Sorts = plan.Root, plan.Joins, plan.Projections, plan.Predicates, plan.Groups, plan.Sorts
+	state.Root, state.Joins, state.Projections, state.Predicates, state.BooleanPredicates, state.Groups, state.Sorts = plan.Root, plan.Joins, plan.Projections, plan.Predicates, plan.BooleanPredicates, plan.Groups, plan.Sorts
 	state.Requested, state.Nodes, state.OutputGrain, state.PostEvaluationPredicates = plan.Requested, plan.Nodes, plan.Output.Grain, plan.Output.Predicates
 	state.DenseCalendar, state.CustomDenseCalendar = plan.DenseCalendar, plan.CustomDenseCalendar
 }
@@ -78,7 +79,7 @@ func (state *State) Write(plan *semanticplan.SemanticPlan) {
 	if state == nil || plan == nil {
 		return
 	}
-	plan.Root, plan.Joins, plan.Projections, plan.Predicates, plan.Groups, plan.Sorts = state.Root, state.Joins, state.Projections, state.Predicates, state.Groups, state.Sorts
+	plan.Root, plan.Joins, plan.Projections, plan.Predicates, plan.BooleanPredicates, plan.Groups, plan.Sorts = state.Root, state.Joins, state.Projections, state.Predicates, state.BooleanPredicates, state.Groups, state.Sorts
 	plan.Requested, plan.Nodes, plan.Output.Grain, plan.Output.Predicates = state.Requested, state.Nodes, state.OutputGrain, state.PostEvaluationPredicates
 	plan.DenseCalendar, plan.CustomDenseCalendar = state.DenseCalendar, state.CustomDenseCalendar
 }
