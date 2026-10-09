@@ -10,9 +10,12 @@
 ## Summary
 
 Add a bounded, typed AND / OR / NOT tree that reuses existing filter leaves.
-Keep the legacy `filters` array conjunctive and unchanged. The first version
-accepts only dimension conditions that can be proven to evaluate on one input
-population at the same pre-aggregation stage. It neither accepts arbitrary SQL
+Replace the current flat `filters` array with one predicate object under the
+same field name; do not add a parallel `predicate` field or compatibility mode.
+The project is pre-stable and can make this explicit breaking contract change.
+The first version admits OR/NOT only over dimension conditions proven to share
+one input population and pre-aggregation stage. Existing independently placed
+metric/time conjuncts remain expressible through the same tree. It accepts no SQL
 nor changes fanout admission, metric aggregation, row policy, or time semantics.
 
 This is a proposal, not an implemented query contract. The numeric precision
@@ -34,13 +37,15 @@ renderer-only OR addition would bypass these responsibilities and is rejected.
 
 ### Public shape and bounded grammar
 
-Propose an optional `predicate` on ordinary SemanticQuery and the corresponding
-Agent compile/query-metrics inputs. Example (canonical refs abbreviated):
+Use optional `filters` with a tagged Predicate value on ordinary SemanticQuery
+and the corresponding Agent compile/query-metrics and offline CLI inputs.
+One field, one grammar and one semantic pipeline. A single condition is a filter
+node; a flat conjunction is an AND node. Example (canonical refs abbreviated):
 
 ```json
 {
   "metrics": [{"name": "revenue"}],
-  "predicate": {
+  "filters": {
     "kind": "and",
     "children": [
       {
@@ -64,47 +69,46 @@ Each node is a tagged sum, not independent optional booleans:
 | and / or | 2–32 children | filter, child |
 | not | Exactly one child | filter, children |
 
-Omission of `predicate` means no new restriction. Explicit null, empty groups,
+Omission of `filters` means no user restriction. Explicit null, the former array
+shape, empty groups,
 unknown kinds/fields, duplicate keys, ambiguous payloads, nested operand arrays,
 and cycles in programmatically supplied trees fail validation. There are no
 raw SQL, identifier-expression, arbitrary function, TRUE/FALSE literal nodes,
 or user-selected stage fields. String operands remain values, never SQL.
 
 Proposed operation-wide limits: depth 8 (root depth 1), 128 nodes, 64 leaves,
-256 scalar operand elements and 64 KiB scalar bytes, including legacy leaves.
-These are new-query limits; legacy-only requests retain existing limits.
+256 scalar operand elements and 64 KiB scalar bytes across the entire tree.
+The same limits apply to flat conjunctions and nested boolean requests.
 Count before semantic resolution, rational numeric parsing, or planning; fail
 instead of truncating. Transport schemas explain the grammar, but authoritative
 Core validation also protects direct Go embedders. Scalars retain their current
 types and numeric precision rules. Count typed scalar byte representations, not
 only JSON punctuation or the number of leaf objects.
 
-### Legacy normalization and stage admission
+### Unified normalization and stage admission
 
-For a legacy-only request, preserve current resolution and placement exactly.
-For a request with both fields, semantic intent is:
-
-`AND(legacy filters, predicate)`.
-
-Do not insert every legacy leaf into the new tree and then reject previously
-valid metric filters. Normalize legacy conjuncts and the new tree into one
-query-owned predicate representation, retaining the existing proven stage for
-each independent legacy conjunct. A legacy post-aggregate metric conjunct may
-coexist with the new pre-aggregate tree; it remains at its original stage.
-It cannot become an OR/NOT child inside the new tree.
-
-For the new tree, resolve **every** leaf before deciding admission. References,
+Use one query-owned tree for both flat AND and nested boolean conditions.
+Resolve **every** leaf before deciding admission. References,
 field access, required-column closure, datatype/operator checks, join paths and
 evaluation coordinates are determined through existing canonical resolution.
 Branches cannot hide a denied or unsupported field just because another branch
-would be true. The whole tree is admitted only if all leaves have one compatible
+would be true. Each indivisible OR/NOT subtree is admitted only if all its leaves have one compatible
 row population, relation input, grain and evaluation coordinate. References on
 an already-safe many-to-one joined input may be allowed only when the existing
-join/null-preservation and population proofs apply to the entire tree. Otherwise
+join/null-preservation and population proofs apply to the entire subtree. Otherwise
 reject; do not union independently compiled scans or broaden fanout rules.
 
-V1 rejects metric leaves (including aggregate aliases), computed window-result
-leaves, mixed stages, multi-root populations and unproved placement. A temporal
+At the root, AND may combine independently placed predicates under existing
+semantics: for example an input-row dimension condition and a post-aggregation
+metric condition. Extract conjuncts only through AND, preserving deterministic
+traversal; never split inside OR or NOT. A single metric filter leaf retains its
+existing supported operators and post-evaluation placement. This preserves
+analytical capability, not the previous wire format.
+
+Every OR/NOT subtree must have a whole-tree common-input-stage proof. V1 rejects
+metric leaves (including aggregate aliases) inside OR/NOT, computed window-result
+leaves, mixed stages inside indivisible subtrees, multi-root populations and
+unproved placement. A temporal
 field is not automatically a scan predicate: an output time range for offset,
 rolling or calendar evaluation must retain its existing coordinate semantics.
 Until whole-tree equivalence is proved, these temporal combinations are rejected
@@ -141,7 +145,7 @@ unchanged. Compiler/renderer/Runner never receive a Principal or policy adapter.
 
 | Layer | Responsibility |
 | --- | --- |
-| query | Tagged grammar, bounds, legacy normalization contract, shared numeric decoding |
+| query | One tagged grammar, bounds, AND normalization, shared numeric decoding |
 | REST / MCP / CLI | Map the same public intent; preserve raw numeric tokens before coercion; no independent boolean language |
 | Resolver | Bind all leaves and close field dependencies; classify semantic targets and placement requirements |
 | Planner / SemanticPlan | Own immutable predicate tree and whole-tree stage/population proof; keep policy and user predicates separate |
@@ -157,8 +161,10 @@ binding order; identities must include the entire predicate shape, resolved
 sources, stages, operand types/values and mandatory policy scope.
 
 Canonical hashes, explain projections, cloning, relation identities and fusion
-keys must all be updated together. New-tree requests may create new identities;
-legacy-only requests keep their SQL, bind order, scope and existing fingerprints.
+keys must all be updated together. Flat conjunctions in the new grammar must
+preserve existing results and stage placement; representation fingerprints may
+change through a reviewed migration, never through regenerated result oracles.
+AND reassociation must preserve deterministic leaf order and NULL semantics.
 No flattening across OR/NOT, exponential DNF/CNF conversion, branch-union lowering,
 or pushdown of one OR child independently of its parent is allowed in V1.
 
@@ -172,27 +178,25 @@ Principal fields or backend causes. Explain may describe user-tree structure
 under its existing disclosure contract; policy-only details remain redacted.
 Failure must occur before credentials, connections or execution.
 
-### Old-server safety is a release prerequisite
+### Strict input is correctness, not historical compatibility
 
-Current SemanticQuery decoding ignores many unknown keys. An old server might
-silently ignore `predicate` and execute a broader query. JSON field addition
-alone is therefore **not** a safe rollout mechanism.
+Do not introduce versioned parallel endpoints, capability negotiation, legacy
+array adapters, automatic downgrade or an older-server support matrix. Publish
+the breaking query change and update first-party callers together. Independent
+consumers must update to the documented contract; compatibility with previous
+pre-stable revisions is not promised.
 
-Clients must not send the new shape until the targeted server/deployment supports
-the versioned predicate contract. MCP's advertised input schema is necessary but
-not sufficient for arbitrary REST deployments or mixed old/new backends. The
-implementation must ship a fail-closed version/capability admission mechanism,
-and its older-server acceptance test must prove zero query execution, not merely
-that new-server parsing works. No fallback strips the predicate or splits it into
-multiple requests. Supporting fleets must be homogeneous or route to a pinned
-compatible generation; rollback removes feature advertisement before clients
-can reach an old generation.
+The shared request decoder must reject unknown query/condition fields, malformed
+trees and unsupported semantics. A misspelled `filters` or an invented
+`predicate` must not disappear during unmarshalling and produce an unrestricted
+query. Known transport envelope fields remain validated by their own types; no
+generic bag of SQL or filter extensions is added. MCP validation must inspect
+original bytes before SDK coercion, just as the numeric guard requires.
 
-**Review-blocking decision:** choose versioned REST request admission versus an
-explicit Core feature-negotiation contract, including embedder and CLI behavior.
-This RFC deliberately does not invent an already-existing capability endpoint.
-No API field implementation or RFC acceptance proceeds without resolving this
-decision and demonstrating failure-closed behavior for older servers.
+No fallback drops a condition, accepts the old array, or splits OR into multiple
+requests. A rejected request causes zero credential/connection/Runner calls.
+This fail-closed behavior is required even for the first public release, without
+building a compatibility platform around it.
 
 ## Alternatives
 
@@ -205,19 +209,28 @@ decision and demonstrating failure-closed behavior for older servers.
   contract; not required for this user-query feature.
 - DNF rewriting or renderer-only strings: expansion and missing stage/identity
   evidence; not selected.
-- Replacing legacy filters outright: unnecessary migration and query drift;
-  additive normalization preserves old behavior.
+- Maintaining both an array and a tree field: duplicate contracts, admission and
+  migration rules without a stable-release obligation; rejected. One field is
+  simpler, while equivalent conjunctions still require result/stage parity.
 
 ## Rollout and migration
 
-1. Review grammar, bounds, temporal admission, identities and old-server safety;
-   settle version admission and assign an RFC number.
+1. Review the single grammar, bounds, stage admission and identities; assign an
+   RFC number. No feature-negotiation decision blocks this draft.
 2. Implement shared types/resolution and immutable staged tree with explicit
    rejection paths, then SQLPlan/renderers and transport mapping as one bounded
    capability. Do not expose partially wired endpoints.
-3. Run shared compile, policy and result acceptance. Advertise the feature only
-   after all supported targets meet its contract. Legacy-only requests remain
-   available and unchanged throughout.
+3. Update first-party callers, request fixtures, documentation and examples to
+   the same `filters` object in that implementation change. Run shared compile,
+   policy and result acceptance before declaring it supported. Document the
+   breaking pre-stable API/Go type change; retain no legacy parser or aliases.
+
+Go callers construct the same Predicate type, not an independently interpreted
+filter slice. The offline CLI uses the same leaf operator spelling as REST/MCP
+inside this tree. Existing leaf operator meaning, numeric safeguards and policy
+authority remain unchanged; changing the wire shape is not permission to change
+the mathematical results of an equivalent conjunction. Rollback restores the
+matching code, callers and examples together, not a dual-stack runtime.
 
 The later relation-existence RFC remains independent. No SUM fanout exception,
 AVG state merge, calendar rewrite, benchmark platform, or Cloud product work is
@@ -238,8 +251,9 @@ oracles only where necessary. A target's absence is NOT_EXECUTED, never PASS.
 - Mandatory tenant policy: an otherwise matching high-value different-tenant
   row contributes nothing under OR/NOT. Denied leaves fail even in seemingly
   inactive branches; no credentials or Runner calls on denial.
-- Legacy-only corpus unchanged; mixed legacy conjunct plus new input tree keeps
-  original metric/time stage. Metric OR dimension, temporal output-range OR row
+- Migrate existing conjunction fixtures to AND trees without changing their
+  independent expected results. Root AND containing row, metric and eligible
+  time conjuncts keeps original stages. Metric OR dimension, temporal output-range OR row
   predicate, ambiguous joined-population and unsupported fanout trees reject.
 - Identical clones have identical identity; different AND/OR/NOT shapes, policy
   scopes or stage coordinates cannot fuse. Optimizer on/off results agree with
@@ -247,8 +261,9 @@ oracles only where necessary. A target's absence is NOT_EXECUTED, never PASS.
 - Grammar/boundary tests at and beyond each bound, duplicate keys, strict new
   leaf fields, illegal payloads and programmatic cycles. All numeric leaves,
   including below NOT/OR and through MCP raw bytes, reuse precision rejection.
-- Actual REST/MCP/CLI mapping plus older-server rejection. Do not label a local
-  decoder-only test as end-to-end compatibility proof.
+- Actual REST/MCP/CLI mapping under the single shape. Unknown query/condition
+  fields, the retired array shape and unsupported trees fail before execution.
+  No older-server qualification or negotiated compatibility is required.
 - Same logical result cases on DuckDB, Doris and ClickHouse; parameter bindings,
   parenthesization and NOT/NULL semantics are independently inspected. Explicit
   real-engine execution evidence is required before marking Implemented.
