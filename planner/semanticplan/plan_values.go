@@ -136,6 +136,19 @@ type BooleanPredicate struct {
 	Leaf     *Predicate
 	Children []BooleanPredicate
 }
+
+type RelationshipCorrelation struct {
+	SourceColumn string
+	TargetColumn string
+}
+
+type RelationshipExistencePredicate struct {
+	Relationship *ossie.Relationship
+	Source       DatasetRef
+	Target       DatasetRef
+	Correlations []RelationshipCorrelation
+	Predicate    BooleanPredicate
+}
 type GroupBy struct {
 	Name           string
 	Dataset        string

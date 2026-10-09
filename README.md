@@ -139,6 +139,28 @@ shape and returns `SQLExplainResult`: semantic planning evidence, the same
 `sql_render_result` and `output_schema` as Compile, and any compilation warnings.
 Explain generates SQL without executing it.
 
+To filter source metrics by matching rows on one declared detail relationship
+without duplicating source measures, use a relationship-existence predicate:
+
+```json
+{
+  "metrics": [{"name": "order_revenue"}],
+  "filters": {
+    "kind": "exists",
+    "relationship": "orders_to_items",
+    "where": {
+      "kind": "filter",
+      "filter": {"field": "items.category", "operator": "eq", "value": "target"}
+    }
+  }
+}
+```
+
+This compiles to a correlated `EXISTS`; related rows decide membership but do
+not change the source grain. See the
+[Agent query contract](docs/specs/semantic/agent-query-contract.md#filters) for
+the bounded V1 shape and rejection rules.
+
 ## Offline tools
 
 Semantic authoring commands use `metis semantic`; the former `metis project`

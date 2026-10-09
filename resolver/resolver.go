@@ -121,8 +121,16 @@ func (r *Resolver) Resolve(ctx context.Context, q query.SemanticQuery) (*Semanti
 		out.Dimensions = append(out.Dimensions, ResolvedDimension{Name: ref.Name, Grain: ref.Grain, Dataset: h.Dataset, Field: h.Field, CustomCalendar: customCalendar})
 	}
 	hasMetricFilter := false
+	var existenceFilters []query.Filter
 	for _, f := range q.Filters.RootConjuncts() {
+		if f.Kind == query.PredicateExists {
+			existenceFilters = append(existenceFilters, f)
+			continue
+		}
 		if f.Kind != "" {
+			if predicateContainsKind(f, query.PredicateExists) {
+				return nil, unsupportedQueryShape("relationship existence must be a root AND conjunct", nil)
+			}
 			resolved, dataset, err := resolveBooleanPredicate(model, f)
 			if err != nil {
 				return nil, err
@@ -172,6 +180,9 @@ func (r *Resolver) Resolve(ctx context.Context, q query.SemanticQuery) (*Semanti
 	if len(evaluationNames) == 0 {
 		root := out.Dimensions[0].Dataset
 		out.RootDataset = root
+		if err := resolveRelationshipExistence(model, out, existenceFilters, root); err != nil {
+			return nil, err
+		}
 		required := make([]string, 0, len(neededDatasets))
 		for ds := range neededDatasets {
 			required = append(required, ds)
@@ -221,7 +232,16 @@ func (r *Resolver) Resolve(ctx context.Context, q query.SemanticQuery) (*Semanti
 		if len(out.BooleanFilters) != 0 && len(sourceRoots) > 1 {
 			return nil, invalidQuery("boolean OR/NOT predicates require one source population in v1", nil)
 		}
+		if len(existenceFilters) != 0 && len(sourceRoots) > 1 {
+			return nil, unsupportedQueryShape("relationship existence requires one source population", nil)
+		}
+		if err := resolveRelationshipExistence(model, out, existenceFilters, root); err != nil {
+			return nil, err
+		}
 		return out, nil
+	}
+	if err := resolveRelationshipExistence(model, out, existenceFilters, root); err != nil {
+		return nil, err
 	}
 	required := make([]string, 0, len(neededDatasets))
 	for ds := range neededDatasets {
@@ -233,6 +253,152 @@ func (r *Resolver) Resolve(ctx context.Context, q query.SemanticQuery) (*Semanti
 	}
 	out.Relationships = append(out.Relationships, pathPlan.Relationships...)
 	return out, nil
+}
+
+func predicateContainsKind(predicate query.Filter, kind query.PredicateKind) bool {
+	if predicate.Kind == kind {
+		return true
+	}
+	for _, child := range predicate.Children {
+		if predicateContainsKind(child, kind) {
+			return true
+		}
+	}
+	return false
+}
+
+func resolveRelationshipExistence(model *manifest.ModelIndex, out *SemanticQuerySpec, predicates []query.Filter, root string) error {
+	if len(predicates) == 0 {
+		return nil
+	}
+	if len(predicates) != 1 {
+		return unsupportedQueryShape("v1 supports one relationship existence predicate", nil)
+	}
+	predicate := predicates[0]
+	if predicate.Relationship == "" || len(predicate.Children) != 1 {
+		return invalidQuery("relationship existence requires relationship and where", nil)
+	}
+	relationship := model.Relationships[predicate.Relationship]
+	if relationship == nil {
+		return invalidQuery("relationship not found", map[string]any{"relationship": predicate.Relationship})
+	}
+	if _, temporal, err := ossie.TemporalRelationship(relationship); err != nil {
+		return invalidQuery("relationship existence has invalid relationship metadata", map[string]any{"relationship": predicate.Relationship})
+	} else if temporal {
+		return unsupportedQueryShape("temporal relationships are not supported by relationship existence v1", map[string]any{"relationship": predicate.Relationship})
+	}
+	resolved := ResolvedRelationshipExistence{Relationship: relationship, SourceDataset: root}
+	switch root {
+	case relationship.From:
+		resolved.TargetDataset = relationship.To
+		resolved.SourceColumns = append([]string(nil), relationship.FromColumns...)
+		resolved.TargetColumns = append([]string(nil), relationship.ToColumns...)
+	case relationship.To:
+		resolved.TargetDataset = relationship.From
+		resolved.SourceColumns = append([]string(nil), relationship.ToColumns...)
+		resolved.TargetColumns = append([]string(nil), relationship.FromColumns...)
+	default:
+		return unsupportedQueryShape("relationship existence must be incident to the query source", map[string]any{"relationship": predicate.Relationship, "source_dataset": root})
+	}
+	if len(resolved.SourceColumns) == 0 || len(resolved.SourceColumns) != len(resolved.TargetColumns) {
+		return invalidQuery("relationship existence has incomplete correlation keys", map[string]any{"relationship": predicate.Relationship})
+	}
+	for _, metric := range out.Metrics {
+		for _, dataset := range metric.Datasets {
+			if dataset == resolved.TargetDataset {
+				return unsupportedQueryShape("relationship existence target cannot contribute metric expressions", map[string]any{"relationship": predicate.Relationship, "metric": metric.Name})
+			}
+		}
+	}
+	for _, dimension := range out.Dimensions {
+		if dimension.Dataset == resolved.TargetDataset {
+			return unsupportedQueryShape("relationship existence target cannot contribute output dimensions", map[string]any{"relationship": predicate.Relationship, "dimension": dimension.Name})
+		}
+	}
+	for _, filter := range out.Filters {
+		if filter.Kind == FilterTargetField && filter.Dataset == resolved.TargetDataset {
+			return unsupportedQueryShape("relationship existence target filters must be inside where", map[string]any{"relationship": predicate.Relationship, "field": filter.Filter.Field})
+		}
+	}
+	for _, filter := range resolvedPredicateLeaves(out.BooleanFilters) {
+		if filter != nil && filter.Dataset == resolved.TargetDataset {
+			return unsupportedQueryShape("relationship existence target filters must be inside where", map[string]any{"relationship": predicate.Relationship, "field": filter.Filter.Field})
+		}
+	}
+	for _, order := range out.OrderBy {
+		if order.Kind == OrderTargetDimension && order.Dataset == resolved.TargetDataset {
+			return unsupportedQueryShape("relationship existence target cannot contribute ordering", map[string]any{"relationship": predicate.Relationship, "field": order.Name})
+		}
+	}
+	targetPredicate, dataset, err := resolveExistenceTargetPredicate(model, predicate.Children[0], resolved.TargetDataset)
+	if err != nil {
+		return err
+	}
+	if dataset != resolved.TargetDataset {
+		return unsupportedQueryShape("relationship existence where must use the relationship target dataset", map[string]any{"relationship": predicate.Relationship})
+	}
+	resolved.Predicate = targetPredicate
+	out.RelationshipExistence = []ResolvedRelationshipExistence{resolved}
+	return nil
+}
+
+func resolvedPredicateLeaves(predicates []ResolvedPredicate) []*ResolvedFilter {
+	var leaves []*ResolvedFilter
+	var visit func(ResolvedPredicate)
+	visit = func(predicate ResolvedPredicate) {
+		if predicate.Leaf != nil {
+			leaves = append(leaves, predicate.Leaf)
+			return
+		}
+		for _, child := range predicate.Children {
+			visit(child)
+		}
+	}
+	for _, predicate := range predicates {
+		visit(predicate)
+	}
+	return leaves
+}
+
+func resolveExistenceTargetPredicate(model *manifest.ModelIndex, predicate query.Filter, target string) (ResolvedPredicate, string, error) {
+	if predicate.Kind == query.PredicateExists {
+		return ResolvedPredicate{}, "", unsupportedQueryShape("nested relationship existence is not supported", nil)
+	}
+	if predicate.Kind == "" {
+		if err := validateFilter(predicate); err != nil {
+			return ResolvedPredicate{}, "", err
+		}
+		leaf, err := resolveFilter(model, predicate)
+		if err != nil {
+			return ResolvedPredicate{}, "", err
+		}
+		if leaf.Kind != FilterTargetField || leaf.Dataset != target || leaf.Field == nil || leaf.Field.Dimension == nil || isTimeDimension(leaf.Field) {
+			return ResolvedPredicate{}, "", unsupportedQueryShape("relationship existence where supports only non-time target dimensions", map[string]any{"field": predicate.Field})
+		}
+		copy := leaf
+		return ResolvedPredicate{Leaf: &copy}, leaf.Dataset, nil
+	}
+	if predicate.Kind != query.PredicateAnd && predicate.Kind != query.PredicateOr && predicate.Kind != query.PredicateNot {
+		return ResolvedPredicate{}, "", invalidQuery("unsupported relationship existence predicate kind", nil)
+	}
+	if predicate.Kind == query.PredicateNot && len(predicate.Children) != 1 {
+		return ResolvedPredicate{}, "", invalidQuery("not predicate requires exactly one child", nil)
+	}
+	if predicate.Kind != query.PredicateNot && (len(predicate.Children) < 2 || len(predicate.Children) > 32) {
+		return ResolvedPredicate{}, "", invalidQuery("and/or predicate requires 2 to 32 children", nil)
+	}
+	out := ResolvedPredicate{Kind: predicate.Kind}
+	for _, child := range predicate.Children {
+		resolved, dataset, err := resolveExistenceTargetPredicate(model, child, target)
+		if err != nil {
+			return ResolvedPredicate{}, "", err
+		}
+		if dataset != target {
+			return ResolvedPredicate{}, "", unsupportedQueryShape("relationship existence where must use one target dataset", nil)
+		}
+		out.Children = append(out.Children, resolved)
+	}
+	return out, target, nil
 }
 
 func resolveBooleanPredicate(model *manifest.ModelIndex, predicate query.Filter) (ResolvedPredicate, string, error) {
@@ -521,4 +687,8 @@ func validTimeGrain(g query.TimeGrain) bool {
 }
 func invalidQuery(message string, details map[string]any) error {
 	return &serrors.Error{Code: serrors.ErrInvalidQuery, Message: message, Details: details}
+}
+
+func unsupportedQueryShape(message string, details map[string]any) error {
+	return &serrors.Error{Code: serrors.ErrUnsupportedQueryShape, Message: message, Details: details}
 }

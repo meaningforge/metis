@@ -144,6 +144,14 @@ func validateBlock(block *QueryBlock, position int, positions map[QueryBlockID]i
 			return fmt.Errorf("boolean predicate %d: %w", i, err)
 		}
 	}
+	if len(block.RelationshipExistence) > 1 {
+		return fmt.Errorf("at most one relationship existence predicate is supported")
+	}
+	for i, predicate := range block.RelationshipExistence {
+		if err := validateRelationshipExistence(predicate, aliases, rendererDialect); err != nil {
+			return fmt.Errorf("relationship existence predicate %d: %w", i, err)
+		}
+	}
 	for i, expr := range block.GroupBy {
 		if err := validateExpr(expr, aliases, rendererDialect); err != nil {
 			return fmt.Errorf("grouping expression %d: %w", i, err)
@@ -159,6 +167,35 @@ func validateBlock(block *QueryBlock, position int, positions map[QueryBlockID]i
 	}
 	if block.Limit != nil && *block.Limit < 0 {
 		return fmt.Errorf("limit must not be negative")
+	}
+	return nil
+}
+
+func validateRelationshipExistence(predicate RelationshipExistencePredicate, outerAliases map[string]bool, rendererDialect string) error {
+	if predicate.Target.Input != nil {
+		return fmt.Errorf("target must be a physical relation")
+	}
+	targetAliases := map[string]bool{}
+	if err := validateRelation(predicate.Target, nil, targetAliases); err != nil {
+		return fmt.Errorf("target relation: %w", err)
+	}
+	targetAlias := predicate.Target.Alias
+	if outerAliases[targetAlias] {
+		return fmt.Errorf("target alias %q conflicts with outer relation", targetAlias)
+	}
+	if len(predicate.Correlations) == 0 {
+		return fmt.Errorf("at least one correlation is required")
+	}
+	for i, correlation := range predicate.Correlations {
+		if !outerAliases[correlation.Outer.Table] || strings.TrimSpace(correlation.Outer.Name) == "" {
+			return fmt.Errorf("correlation %d has invalid outer column", i)
+		}
+		if correlation.Inner.Table != targetAlias || strings.TrimSpace(correlation.Inner.Name) == "" {
+			return fmt.Errorf("correlation %d has invalid target column", i)
+		}
+	}
+	if err := validateBooleanPredicate(predicate.Predicate, targetAliases, rendererDialect); err != nil {
+		return fmt.Errorf("target predicate: %w", err)
 	}
 	return nil
 }

@@ -1,6 +1,6 @@
-# Core RFC: Safe Relationship Existence Filters
+# RFC-0092: Safe Relationship Existence Filters
 
-- **Status:** Draft — number assigned during review
+- **Status:** Implemented
 - **Owners:** Metis Core maintainers
 - **Created:** 2026-10-09
 - **Last updated:** 2026-10-09

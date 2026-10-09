@@ -51,7 +51,7 @@ func PlanOwnedComposedSQLPlan(plan *semanticplan.SemanticPlan, expressionDialect
 			if _, exists := renderedSourceGroups[source.Name]; exists {
 				continue
 			}
-			block, err := metricSourceNodeSQLPlan(*source, nodesByID, expressionDialect, plan.BooleanPredicates)
+			block, err := metricSourceNodeSQLPlan(*source, nodesByID, expressionDialect, plan.BooleanPredicates, plan.RelationshipExistence)
 			if err != nil {
 				return nil, err
 			}
@@ -132,7 +132,7 @@ func PlanOwnedComposedSQLPlan(plan *semanticplan.SemanticPlan, expressionDialect
 			rootInputs = append(rootInputs, sqlplan.QueryInput{Alias: cteName, Block: output.ID, Mode: sqlplan.QueryInputCTE})
 			continue
 		}
-		block, err := basicMetricNodeSQLPlan(node, cteNames, blockByAlias, nodesByID, expressionDialect, plan.BooleanPredicates)
+		block, err := basicMetricNodeSQLPlan(node, cteNames, blockByAlias, nodesByID, expressionDialect, plan.BooleanPredicates, plan.RelationshipExistence)
 		if err != nil {
 			return nil, err
 		}
@@ -195,10 +195,10 @@ func ComposedSQLPlanSupported(plan *semanticplan.SemanticPlan) bool {
 	return len(plan.Nodes) != 0
 }
 
-func basicMetricNodeSQLPlan(node semanticplan.SemanticPlanNode, cteNames map[string]string, blockByAlias map[string]sqlplan.QueryBlockID, nodesByID map[string]semanticplan.SemanticPlanNode, expressionDialect string, booleanPredicates []semanticplan.BooleanPredicate) (sqlplan.QueryBlock, error) {
+func basicMetricNodeSQLPlan(node semanticplan.SemanticPlanNode, cteNames map[string]string, blockByAlias map[string]sqlplan.QueryBlockID, nodesByID map[string]semanticplan.SemanticPlanNode, expressionDialect string, booleanPredicates []semanticplan.BooleanPredicate, relationshipExistence []semanticplan.RelationshipExistencePredicate) (sqlplan.QueryBlock, error) {
 	base := node.NodeBase()
 	if node.Kind() == semanticplan.SemanticPlanNodeSourceAggregate {
-		return metricSourceNodesSQLPlanWithBoolean([]semanticplan.SemanticPlanNode{node}, expressionDialect, booleanPredicates)
+		return metricSourceNodesSQLPlanWithConstraints([]semanticplan.SemanticPlanNode{node}, expressionDialect, booleanPredicates, relationshipExistence)
 	}
 	inputs := make([]string, 0, len(base.Inputs))
 	for _, input := range base.Inputs {
@@ -449,7 +449,7 @@ func cumulativeWindowSQLPlanExpr(node semanticplan.SemanticPlanNode, inputs []st
 	}, nil
 }
 
-func metricSourceNodeSQLPlan(source semanticSourceGroup, nodes map[string]semanticplan.SemanticPlanNode, expressionDialect string, booleanPredicates []semanticplan.BooleanPredicate) (sqlplan.QueryBlock, error) {
+func metricSourceNodeSQLPlan(source semanticSourceGroup, nodes map[string]semanticplan.SemanticPlanNode, expressionDialect string, booleanPredicates []semanticplan.BooleanPredicate, relationshipExistence []semanticplan.RelationshipExistencePredicate) (sqlplan.QueryBlock, error) {
 	sourceNodes := make([]semanticplan.SemanticPlanNode, 0, len(source.Metrics))
 	for _, metric := range source.Metrics {
 		node, ok := nodes[metric]
@@ -458,7 +458,7 @@ func metricSourceNodeSQLPlan(source semanticSourceGroup, nodes map[string]semant
 		}
 		sourceNodes = append(sourceNodes, node)
 	}
-	return metricSourceNodesSQLPlanWithBoolean(sourceNodes, expressionDialect, booleanPredicates)
+	return metricSourceNodesSQLPlanWithConstraints(sourceNodes, expressionDialect, booleanPredicates, relationshipExistence)
 }
 
 func metricSourceNodesSQLPlan(nodes []semanticplan.SemanticPlanNode, expressionDialect string) (sqlplan.QueryBlock, error) {
@@ -466,6 +466,10 @@ func metricSourceNodesSQLPlan(nodes []semanticplan.SemanticPlanNode, expressionD
 }
 
 func metricSourceNodesSQLPlanWithBoolean(nodes []semanticplan.SemanticPlanNode, expressionDialect string, booleanPredicates []semanticplan.BooleanPredicate) (sqlplan.QueryBlock, error) {
+	return metricSourceNodesSQLPlanWithConstraints(nodes, expressionDialect, booleanPredicates, nil)
+}
+
+func metricSourceNodesSQLPlanWithConstraints(nodes []semanticplan.SemanticPlanNode, expressionDialect string, booleanPredicates []semanticplan.BooleanPredicate, relationshipExistence []semanticplan.RelationshipExistencePredicate) (sqlplan.QueryBlock, error) {
 	if len(nodes) == 0 {
 		return sqlplan.QueryBlock{}, metricLoweringError("source node has no metrics", "")
 	}
@@ -474,7 +478,7 @@ func metricSourceNodesSQLPlanWithBoolean(nodes []semanticplan.SemanticPlanNode, 
 	if err != nil {
 		return sqlplan.QueryBlock{}, err
 	}
-	shape := sqlQueryShape{Root: work.Root, Joins: work.Joins, Predicates: work.Predicates, BooleanPredicates: booleanPredicates, Groups: work.OutputGrain}
+	shape := sqlQueryShape{Root: work.Root, Joins: work.Joins, Predicates: work.Predicates, BooleanPredicates: booleanPredicates, RelationshipExistence: relationshipExistence, Groups: work.OutputGrain}
 	for _, group := range first.NodeBase().OutputGrain {
 		resolved := group.Expression
 		if group.CustomCalendar != nil {

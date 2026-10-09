@@ -59,6 +59,9 @@ func lowerOrderedValueBlock(block sqlplan.QueryBlock) ([]sqlplan.QueryBlock, sql
 	if len(block.Predicates) != 0 {
 		return nil, sqlplan.QueryBlock{}, fmt.Errorf("DuckDB ordered-value lowering does not support block-local predicates")
 	}
+	if len(block.RelationshipExistence) != 0 {
+		return nil, sqlplan.QueryBlock{}, fmt.Errorf("DuckDB ordered-value lowering does not support relationship existence predicates")
+	}
 
 	keyID := sqlplan.QueryBlockID(string(block.ID) + "__ordered_key")
 	keyBlock := sqlplan.QueryBlock{ID: keyID, Inputs: append([]sqlplan.QueryInput(nil), block.Inputs...), From: block.From}

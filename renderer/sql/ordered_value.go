@@ -64,6 +64,9 @@ func lowerDeterministicOrderedValueBlock(block sqlplan.QueryBlock) ([]sqlplan.Qu
 	if len(block.Predicates) != 0 {
 		return nil, sqlplan.QueryBlock{}, fmt.Errorf("deterministic ordered-value lowering does not support block-local predicates")
 	}
+	if len(block.RelationshipExistence) != 0 {
+		return nil, sqlplan.QueryBlock{}, fmt.Errorf("deterministic ordered-value lowering does not support relationship existence predicates")
+	}
 
 	primaryID := sqlplan.QueryBlockID(string(block.ID) + "__ordered_primary")
 	secondaryID := sqlplan.QueryBlockID(string(block.ID) + "__ordered_secondary")

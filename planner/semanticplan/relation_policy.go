@@ -147,6 +147,14 @@ func visitOwnedRelationInputs(plan *SemanticPlan, write bool, visit func(*Datase
 			return err
 		}
 	}
+	for i := range plan.RelationshipExistence {
+		if err := visit(&plan.RelationshipExistence[i].Source); err != nil {
+			return err
+		}
+		if err := visit(&plan.RelationshipExistence[i].Target); err != nil {
+			return err
+		}
+	}
 	for i, node := range plan.Nodes {
 		if source, ok := NodeSourceState(node); ok {
 			if err := visit(&source.Root); err != nil {

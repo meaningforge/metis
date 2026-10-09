@@ -297,7 +297,7 @@ func planFieldDispositions() []planFieldDisposition {
 		{
 			typ: reflect.TypeOf(semanticplan.SemanticPlan{}),
 			projected: []string{
-				"Model", "Root", "Joins", "Projections", "Predicates", "BooleanPredicates", "Groups", "Sorts",
+				"Model", "Root", "Joins", "Projections", "Predicates", "BooleanPredicates", "RelationshipExistence", "Groups", "Sorts",
 				"Limit", "SharedGrain", "DenseCalendar", "CustomDenseCalendar",
 				"Requested", "Nodes", "Output", "PolicyScope",
 			},

@@ -178,4 +178,41 @@ func TestRenderBooleanPredicatePreservesGroupingAndParameterOrder(t *testing.T) 
 	}
 }
 
+func TestRenderRelationshipExistenceKeepsPoliciesAndParameterOrder(t *testing.T) {
+	targetLeaf := sqlplan.BooleanPredicate{Leaf: &sqlplan.Predicate{
+		Left: sqlplan.ColumnRef{Table: "details", Name: "kind"}, Operator: query.FilterEQ, Values: []any{"target"},
+	}}
+	plan := &sqlplan.Plan{Root: "root", Blocks: []sqlplan.QueryBlock{{
+		ID: "root",
+		From: sqlplan.RelationRef{
+			FilteredSource: &sqlplan.FilteredTableSource{Name: "analytics.orders", Predicates: []sqlplan.Predicate{{Left: sqlplan.ColumnRef{Name: "tenant_id"}, Operator: query.FilterEQ, Values: []any{"tenant-1"}}}},
+			Alias:          "orders",
+		},
+		Projections: []sqlplan.Projection{{Expr: sqlplan.ColumnRef{Table: "orders", Name: "amount"}, Alias: "amount"}},
+		RelationshipExistence: []sqlplan.RelationshipExistencePredicate{{
+			Target: sqlplan.RelationRef{
+				FilteredSource: &sqlplan.FilteredTableSource{Name: "analytics.details", Predicates: []sqlplan.Predicate{{Left: sqlplan.ColumnRef{Name: "tenant_id"}, Operator: query.FilterEQ, Values: []any{"tenant-1"}}}},
+				Alias:          "details",
+			},
+			Correlations: []sqlplan.RelationshipCorrelation{{
+				Outer: sqlplan.ColumnRef{Table: "orders", Name: "order_id"},
+				Inner: sqlplan.ColumnRef{Table: "details", Name: "order_id"},
+			}},
+			Predicate: targetLeaf,
+		}},
+	}}}
+
+	text, parameters, err := sql.Render(plan, testBehavior{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := `EXISTS (SELECT 1 FROM (SELECT * FROM analytics.details WHERE ("tenant_id" = ?)) AS "details" WHERE ("details"."order_id" = "orders"."order_id") AND ("details"."kind" = ?))`
+	if !strings.Contains(text, want) {
+		t.Fatalf("relationship EXISTS missing from SQL:\n%s", text)
+	}
+	if len(parameters) != 3 || parameters[0].Value != "tenant-1" || parameters[1].Value != "tenant-1" || parameters[2].Value != "target" {
+		t.Fatalf("parameter order = %#v", parameters)
+	}
+}
+
 func intPointer(value int) *int { return &value }

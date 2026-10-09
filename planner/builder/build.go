@@ -84,6 +84,22 @@ func Build(ctx context.Context, q *resolver.SemanticQuerySpec, evaluationPlan *e
 	for _, predicate := range q.BooleanFilters {
 		plan.BooleanPredicates = append(plan.BooleanPredicates, lowerBooleanPredicate(predicate))
 	}
+	for _, existence := range q.RelationshipExistence {
+		target := q.Model.Datasets[existence.TargetDataset]
+		if target == nil {
+			return nil, &serrors.Error{Code: serrors.ErrInternalInvariant, Message: "relationship existence target dataset is missing"}
+		}
+		planned := semanticplan.RelationshipExistencePredicate{
+			Relationship: existence.Relationship,
+			Source:       semanticplan.DatasetRef{Name: existence.SourceDataset, Source: root.Source},
+			Target:       semanticplan.DatasetRef{Name: existence.TargetDataset, Source: target.Source},
+			Predicate:    lowerBooleanPredicate(existence.Predicate),
+		}
+		for i := range existence.SourceColumns {
+			planned.Correlations = append(planned.Correlations, semanticplan.RelationshipCorrelation{SourceColumn: existence.SourceColumns[i], TargetColumn: existence.TargetColumns[i]})
+		}
+		plan.RelationshipExistence = append(plan.RelationshipExistence, planned)
+	}
 	for _, s := range q.OrderBy {
 		sortPlan := semanticplan.Sort{Name: s.Name, Direction: s.Direction, Metric: s.Metric, Field: s.Field, Dataset: s.Dataset, Expression: s.Expression}
 		switch s.Kind {
@@ -112,6 +128,15 @@ func Build(ctx context.Context, q *resolver.SemanticQuerySpec, evaluationPlan *e
 		for _, node := range construction.Nodes {
 			if node.Kind() == semanticplan.SemanticPlanNodeConversion {
 				return nil, &serrors.Error{Code: serrors.ErrInvalidQuery, Message: "boolean OR/NOT predicates are not supported for conversion metrics in v1"}
+			}
+		}
+	}
+	if len(plan.RelationshipExistence) != 0 {
+		for _, node := range construction.Nodes {
+			switch node.Kind() {
+			case semanticplan.SemanticPlanNodeConversion, semanticplan.SemanticPlanNodeSemiAdditiveLast, semanticplan.SemanticPlanNodeSemiAdditiveFirst,
+				semanticplan.SemanticPlanNodeAdditiveAttribution, semanticplan.SemanticPlanNodeRatioAttribution:
+				return nil, &serrors.Error{Code: serrors.ErrInvalidQuery, Message: "relationship existence filters are not supported for conversion, semi-additive, or attribution metrics in v1"}
 			}
 		}
 	}

@@ -14,11 +14,20 @@ import (
 // logical evidence only; backend runtime, physical-plan metadata, and
 // optimizer-only annotations are outside this contract.
 type SemanticPlanExplanation struct {
-	Requested   []string                      `json:"requested,omitempty"`
-	OutputGrain []SemanticGrainEvidence       `json:"output_grain,omitempty"`
-	Nodes       []SemanticPlanNodeExplanation `json:"nodes"`
-	Lineage     []SemanticOutputLineage       `json:"lineage,omitempty"`
-	Predicates  []SemanticPredicateEvidence   `json:"final_output_predicates,omitempty"`
+	Requested             []string                                   `json:"requested,omitempty"`
+	OutputGrain           []SemanticGrainEvidence                    `json:"output_grain,omitempty"`
+	RelationshipExistence []SemanticRelationshipExistenceExplanation `json:"relationship_existence,omitempty"`
+	Nodes                 []SemanticPlanNodeExplanation              `json:"nodes"`
+	Lineage               []SemanticOutputLineage                    `json:"lineage,omitempty"`
+	Predicates            []SemanticPredicateEvidence                `json:"final_output_predicates,omitempty"`
+}
+
+type SemanticRelationshipExistenceExplanation struct {
+	Relationship     string `json:"relationship"`
+	SourceDataset    string `json:"source_dataset"`
+	TargetDataset    string `json:"target_dataset"`
+	CorrelationCount int    `json:"correlation_count"`
+	PredicateKind    string `json:"predicate_kind"`
 }
 
 type SemanticPlanNodeExplanation struct {
@@ -112,6 +121,23 @@ func Explain(plan *SemanticPlan) (SemanticPlanExplanation, error) {
 	explanation := SemanticPlanExplanation{
 		Requested:   append([]string(nil), plan.Requested...),
 		OutputGrain: explainSemanticGrain(plan.Output.Grain),
+	}
+	for _, predicate := range plan.RelationshipExistence {
+		relationship := ""
+		if predicate.Relationship != nil {
+			relationship = predicate.Relationship.Name
+		}
+		kind := string(predicate.Predicate.Kind)
+		if predicate.Predicate.Leaf != nil {
+			kind = "filter"
+		}
+		explanation.RelationshipExistence = append(explanation.RelationshipExistence, SemanticRelationshipExistenceExplanation{
+			Relationship:     relationship,
+			SourceDataset:    predicate.Source.Name,
+			TargetDataset:    predicate.Target.Name,
+			CorrelationCount: len(predicate.Correlations),
+			PredicateKind:    kind,
+		})
 	}
 	byID := NodesByID(plan.Nodes)
 	nodeOrder := make(map[string]int, len(plan.Nodes))

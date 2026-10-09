@@ -98,6 +98,14 @@ func validatePlanExpressions(plan *SemanticPlan) error {
 			return fmt.Errorf("plan boolean predicate %d: %w", i, err)
 		}
 	}
+	if len(plan.RelationshipExistence) > 1 {
+		return fmt.Errorf("semantic plan supports one relationship existence predicate")
+	}
+	for i, predicate := range plan.RelationshipExistence {
+		if err := validateRelationshipExistence(plan, predicate); err != nil {
+			return fmt.Errorf("plan relationship existence predicate %d: %w", i, err)
+		}
+	}
 	if err := validateGroups("plan", plan.Groups); err != nil {
 		return err
 	}
@@ -112,6 +120,48 @@ func validatePlanExpressions(plan *SemanticPlan) error {
 		}
 		if !sort.Expression.IsResolved() {
 			return fmt.Errorf("sort %q has unresolved expression", sort.Name)
+		}
+	}
+	return nil
+}
+
+func validateRelationshipExistence(plan *SemanticPlan, predicate RelationshipExistencePredicate) error {
+	if predicate.Relationship == nil || predicate.Relationship.Name == "" {
+		return fmt.Errorf("relationship identity is required")
+	}
+	if predicate.Source.Name == "" || predicate.Source.Source == "" || predicate.Source.Name != plan.Root.Name {
+		return fmt.Errorf("relationship existence source must match plan root")
+	}
+	if predicate.Target.Name == "" || predicate.Target.Source == "" || predicate.Target.Name == predicate.Source.Name {
+		return fmt.Errorf("relationship existence target is invalid")
+	}
+	if len(predicate.Correlations) == 0 {
+		return fmt.Errorf("relationship existence requires correlation keys")
+	}
+	for _, correlation := range predicate.Correlations {
+		if correlation.SourceColumn == "" || correlation.TargetColumn == "" {
+			return fmt.Errorf("relationship existence correlation is incomplete")
+		}
+	}
+	if err := validateBooleanPredicate(predicate.Predicate, map[string]struct{}{predicate.Target.Name: {}}); err != nil {
+		return fmt.Errorf("target predicate: %w", err)
+	}
+	relationship := predicate.Relationship
+	forward := relationship.From == predicate.Source.Name && relationship.To == predicate.Target.Name
+	reverse := relationship.To == predicate.Source.Name && relationship.From == predicate.Target.Name
+	if !forward && !reverse {
+		return fmt.Errorf("relationship endpoints do not match existence direction")
+	}
+	sourceColumns, targetColumns := relationship.FromColumns, relationship.ToColumns
+	if reverse {
+		sourceColumns, targetColumns = relationship.ToColumns, relationship.FromColumns
+	}
+	if len(sourceColumns) != len(predicate.Correlations) || len(targetColumns) != len(predicate.Correlations) {
+		return fmt.Errorf("relationship existence correlation count does not match relationship")
+	}
+	for i, correlation := range predicate.Correlations {
+		if correlation.SourceColumn != sourceColumns[i] || correlation.TargetColumn != targetColumns[i] {
+			return fmt.Errorf("relationship existence correlation does not match relationship")
 		}
 	}
 	return nil

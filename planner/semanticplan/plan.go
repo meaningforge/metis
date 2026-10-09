@@ -4,16 +4,17 @@ package semanticplan
 // already selected Renderer-compatible expressions; Planner owns query
 // structure and does not perform semantic lookup or dialect selection.
 type SemanticPlan struct {
-	PolicyScope       string
-	Model             ModelRef
-	Root              DatasetRef
-	Joins             []Join
-	Projections       []Projection
-	Predicates        []Predicate
-	BooleanPredicates []BooleanPredicate
-	Groups            []GroupBy
-	Sorts             []Sort
-	Limit             *int
+	PolicyScope           string
+	Model                 ModelRef
+	Root                  DatasetRef
+	Joins                 []Join
+	Projections           []Projection
+	Predicates            []Predicate
+	BooleanPredicates     []BooleanPredicate
+	RelationshipExistence []RelationshipExistencePredicate
+	Groups                []GroupBy
+	Sorts                 []Sort
+	Limit                 *int
 
 	Requested []string
 	Nodes     []SemanticPlanNode

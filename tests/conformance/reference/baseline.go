@@ -59,6 +59,7 @@ var Baseline = []Case{
 	{Scenario: "distinct_entity_across_periods_global", Importance: ImportanceRequired, Origin: OriginManualOracle},
 	{Scenario: "distinct_entity_across_periods_grouped", Importance: ImportanceRequired, Origin: OriginManualOracle},
 	{Scenario: "fanout_base_population_unchanged", Importance: ImportanceRequired, Origin: OriginManualOracle},
+	{Scenario: "relationship_exists_filters_source_population", Importance: ImportanceRequired, Origin: OriginManualOracle},
 	{Scenario: "semi_additive_last_ties_then_account_rollup", Importance: ImportanceRequired, Origin: OriginManualOracle},
 	{Scenario: "boolean_filter_overlap_counts_once", Importance: ImportanceRequired, Origin: OriginManualOracle},
 	// Foundational aggregation, grouping, query-shape, and ordering behavior.

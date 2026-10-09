@@ -6,16 +6,17 @@ type Explanation struct {
 }
 
 type BlockExplanation struct {
-	ID                QueryBlockID                  `json:"id"`
-	Inputs            []InputExplanation            `json:"inputs"`
-	SourceKind        string                        `json:"source_kind"`
-	Projections       []ProjectionExplanation       `json:"projections"`
-	Joins             []JoinExplanation             `json:"joins"`
-	Predicates        []PredicateExplanation        `json:"predicates"`
-	BooleanPredicates []BooleanPredicateExplanation `json:"boolean_predicates,omitempty"`
-	GroupBy           []string                      `json:"group_by"`
-	OrderBy           []string                      `json:"order_by"`
-	HasLimit          bool                          `json:"has_limit"`
+	ID                    QueryBlockID                       `json:"id"`
+	Inputs                []InputExplanation                 `json:"inputs"`
+	SourceKind            string                             `json:"source_kind"`
+	Projections           []ProjectionExplanation            `json:"projections"`
+	Joins                 []JoinExplanation                  `json:"joins"`
+	Predicates            []PredicateExplanation             `json:"predicates"`
+	BooleanPredicates     []BooleanPredicateExplanation      `json:"boolean_predicates,omitempty"`
+	RelationshipExistence []RelationshipExistenceExplanation `json:"relationship_existence,omitempty"`
+	GroupBy               []string                           `json:"group_by"`
+	OrderBy               []string                           `json:"order_by"`
+	HasLimit              bool                               `json:"has_limit"`
 }
 
 type InputExplanation struct {
@@ -46,6 +47,12 @@ type BooleanPredicateExplanation struct {
 	Kind     string                        `json:"kind"`
 	Leaf     *PredicateExplanation         `json:"leaf,omitempty"`
 	Children []BooleanPredicateExplanation `json:"children,omitempty"`
+}
+
+type RelationshipExistenceExplanation struct {
+	TargetSourceKind string                      `json:"target_source_kind"`
+	CorrelationCount int                         `json:"correlation_count"`
+	Predicate        BooleanPredicateExplanation `json:"predicate"`
 }
 
 func Explain(plan *Plan) (Explanation, error) {
@@ -80,6 +87,13 @@ func Explain(plan *Plan) (Explanation, error) {
 		for _, predicate := range block.BooleanPredicates {
 			explained.BooleanPredicates = append(explained.BooleanPredicates, explainBooleanPredicate(predicate))
 		}
+		for _, predicate := range block.RelationshipExistence {
+			explained.RelationshipExistence = append(explained.RelationshipExistence, RelationshipExistenceExplanation{
+				TargetSourceKind: relationKind(predicate.Target),
+				CorrelationCount: len(predicate.Correlations),
+				Predicate:        explainBooleanPredicate(predicate.Predicate),
+			})
+		}
 		for j, expr := range block.GroupBy {
 			explained.GroupBy[j] = exprKind(expr)
 		}
@@ -104,6 +118,9 @@ func explainBooleanPredicate(predicate BooleanPredicate) BooleanPredicateExplana
 }
 
 func relationKind(relation RelationRef) string {
+	if relation.FilteredSource != nil {
+		return "filtered_table"
+	}
 	if relation.Source != nil {
 		return "table"
 	}

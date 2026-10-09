@@ -63,6 +63,55 @@ func TestValidateRejectsRendererDialectMismatch(t *testing.T) {
 	}
 }
 
+func TestValidateRelationshipExistenceRequiresClosedCorrelationScope(t *testing.T) {
+	plan := validPlan()
+	plan.Blocks[1].RelationshipExistence = []sqlplan.RelationshipExistencePredicate{validRelationshipExistence()}
+	if err := sqlplan.ValidateForRenderer(plan, "DUCKDB"); err != nil {
+		t.Fatalf("validate relationship existence: %v", err)
+	}
+
+	plan.Blocks[1].RelationshipExistence[0].Correlations[0].Inner.Table = "orders"
+	err := sqlplan.ValidateForRenderer(plan, "DUCKDB")
+	if err == nil || !strings.Contains(err.Error(), "invalid target column") {
+		t.Fatalf("Validate() error = %v, want closed target correlation failure", err)
+	}
+}
+
+func TestRelationshipExistenceCloneAndExplainOwnPredicateValues(t *testing.T) {
+	plan := validPlan()
+	plan.Blocks[1].RelationshipExistence = []sqlplan.RelationshipExistencePredicate{validRelationshipExistence()}
+	plan.Blocks[1].RelationshipExistence[0].Predicate.Leaf.Values[0] = "secret-value"
+	clone := sqlplan.Clone(plan)
+	plan.Blocks[1].RelationshipExistence[0].Predicate.Leaf.Values[0] = "mutated"
+	if got := clone.Blocks[1].RelationshipExistence[0].Predicate.Leaf.Values[0]; got != "secret-value" {
+		t.Fatalf("clone shares relationship predicate values: %#v", got)
+	}
+	explanation, err := sqlplan.Explain(clone)
+	if err != nil {
+		t.Fatal(err)
+	}
+	encoded, _ := json.Marshal(explanation)
+	if strings.Contains(string(encoded), "secret-value") || !strings.Contains(string(encoded), "redacted") {
+		t.Fatalf("relationship explanation leaked predicate value: %s", encoded)
+	}
+}
+
+func TestRelationshipExistenceMovesFingerprint(t *testing.T) {
+	base := validPlan()
+	before, err := sqlplan.Fingerprint(base)
+	if err != nil {
+		t.Fatal(err)
+	}
+	base.Blocks[1].RelationshipExistence = []sqlplan.RelationshipExistencePredicate{validRelationshipExistence()}
+	after, err := sqlplan.Fingerprint(base)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if before == after {
+		t.Fatal("relationship existence did not move SQLPlan fingerprint")
+	}
+}
+
 func TestCloneOwnsNestedState(t *testing.T) {
 	plan := validPlan()
 	plan.Blocks[1].Predicates[0].Values[0] = map[string]any{"nested": []any{"secret", map[string]string{"key": "value"}}}
@@ -204,5 +253,18 @@ func validSourceBlock(id sqlplan.QueryBlockID, alias string) sqlplan.QueryBlock 
 		ID:          id,
 		From:        sqlplan.RelationRef{Source: &sqlplan.TableSource{Name: "analytics.orders"}, Alias: alias},
 		Projections: []sqlplan.Projection{{Expr: sqlplan.ColumnRef{Table: alias, Name: "amount"}, Alias: "amount"}},
+	}
+}
+
+func validRelationshipExistence() sqlplan.RelationshipExistencePredicate {
+	return sqlplan.RelationshipExistencePredicate{
+		Target: sqlplan.RelationRef{Source: &sqlplan.TableSource{Name: "analytics.details"}, Alias: "details"},
+		Correlations: []sqlplan.RelationshipCorrelation{{
+			Outer: sqlplan.ColumnRef{Table: "base", Name: "order_id"},
+			Inner: sqlplan.ColumnRef{Table: "details", Name: "order_id"},
+		}},
+		Predicate: sqlplan.BooleanPredicate{Leaf: &sqlplan.Predicate{
+			Left: sqlplan.ColumnRef{Table: "details", Name: "kind"}, Operator: query.FilterEQ, Values: []any{"target"},
+		}},
 	}
 }

@@ -13,16 +13,17 @@ type CanonicalPlan struct {
 }
 
 type CanonicalBlock struct {
-	ID                QueryBlockID                `json:"id"`
-	Inputs            []QueryInput                `json:"inputs"`
-	From              CanonicalRelation           `json:"from"`
-	Projections       []CanonicalProjection       `json:"projections"`
-	Joins             []CanonicalJoin             `json:"joins"`
-	Predicates        []CanonicalPredicate        `json:"predicates"`
-	BooleanPredicates []CanonicalBooleanPredicate `json:"boolean_predicates,omitempty"`
-	GroupBy           []CanonicalExpr             `json:"group_by"`
-	OrderBy           []CanonicalOrder            `json:"order_by"`
-	Limit             *int                        `json:"limit,omitempty"`
+	ID                    QueryBlockID                              `json:"id"`
+	Inputs                []QueryInput                              `json:"inputs"`
+	From                  CanonicalRelation                         `json:"from"`
+	Projections           []CanonicalProjection                     `json:"projections"`
+	Joins                 []CanonicalJoin                           `json:"joins"`
+	Predicates            []CanonicalPredicate                      `json:"predicates"`
+	BooleanPredicates     []CanonicalBooleanPredicate               `json:"boolean_predicates,omitempty"`
+	RelationshipExistence []CanonicalRelationshipExistencePredicate `json:"relationship_existence,omitempty"`
+	GroupBy               []CanonicalExpr                           `json:"group_by"`
+	OrderBy               []CanonicalOrder                          `json:"order_by"`
+	Limit                 *int                                      `json:"limit,omitempty"`
 }
 
 type CanonicalRelation struct {
@@ -53,6 +54,17 @@ type CanonicalBooleanPredicate struct {
 	Kind     string                      `json:"kind"`
 	Leaf     *CanonicalPredicate         `json:"leaf,omitempty"`
 	Children []CanonicalBooleanPredicate `json:"children,omitempty"`
+}
+
+type CanonicalRelationshipExistencePredicate struct {
+	Target       CanonicalRelation                  `json:"target"`
+	Correlations []CanonicalRelationshipCorrelation `json:"correlations"`
+	Predicate    CanonicalBooleanPredicate          `json:"predicate"`
+}
+
+type CanonicalRelationshipCorrelation struct {
+	Outer CanonicalExpr `json:"outer"`
+	Inner CanonicalExpr `json:"inner"`
 }
 
 type CanonicalOrder struct {
@@ -190,6 +202,30 @@ func projectBlock(block QueryBlock) (CanonicalBlock, error) {
 			return CanonicalBlock{}, err
 		}
 		out.BooleanPredicates[i] = projected
+	}
+	out.RelationshipExistence = make([]CanonicalRelationshipExistencePredicate, len(block.RelationshipExistence))
+	for i, predicate := range block.RelationshipExistence {
+		target, err := projectRelation(predicate.Target)
+		if err != nil {
+			return CanonicalBlock{}, err
+		}
+		projectedPredicate, err := projectBooleanPredicate(predicate.Predicate)
+		if err != nil {
+			return CanonicalBlock{}, err
+		}
+		projected := CanonicalRelationshipExistencePredicate{Target: target, Predicate: projectedPredicate}
+		for _, correlation := range predicate.Correlations {
+			outer, err := projectExpr(correlation.Outer)
+			if err != nil {
+				return CanonicalBlock{}, err
+			}
+			inner, err := projectExpr(correlation.Inner)
+			if err != nil {
+				return CanonicalBlock{}, err
+			}
+			projected.Correlations = append(projected.Correlations, CanonicalRelationshipCorrelation{Outer: outer, Inner: inner})
+		}
+		out.RelationshipExistence[i] = projected
 	}
 	out.GroupBy, err = projectExprs(block.GroupBy)
 	if err != nil {

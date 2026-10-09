@@ -21,6 +21,7 @@ func nativeCapabilities() scenarios.CapabilitySet {
 		scenarios.CapabilityTemporalRelationship,
 		scenarios.CapabilityFilter,
 		scenarios.CapabilityBooleanFilter,
+		scenarios.CapabilityRelationshipExistence,
 		scenarios.CapabilityOrdering,
 		scenarios.CapabilityTimeGrain,
 		scenarios.CapabilityDerived,

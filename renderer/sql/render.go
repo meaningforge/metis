@@ -171,7 +171,7 @@ func (state renderState) renderBlockBody(behavior Behavior, block sqlplan.QueryB
 		b.WriteString("\n")
 	}
 
-	if len(block.Predicates) > 0 || len(block.BooleanPredicates) > 0 {
+	if len(block.Predicates) > 0 || len(block.BooleanPredicates) > 0 || len(block.RelationshipExistence) > 0 {
 		b.WriteString("WHERE ")
 		wrote := false
 		for i, predicate := range block.Predicates {
@@ -197,6 +197,18 @@ func (state renderState) renderBlockBody(behavior Behavior, block sqlplan.QueryB
 				b.WriteString(" AND ")
 			}
 			fragment, values, err := renderBooleanPredicate(behavior, predicate)
+			if err != nil {
+				return "", nil, err
+			}
+			b.WriteString(fragment)
+			params = append(params, values...)
+			wrote = true
+		}
+		for _, predicate := range block.RelationshipExistence {
+			if wrote {
+				b.WriteString(" AND ")
+			}
+			fragment, values, err := state.renderRelationshipExistence(behavior, predicate, inputs, visible)
 			if err != nil {
 				return "", nil, err
 			}
@@ -242,6 +254,32 @@ func (state renderState) renderBlockBody(behavior Behavior, block sqlplan.QueryB
 	}
 	b.WriteString(behavior.StatementSuffix())
 	return strings.TrimSpace(b.String()), params, nil
+}
+
+func (state renderState) renderRelationshipExistence(behavior Behavior, predicate sqlplan.RelationshipExistencePredicate, inputs map[string]sqlplan.QueryInput, visible map[sqlplan.QueryBlockID]string) (string, []QueryParameter, error) {
+	target, params, err := state.renderRelation(behavior, predicate.Target, inputs, visible)
+	if err != nil {
+		return "", nil, err
+	}
+	parts := make([]string, 0, len(predicate.Correlations)+1)
+	for _, correlation := range predicate.Correlations {
+		inner, err := RenderExpression(behavior, correlation.Inner)
+		if err != nil {
+			return "", nil, err
+		}
+		outer, err := RenderExpression(behavior, correlation.Outer)
+		if err != nil {
+			return "", nil, err
+		}
+		parts = append(parts, "("+inner+" = "+outer+")")
+	}
+	filter, values, err := renderBooleanPredicate(behavior, predicate.Predicate)
+	if err != nil {
+		return "", nil, err
+	}
+	parts = append(parts, filter)
+	params = append(params, values...)
+	return "EXISTS (SELECT 1 FROM " + target + " AS " + behavior.QuoteIdentifier(predicate.Target.Alias) + " WHERE " + strings.Join(parts, " AND ") + ")", params, nil
 }
 
 func renderBooleanPredicate(behavior Behavior, predicate sqlplan.BooleanPredicate) (string, []QueryParameter, error) {

@@ -116,6 +116,11 @@ func (r *Resolver) ResolveForRenderer(ctx context.Context, q query.SemanticQuery
 			return nil, err
 		}
 	}
+	for i := range resolved.RelationshipExistence {
+		if err := selectBooleanPredicateExpressions(&resolved.RelationshipExistence[i].Predicate, expressionDialect); err != nil {
+			return nil, err
+		}
+	}
 	for i := range resolved.OrderBy {
 		var expr expression.ResolvedExpression
 		var err error

@@ -187,6 +187,13 @@ func buildSQLPlanBlockFromQueryShape(shape sqlQueryShape, expressionDialect stri
 		}
 		block.BooleanPredicates = append(block.BooleanPredicates, lowered)
 	}
+	for _, predicate := range shape.RelationshipExistence {
+		lowered, err := relationshipExistenceSQLPlan(predicate, expressionDialect)
+		if err != nil {
+			return sqlplan.QueryBlock{}, err
+		}
+		block.RelationshipExistence = append(block.RelationshipExistence, lowered)
+	}
 	for _, group := range shape.Groups {
 		resolved := group.Expression
 		if group.CustomCalendar != nil {
@@ -215,6 +222,24 @@ func buildSQLPlanBlockFromQueryShape(shape sqlQueryShape, expressionDialect stri
 		block.OrderBy = append(block.OrderBy, sqlplan.Order{Expr: expr, Direction: sort.Direction})
 	}
 	return block, nil
+}
+
+func relationshipExistenceSQLPlan(predicate semanticplan.RelationshipExistencePredicate, expressionDialect string) (sqlplan.RelationshipExistencePredicate, error) {
+	targetPredicate, err := booleanPredicateSQLPlan(predicate.Predicate, expressionDialect)
+	if err != nil {
+		return sqlplan.RelationshipExistencePredicate{}, err
+	}
+	out := sqlplan.RelationshipExistencePredicate{
+		Target:    sourceRelation(predicate.Target),
+		Predicate: targetPredicate,
+	}
+	for _, correlation := range predicate.Correlations {
+		out.Correlations = append(out.Correlations, sqlplan.RelationshipCorrelation{
+			Outer: sqlplan.ColumnRef{Table: predicate.Source.Name, Name: correlation.SourceColumn},
+			Inner: sqlplan.ColumnRef{Table: predicate.Target.Name, Name: correlation.TargetColumn},
+		})
+	}
+	return out, nil
 }
 
 func booleanPredicateSQLPlan(predicate semanticplan.BooleanPredicate, expressionDialect string) (sqlplan.BooleanPredicate, error) {

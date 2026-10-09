@@ -15,15 +15,16 @@ func Clone(plan *Plan) *Plan {
 
 func cloneBlock(block QueryBlock) QueryBlock {
 	out := QueryBlock{
-		ID:                block.ID,
-		Inputs:            append([]QueryInput(nil), block.Inputs...),
-		From:              cloneRelation(block.From),
-		Projections:       make([]Projection, len(block.Projections)),
-		Joins:             make([]Join, len(block.Joins)),
-		Predicates:        make([]Predicate, len(block.Predicates)),
-		BooleanPredicates: cloneBooleanPredicates(block.BooleanPredicates),
-		GroupBy:           cloneExprs(block.GroupBy),
-		OrderBy:           cloneOrders(block.OrderBy),
+		ID:                    block.ID,
+		Inputs:                append([]QueryInput(nil), block.Inputs...),
+		From:                  cloneRelation(block.From),
+		Projections:           make([]Projection, len(block.Projections)),
+		Joins:                 make([]Join, len(block.Joins)),
+		Predicates:            make([]Predicate, len(block.Predicates)),
+		BooleanPredicates:     cloneBooleanPredicates(block.BooleanPredicates),
+		RelationshipExistence: cloneRelationshipExistencePredicates(block.RelationshipExistence),
+		GroupBy:               cloneExprs(block.GroupBy),
+		OrderBy:               cloneOrders(block.OrderBy),
 	}
 	if block.Limit != nil {
 		limit := *block.Limit
@@ -40,6 +41,21 @@ func cloneBlock(block QueryBlock) QueryBlock {
 			Left:     cloneExpr(predicate.Left),
 			Operator: predicate.Operator,
 			Values:   cloneValues(predicate.Values),
+		}
+	}
+	return out
+}
+
+func cloneRelationshipExistencePredicates(predicates []RelationshipExistencePredicate) []RelationshipExistencePredicate {
+	if predicates == nil {
+		return nil
+	}
+	out := make([]RelationshipExistencePredicate, len(predicates))
+	for i, predicate := range predicates {
+		out[i] = RelationshipExistencePredicate{
+			Target:       cloneRelation(predicate.Target),
+			Correlations: append([]RelationshipCorrelation(nil), predicate.Correlations...),
+			Predicate:    cloneBooleanPredicates([]BooleanPredicate{predicate.Predicate})[0],
 		}
 	}
 	return out

@@ -25,6 +25,7 @@ const (
 	CapabilityRelationship               Capability = "relationship"
 	CapabilityFilter                     Capability = "filter"
 	CapabilityBooleanFilter              Capability = "boolean_filter"
+	CapabilityRelationshipExistence      Capability = "relationship_existence"
 	CapabilityOrdering                   Capability = "ordering"
 	CapabilityTimeGrain                  Capability = "time_grain"
 	CapabilityDerived                    Capability = "derived_metric"

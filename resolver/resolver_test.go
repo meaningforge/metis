@@ -201,6 +201,72 @@ func TestResolveBooleanPredicateSameDataset(t *testing.T) {
 	}
 }
 
+func TestResolveRelationshipExistencePredicate(t *testing.T) {
+	r := newResolver(t)
+	resolved, err := r.Resolve(context.Background(), query.SemanticQuery{
+		Model:   "sales",
+		Metrics: []query.MetricRef{{Name: "total_revenue"}},
+		Filters: query.Predicate{query.Exists("orders_to_customer", query.Logical(query.PredicateOr,
+			query.Leaf("customer.region", query.FilterEQ, "APAC"),
+			query.Leaf("customer.region", query.FilterEQ, "EMEA"),
+		))},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(resolved.RelationshipExistence) != 1 {
+		t.Fatalf("relationship existence = %#v", resolved.RelationshipExistence)
+	}
+	existence := resolved.RelationshipExistence[0]
+	if existence.Relationship.Name != "orders_to_customer" || existence.SourceDataset != "orders" || existence.TargetDataset != "customer" {
+		t.Fatalf("relationship existence direction = %#v", existence)
+	}
+	if !reflect.DeepEqual(existence.SourceColumns, []string{"customer_id"}) || !reflect.DeepEqual(existence.TargetColumns, []string{"customer_id"}) {
+		t.Fatalf("relationship existence correlations = %#v", existence)
+	}
+	if existence.Predicate.Kind != query.PredicateOr || len(existence.Predicate.Children) != 2 {
+		t.Fatalf("relationship existence target predicate = %#v", existence.Predicate)
+	}
+}
+
+func TestResolveRelationshipExistenceRejectsUnsafeShapes(t *testing.T) {
+	r := newResolver(t)
+	tests := []struct {
+		name    string
+		filters query.Predicate
+	}{
+		{name: "source field", filters: query.Predicate{query.Exists("orders_to_customer", query.Leaf("orders.order_date", query.FilterEQ, "2026-01-01"))}},
+		{name: "metric target", filters: query.Predicate{query.Exists("orders_to_customer", query.Leaf("total_revenue", query.FilterGT, 0))}},
+		{name: "nested under or", filters: query.Predicate{query.Logical(query.PredicateOr,
+			query.Exists("orders_to_customer", query.Leaf("customer.region", query.FilterEQ, "APAC")),
+			query.Leaf("orders.order_date", query.FilterEQ, "2026-01-01"),
+		)}},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := r.Resolve(context.Background(), query.SemanticQuery{Model: "sales", Metrics: []query.MetricRef{{Name: "total_revenue"}}, Filters: tc.filters})
+			var apiErr *serrors.Error
+			if !errors.As(err, &apiErr) || apiErr.Code != serrors.ErrUnsupportedQueryShape {
+				t.Fatalf("error = %#v, want %s", err, serrors.ErrUnsupportedQueryShape)
+			}
+		})
+	}
+}
+
+func TestResolveRelationshipExistenceRejectsTargetOutput(t *testing.T) {
+	r := newResolver(t)
+	_, err := r.Resolve(context.Background(), query.SemanticQuery{
+		Model:      "sales",
+		Metrics:    []query.MetricRef{{Name: "total_revenue"}},
+		Dimensions: []query.DimensionRef{{Name: "customer.region"}},
+		Filters:    query.Predicate{query.Exists("orders_to_customer", query.Leaf("customer.region", query.FilterEQ, "APAC"))},
+	})
+	var apiErr *serrors.Error
+	if !errors.As(err, &apiErr) || apiErr.Code != serrors.ErrUnsupportedQueryShape {
+		t.Fatalf("error = %#v, want %s", err, serrors.ErrUnsupportedQueryShape)
+	}
+}
+
 func TestResolveRootAndStagesBooleanAndMetricLeavesIndependently(t *testing.T) {
 	r := newResolver(t)
 	resolved, err := r.Resolve(context.Background(), query.SemanticQuery{

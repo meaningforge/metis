@@ -24,6 +24,7 @@ var realEngineCapabilities = scenarios.Capabilities(
 	scenarios.CapabilityTemporalRelationship,
 	scenarios.CapabilityFilter,
 	scenarios.CapabilityBooleanFilter,
+	scenarios.CapabilityRelationshipExistence,
 	scenarios.CapabilityOrdering,
 	scenarios.CapabilityTimeGrain,
 	scenarios.CapabilityDerived,

@@ -8,14 +8,15 @@ import (
 
 // sqlQueryShape is the plan-owned input for one compact query block.
 type sqlQueryShape struct {
-	Root              semanticplan.DatasetRef
-	Joins             []semanticplan.Join
-	Projections       []semanticplan.Projection
-	Predicates        []semanticplan.Predicate
-	BooleanPredicates []semanticplan.BooleanPredicate
-	Groups            []semanticplan.GroupBy
-	Sorts             []semanticplan.Sort
-	Limit             *int
+	Root                  semanticplan.DatasetRef
+	Joins                 []semanticplan.Join
+	Projections           []semanticplan.Projection
+	Predicates            []semanticplan.Predicate
+	BooleanPredicates     []semanticplan.BooleanPredicate
+	RelationshipExistence []semanticplan.RelationshipExistencePredicate
+	Groups                []semanticplan.GroupBy
+	Sorts                 []semanticplan.Sort
+	Limit                 *int
 }
 
 // planOwnedQueryShape derives compact SQL shape from canonical typed nodes plus
@@ -37,13 +38,14 @@ func planOwnedQueryShape(plan *semanticplan.SemanticPlan) (sqlQueryShape, error)
 		return sqlQueryShape{}, fmt.Errorf("semantic plan node %q has no source state", base.ID)
 	}
 	return sqlQueryShape{
-		Root:              source.Root,
-		Joins:             append([]semanticplan.Join(nil), source.Joins...),
-		Predicates:        nodePlacedPredicates(scan),
-		BooleanPredicates: append([]semanticplan.BooleanPredicate(nil), plan.BooleanPredicates...),
-		Groups:            append([]semanticplan.GroupBy(nil), base.OutputGrain...),
-		Projections:       append([]semanticplan.Projection(nil), plan.Output.Projections...),
-		Sorts:             append([]semanticplan.Sort(nil), plan.Output.OrderBy...),
-		Limit:             plan.Output.Limit,
+		Root:                  source.Root,
+		Joins:                 append([]semanticplan.Join(nil), source.Joins...),
+		Predicates:            nodePlacedPredicates(scan),
+		BooleanPredicates:     append([]semanticplan.BooleanPredicate(nil), plan.BooleanPredicates...),
+		RelationshipExistence: append([]semanticplan.RelationshipExistencePredicate(nil), plan.RelationshipExistence...),
+		Groups:                append([]semanticplan.GroupBy(nil), base.OutputGrain...),
+		Projections:           append([]semanticplan.Projection(nil), plan.Output.Projections...),
+		Sorts:                 append([]semanticplan.Sort(nil), plan.Output.OrderBy...),
+		Limit:                 plan.Output.Limit,
 	}, nil
 }

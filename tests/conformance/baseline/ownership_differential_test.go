@@ -117,7 +117,7 @@ func (c differentialCoverage) assert(t *testing.T) {
 		have int
 		want int
 	}{
-		{"nodes", c.stages, 57},
+		{"nodes", c.stages, 60},
 		{"nodes carrying joins", c.joins, 26},
 		{"nodes carrying an output grain", c.grain, 39},
 		{"nodes carrying predicates", c.predicates, 21},

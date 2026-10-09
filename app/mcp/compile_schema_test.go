@@ -104,7 +104,7 @@ func TestSemanticQueryMCPInputsExposeTaggedPredicateObject(t *testing.T) {
 			t.Fatal(err)
 		}
 		text := string(encoded)
-		for _, required := range []string{`"filters":{"$ref":"#/$defs/semantic_predicate"`, `"const":"filter"`, `"const":"and"`, `"const":"or"`, `"const":"not"`} {
+		for _, required := range []string{`"filters":{"$ref":"#/$defs/semantic_predicate"`, `"const":"filter"`, `"const":"and"`, `"const":"or"`, `"const":"not"`, `"const":"exists"`, `"relationship"`, `"where"`} {
 			if !strings.Contains(text, required) {
 				t.Fatalf("%s predicate schema lacks %s: %s", name, required, text)
 			}

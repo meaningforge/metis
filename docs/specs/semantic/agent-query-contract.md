@@ -142,7 +142,8 @@ and ambiguous payloads are invalid.
 ```
 
 `filter` contains exactly one existing typed `query.Filter`; `and` and `or`
-contain 2–32 `children`; `not` contains exactly one `child`. Limits are depth 8,
+contain 2–32 `children`; `not` contains exactly one `child`; `exists` contains
+one declared `relationship` and one target-side `where` predicate. Limits are depth 8,
 128 nodes, 64 leaves, 256 scalar operands, and 64 KiB of scalar data per
 predicate. Core applies these limits to JSON and programmatic Go construction.
 
@@ -170,6 +171,35 @@ window-result, temporal-output-range, cross-dataset, multi-root, and unproved
 fanout subtrees fail closed; conversion-metric queries do not admit OR/NOT in
 V1. SQL three-valued logic is preserved: in particular,
 `not(x = value)` does not select rows where `x` is `NULL`.
+
+A positive relationship-existence predicate filters a source population by
+matching related rows without joining those rows into the aggregate grain:
+
+```json
+{
+  "filters": {
+    "kind": "exists",
+    "relationship": "orders_to_items",
+    "where": {
+      "kind": "filter",
+      "filter": {
+        "field": "items.category",
+        "operator": "eq",
+        "value": "target"
+      }
+    }
+  }
+}
+```
+
+V1 admits one `exists` node as the root or as a direct child of the root AND.
+The declared ordinary relationship must be one hop from the query source, and
+every `where` leaf must be a non-time dimension on the target dataset. Target
+AND/OR/NOT is supported; nested existence, NOT EXISTS, multiple existence
+nodes, temporal relationships, target grouping, conversion and attribution
+metrics are rejected. Source and target data policies remain relation-local and
+are both mandatory. The operation preserves source SUM, COUNT and AVG
+multiplicity; it is not an implicit ordinary join or a `DISTINCT` rewrite.
 
 Canonical metric/dimension refs used as filter fields are normalized recursively
 by the MCP adapter before Resolver receives the existing `SemanticQuery`.
