@@ -88,6 +88,7 @@ func lowerMetricEvaluationPlan(q *resolver.SemanticQuerySpec, evaluationPlan *ev
 			if err != nil {
 				return ConstructionInput{}, err
 			}
+			planned = includeBooleanFilterDatasets(planned, q.BooleanFilters)
 			sourceRequirement = planned
 			input.SourceRequirements[node.ID] = planned
 		}

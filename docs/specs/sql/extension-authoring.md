@@ -33,7 +33,7 @@ compatibility commitment:
 | --- | --- |
 | `renderer.Renderer` | `renderer.Capabilities`, `sql.SQLDialect`, `sql.SqlRenderResult`, `sql.QueryParameter`, and `sqlplan.Plan` |
 | `driver.Executor` | `artifact.CompiledQuery`, `artifact.OutputSchema`, `artifact.OutputColumn`, `artifact.OutputColumnKind`, `sql.SqlRenderResult`, `sql.SQLDialect`, and `sql.QueryParameter` |
-| `sqlplan.Plan` consumed by a Renderer | `QueryBlockID`, `QueryBlock`, `QueryInput`, `QueryInputMode`, `RelationRef`, `TableSource`, `FilteredTableSource`, `InputRef`, `Projection`, `Join`, `JoinKind`, `Predicate`, `Order`, `Expr`, `OpaqueExpr`, `ColumnRef`, `BinaryExpr`, `LogicalExpr`, `FunctionCallExpr`, `NullTestExpr`, `CaseWhen`, `CaseExpr`, `ParenthesizedExpr`, `TimeGrainExpr`, `CalendarShiftExpr`, `LatestValueExpr`, `EarliestValueExpr`, `WindowFrame`, `WindowExpr`, and `RowNumberExpr` |
+| `sqlplan.Plan` consumed by a Renderer | `QueryBlockID`, `QueryBlock`, `QueryInput`, `QueryInputMode`, `RelationRef`, `TableSource`, `FilteredTableSource`, `InputRef`, `Projection`, `Join`, `JoinKind`, `Predicate`, `BooleanPredicate`, `Order`, `Expr`, `OpaqueExpr`, `ColumnRef`, `BinaryExpr`, `LogicalExpr`, `FunctionCallExpr`, `NullTestExpr`, `CaseWhen`, `CaseExpr`, `ParenthesizedExpr`, `TimeGrainExpr`, `CalendarShiftExpr`, `LatestValueExpr`, `EarliestValueExpr`, `WindowFrame`, `WindowExpr`, and `RowNumberExpr` |
 | SQLPlan field types | `query.FilterOperator`, `query.SortDirection`, `query.TimeGrain`, and `ossie.DataType` where they appear in the listed contracts |
 
 This is a compatibility closure, not a promise that every exported helper in

@@ -45,6 +45,28 @@ type Filter struct {
 	Field    string         `json:"field" jsonschema:"Canonical metric or dimension ref returned by semantic discovery."`
 	Operator FilterOperator `json:"operator" jsonschema:"One of eq, neq, gt, gte, lt, lte, in, not_in, between, is_null, or is_not_null. between is inclusive and requires a two-item value array; in and not_in require an array; null operators omit value."`
 	Value    any            `json:"value,omitempty" jsonschema:"JSON scalar or flat scalar array appropriate for operator. Dates and timestamps use ISO-8601 strings."`
+	Kind     PredicateKind  `json:"-"`
+	Children []Filter       `json:"-"`
+}
+
+type PredicateKind string
+
+const (
+	PredicateAnd PredicateKind = "and"
+	PredicateOr  PredicateKind = "or"
+	PredicateNot PredicateKind = "not"
+)
+
+// Predicate is the single public filters contract. Its top-level slice is an
+// implicit AND for Go construction; JSON always uses one tagged node.
+type Predicate []Filter
+
+func Logical(kind PredicateKind, children ...Filter) Filter {
+	return Filter{Kind: kind, Children: append([]Filter(nil), children...)}
+}
+
+func Leaf(field string, operator FilterOperator, value any) Filter {
+	return Filter{Field: field, Operator: operator, Value: value}
 }
 
 func (f *Filter) UnmarshalJSON(data []byte) error {
@@ -54,7 +76,7 @@ func (f *Filter) UnmarshalJSON(data []byte) error {
 		Value    json.RawMessage `json:"value"`
 	}
 	var raw filterJSON
-	if err := json.Unmarshal(data, &raw); err != nil {
+	if err := strictUnmarshal(data, &raw); err != nil {
 		return err
 	}
 	value, err := decodeFilterValue(raw.Value)
@@ -137,7 +159,7 @@ type SemanticQuery struct {
 	Intent     QueryIntent    `json:"intent,omitempty"`
 	Metrics    []MetricRef    `json:"metrics,omitempty"`
 	Dimensions []DimensionRef `json:"dimensions,omitempty"`
-	Filters    []Filter       `json:"filters,omitempty"`
+	Filters    Predicate      `json:"filters,omitempty"`
 	OrderBy    []OrderBy      `json:"order_by,omitempty"`
 	Limit      *int           `json:"limit,omitempty"`
 }
@@ -145,9 +167,18 @@ type SemanticQuery struct {
 // UnmarshalJSON keeps physical output selection outside semantic identity.
 // CompileRequest.dialect is the only compile-only physical-output selector.
 func (q *SemanticQuery) UnmarshalJSON(data []byte) error {
+	if err := rejectDuplicateJSONKeys(data); err != nil {
+		return err
+	}
 	var fields map[string]json.RawMessage
 	if err := json.Unmarshal(data, &fields); err != nil {
 		return err
+	}
+	allowed := map[string]bool{"project": true, "model": true, "intent": true, "metrics": true, "dimensions": true, "filters": true, "order_by": true, "limit": true}
+	for field := range fields {
+		if !allowed[field] {
+			return fmt.Errorf("semantic query contains unknown field %q", field)
+		}
 	}
 	for _, field := range []string{"target", "execution_binding"} {
 		value, ok := fields[field]

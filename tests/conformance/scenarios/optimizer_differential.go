@@ -46,6 +46,8 @@ var optimizerDifferentialDeclarations = []struct {
 	Expectation OptimizerExpectation
 }{
 	{"derived_metric", OptimizerRewritesPlan},
+	{"boolean_filter_with_derived_metric", OptimizerRewritesPlan},
+	{"boolean_filter_with_metric_filter", OptimizerNoOp},
 	{"independent_multi_source_at_grain", OptimizerNoOp},
 	{"cumulative_metric_by_month_and_region", OptimizerNoOp},
 	{"time_offset_current_and_previous_by_region", OptimizerNoOp},

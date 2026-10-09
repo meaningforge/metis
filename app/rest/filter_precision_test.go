@@ -15,7 +15,7 @@ func TestRESTRejectsLossyFiltersBeforeServices(t *testing.T) {
 	RegisterQueryMetricsRoutes(r.Group("/v1"), nil)
 	for _, path := range []string{"/compile-sql", "/explain", "/validate", "/query-metrics"} {
 		for _, operand := range []string{"9007199254740993", "0.10000000000000000001", "[9007199254740992,9007199254740993]", "[0,1e-400]"} {
-			body := `{"query":{"filters":[{"field":"amount","operator":"in","value":` + operand + `}]}}`
+			body := `{"query":{"filters":{"kind":"filter","filter":{"field":"amount","operator":"in","value":` + operand + `}}}}`
 			req := httptest.NewRequest("POST", "/v1"+path, strings.NewReader(body))
 			req.Header.Set("Content-Type", "application/json")
 			w := httptest.NewRecorder()

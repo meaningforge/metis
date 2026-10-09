@@ -156,7 +156,7 @@ cat >"$WORK/requests/store-metric.json" <<'JSON'
 {"metrics":["store_productivity"],"dimensions":["s_store_name"],"limit":100}
 JSON
 cat >"$WORK/requests/filter.json" <<'JSON'
-{"metrics":["total_sales"],"dimensions":["s_state"],"filters":[{"field":"s_state","op":"=","value":"CA"}],"limit":25}
+{"metrics":["total_sales"],"dimensions":["s_state"],"filters":{"kind":"filter","filter":{"field":"s_state","operator":"eq","value":"CA"}},"limit":25}
 JSON
 cat >"$WORK/requests/computed-dimension.json" <<'JSON'
 {"metrics":["customer_lifetime_value"],"dimensions":["customer_full_name"],"limit":20}
@@ -168,7 +168,7 @@ cat >"$WORK/requests/multi-metric-dimension.json" <<'JSON'
 {"metrics":["total_sales","total_profit"],"dimensions":["d_year","i_brand"],"limit":50}
 JSON
 cat >"$WORK/requests/filter-matrix.json" <<'JSON'
-{"metrics":["total_sales"],"dimensions":["s_state"],"filters":[{"field":"s_state","op":"in","value":["CA","NY"]},{"field":"s_city","op":"not_in","value":["Unknown"]},{"field":"d_year","op":">=","value":2024},{"field":"d_year","op":"<=","value":2026},{"field":"d_year","op":"!=","value":2025},{"field":"d_date_sk","op":">","value":0},{"field":"d_date_sk","op":"<","value":99999999},{"field":"d_date_sk","op":"between","value":[1,99999999]},{"field":"c_first_name","op":"is_null"},{"field":"c_email_address","op":"is_not_null"}],"limit":30}
+{"metrics":["total_sales"],"dimensions":["s_state"],"filters":{"kind":"and","children":[{"kind":"filter","filter":{"field":"s_state","operator":"in","value":["CA","NY"]}},{"kind":"filter","filter":{"field":"s_city","operator":"not_in","value":["Unknown"]}},{"kind":"filter","filter":{"field":"d_year","operator":"gte","value":2024}},{"kind":"filter","filter":{"field":"d_year","operator":"lte","value":2026}},{"kind":"filter","filter":{"field":"d_year","operator":"neq","value":2025}},{"kind":"filter","filter":{"field":"d_date_sk","operator":"gt","value":0}},{"kind":"filter","filter":{"field":"d_date_sk","operator":"lt","value":99999999}},{"kind":"filter","filter":{"field":"d_date_sk","operator":"between","value":[1,99999999]}},{"kind":"filter","filter":{"field":"c_first_name","operator":"is_null"}},{"kind":"filter","filter":{"field":"c_email_address","operator":"is_not_null"}}]},"limit":30}
 JSON
 
 run_case() {

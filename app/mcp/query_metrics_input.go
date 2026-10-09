@@ -14,6 +14,7 @@ func queryMetricsInputSchema() *jsonschema.Schema {
 	if err != nil {
 		panic(fmt.Sprintf("build query_metrics MCP input schema: %v", err))
 	}
+	attachPredicateSchema(schema)
 	schema.Required = append(schema.Required, "output_metrics")
 	return schema
 }

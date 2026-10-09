@@ -17,6 +17,19 @@ var dataEdgeScenarios = []Scenario{
 		fixtureSemanticQuery(fixtures.CommerceAdversarial, []string{"revenue", "orders_count"}, []query.DimensionRef{{Name: "status"}}),
 		ResultLiteral{NullValue, "10", "1"}, ResultLiteral{"paid", "125", "4"}, ResultLiteral{"pending", "25", "1"},
 		ResultLiteral{"refunded", "0", "1"}, ResultLiteral{"cancelled", "0", "1"}, ResultLiteral{"failed", "0", "1"}),
+	resultFixtureScenario(fixtures.CommerceAdversarial, "boolean_filter_not_preserves_unknown", CategoryFilter, []Capability{CapabilityAggregation, CapabilityFilter, CapabilityBooleanFilter}, func() query.SemanticQuery {
+		q := fixtureSemanticQuery(fixtures.CommerceAdversarial, []string{"orders_count"}, nil)
+		q.Filters = query.Predicate{query.Logical(query.PredicateNot, query.Leaf("status", query.FilterEQ, "paid"))}
+		return q
+	}(), ResultLiteral{"4"}),
+	resultFixtureScenario(fixtures.CommerceAdversarial, "boolean_filter_null_or_value", CategoryFilter, []Capability{CapabilityAggregation, CapabilityFilter, CapabilityBooleanFilter}, func() query.SemanticQuery {
+		q := fixtureSemanticQuery(fixtures.CommerceAdversarial, []string{"orders_count"}, nil)
+		q.Filters = query.Predicate{query.Logical(query.PredicateOr,
+			query.Leaf("status", query.FilterIsNull, nil),
+			query.Leaf("status", query.FilterEQ, "paid"),
+		)}
+		return q
+	}(), ResultLiteral{"5"}),
 	resultFixtureScenario(fixtures.CommerceAdversarial, "relationship_unmatched_facts", CategoryJoin, []Capability{CapabilityAggregation, CapabilityRelationship},
 		fixtureSemanticQuery(fixtures.CommerceAdversarial, []string{"revenue", "orders_count"}, []query.DimensionRef{{Name: "region"}}),
 		ResultLiteral{"APAC", "185", "5"}, ResultLiteral{"EU", "-50", "3"}),

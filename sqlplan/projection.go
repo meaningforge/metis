@@ -13,15 +13,16 @@ type CanonicalPlan struct {
 }
 
 type CanonicalBlock struct {
-	ID          QueryBlockID          `json:"id"`
-	Inputs      []QueryInput          `json:"inputs"`
-	From        CanonicalRelation     `json:"from"`
-	Projections []CanonicalProjection `json:"projections"`
-	Joins       []CanonicalJoin       `json:"joins"`
-	Predicates  []CanonicalPredicate  `json:"predicates"`
-	GroupBy     []CanonicalExpr       `json:"group_by"`
-	OrderBy     []CanonicalOrder      `json:"order_by"`
-	Limit       *int                  `json:"limit,omitempty"`
+	ID                QueryBlockID                `json:"id"`
+	Inputs            []QueryInput                `json:"inputs"`
+	From              CanonicalRelation           `json:"from"`
+	Projections       []CanonicalProjection       `json:"projections"`
+	Joins             []CanonicalJoin             `json:"joins"`
+	Predicates        []CanonicalPredicate        `json:"predicates"`
+	BooleanPredicates []CanonicalBooleanPredicate `json:"boolean_predicates,omitempty"`
+	GroupBy           []CanonicalExpr             `json:"group_by"`
+	OrderBy           []CanonicalOrder            `json:"order_by"`
+	Limit             *int                        `json:"limit,omitempty"`
 }
 
 type CanonicalRelation struct {
@@ -46,6 +47,12 @@ type CanonicalPredicate struct {
 	Left     CanonicalExpr    `json:"left"`
 	Operator string           `json:"operator"`
 	Values   []CanonicalValue `json:"values"`
+}
+
+type CanonicalBooleanPredicate struct {
+	Kind     string                      `json:"kind"`
+	Leaf     *CanonicalPredicate         `json:"leaf,omitempty"`
+	Children []CanonicalBooleanPredicate `json:"children,omitempty"`
 }
 
 type CanonicalOrder struct {
@@ -176,6 +183,14 @@ func projectBlock(block QueryBlock) (CanonicalBlock, error) {
 		}
 		out.Predicates[i] = CanonicalPredicate{Left: left, Operator: string(predicate.Operator), Values: values}
 	}
+	out.BooleanPredicates = make([]CanonicalBooleanPredicate, len(block.BooleanPredicates))
+	for i, predicate := range block.BooleanPredicates {
+		projected, err := projectBooleanPredicate(predicate)
+		if err != nil {
+			return CanonicalBlock{}, err
+		}
+		out.BooleanPredicates[i] = projected
+	}
 	out.GroupBy, err = projectExprs(block.GroupBy)
 	if err != nil {
 		return CanonicalBlock{}, err
@@ -183,6 +198,33 @@ func projectBlock(block QueryBlock) (CanonicalBlock, error) {
 	out.OrderBy, err = projectOrders(block.OrderBy)
 	if err != nil {
 		return CanonicalBlock{}, err
+	}
+	return out, nil
+}
+
+func projectBooleanPredicate(predicate BooleanPredicate) (CanonicalBooleanPredicate, error) {
+	out := CanonicalBooleanPredicate{Kind: string(predicate.Kind)}
+	if predicate.Leaf != nil {
+		left, err := projectExpr(predicate.Leaf.Left)
+		if err != nil {
+			return out, err
+		}
+		values := make([]CanonicalValue, len(predicate.Leaf.Values))
+		for i, value := range predicate.Leaf.Values {
+			values[i], err = projectValue(value)
+			if err != nil {
+				return out, err
+			}
+		}
+		leaf := CanonicalPredicate{Left: left, Operator: string(predicate.Leaf.Operator), Values: values}
+		out.Leaf = &leaf
+	}
+	for _, child := range predicate.Children {
+		projected, err := projectBooleanPredicate(child)
+		if err != nil {
+			return out, err
+		}
+		out.Children = append(out.Children, projected)
 	}
 	return out, nil
 }

@@ -12,10 +12,10 @@ func TestSemanticQueryJSONRoundTrip(t *testing.T) {
 		"model":"orders",
 		"metrics":[{"name":"revenue"}],
 		"dimensions":[{"name":"order_date","grain":"month"}],
-		"filters":[
-			{"field":"country","operator":"eq","value":"US"},
-			{"field":"revenue","operator":"between","value":[10,20]}
-		],
+		"filters":{"kind":"and","children":[
+			{"kind":"filter","filter":{"field":"country","operator":"eq","value":"US"}},
+			{"kind":"filter","filter":{"field":"revenue","operator":"between","value":[10,20]}}
+		]},
 		"order_by":[{"field":"revenue","direction":"desc"}],
 		"limit":100
 	}`)

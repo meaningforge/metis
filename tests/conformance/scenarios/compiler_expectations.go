@@ -5,6 +5,8 @@ package scenarios
 var compilerExpectations = map[string]CompilerExpectation{
 	"aggregation_null_zero_negative":         {Fragments: []string{"AVG(orders.amount)", "MIN(orders.amount)", "MAX(orders.amount)"}},
 	"grouping_null_dimension":                {Fragments: []string{"orders.status", "SUM(orders.amount)", "COUNT(DISTINCT orders.order_id)", "GROUP BY"}},
+	"boolean_filter_not_preserves_unknown":   {Fragments: []string{"COUNT(DISTINCT orders.order_id)", "NOT", "WHERE"}, Parameters: 1},
+	"boolean_filter_null_or_value":           {Fragments: []string{"COUNT(DISTINCT orders.order_id)", "IS NULL", "OR", "WHERE"}, Parameters: 1},
 	"relationship_unmatched_facts":           {Fragments: []string{"customer.region", "JOIN", "SUM(orders.amount)", "COUNT(DISTINCT orders.order_id)"}},
 	"duplicate_invariant_filtered_fanout":    {Fragments: []string{"COUNT(DISTINCT customer.customer_id)", "JOIN", "orders.status", "WHERE"}, Parameters: 1},
 	"multi_hop_repeated_dimension_values":    {Fragments: []string{"geography.country", "JOIN", "SUM(orders.amount)"}},
@@ -101,6 +103,18 @@ var compilerExpectations = map[string]CompilerExpectation{
 	},
 	"multiple_metrics_with_filters": {
 		Fragments:  []string{"SUM(orders.amount)", "COUNT(DISTINCT orders.order_id)", "WHERE"},
+		Parameters: 2,
+	},
+	"boolean_filter_overlap_counts_once": {
+		Fragments:  []string{"SUM(orders.amount)", "COUNT(DISTINCT orders.order_id)", "AVG(orders.amount)", "customer.region", "customer.segment", "OR", "WHERE"},
+		Parameters: 3,
+	},
+	"boolean_filter_with_metric_filter": {
+		Fragments:  []string{"SUM(orders.amount)", "orders.status", "customer.region", "customer.segment", "OR", "WHERE"},
+		Parameters: 3,
+	},
+	"boolean_filter_with_derived_metric": {
+		Fragments:  []string{"contribution_margin", "revenue", "discounts", "customer.region", "customer.segment", "OR", "WHERE"},
 		Parameters: 2,
 	},
 	"multiple_metrics_time_grain": {

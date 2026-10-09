@@ -56,6 +56,9 @@ func (r *Resolver) Resolve(ctx context.Context, q query.SemanticQuery) (*Semanti
 	if q.Limit != nil && *q.Limit <= 0 {
 		return nil, invalidQuery("limit must be greater than zero", map[string]any{"limit": *q.Limit})
 	}
+	if err := q.Filters.Validate(); err != nil {
+		return nil, invalidQuery("invalid filters", map[string]any{"cause": err.Error()})
+	}
 	if r == nil || r.manifest == nil {
 		return nil, &serrors.Error{Code: serrors.ErrInvalidModel, Message: "semantic manifest is not loaded"}
 	}
@@ -118,7 +121,16 @@ func (r *Resolver) Resolve(ctx context.Context, q query.SemanticQuery) (*Semanti
 		out.Dimensions = append(out.Dimensions, ResolvedDimension{Name: ref.Name, Grain: ref.Grain, Dataset: h.Dataset, Field: h.Field, CustomCalendar: customCalendar})
 	}
 	hasMetricFilter := false
-	for _, f := range q.Filters {
+	for _, f := range q.Filters.RootConjuncts() {
+		if f.Kind != "" {
+			resolved, dataset, err := resolveBooleanPredicate(model, f)
+			if err != nil {
+				return nil, err
+			}
+			out.BooleanFilters = append(out.BooleanFilters, resolved)
+			neededDatasets[dataset] = struct{}{}
+			continue
+		}
 		if err := validateFilter(f); err != nil {
 			return nil, err
 		}
@@ -206,6 +218,9 @@ func (r *Resolver) Resolve(ctx context.Context, q query.SemanticQuery) (*Semanti
 	// decision about whether a single join tree is worth resolving.
 	composedEvaluation := hasDerived || len(sourceRoots) > 1 || hasMetricFilter
 	if composedEvaluation {
+		if len(out.BooleanFilters) != 0 && len(sourceRoots) > 1 {
+			return nil, invalidQuery("boolean OR/NOT predicates require one source population in v1", nil)
+		}
 		return out, nil
 	}
 	required := make([]string, 0, len(neededDatasets))
@@ -218,6 +233,57 @@ func (r *Resolver) Resolve(ctx context.Context, q query.SemanticQuery) (*Semanti
 	}
 	out.Relationships = append(out.Relationships, pathPlan.Relationships...)
 	return out, nil
+}
+
+func resolveBooleanPredicate(model *manifest.ModelIndex, predicate query.Filter) (ResolvedPredicate, string, error) {
+	if predicate.Kind != query.PredicateAnd && predicate.Kind != query.PredicateOr && predicate.Kind != query.PredicateNot {
+		return ResolvedPredicate{}, "", invalidQuery("unsupported boolean predicate kind", nil)
+	}
+	if predicate.Kind == query.PredicateNot && len(predicate.Children) != 1 {
+		return ResolvedPredicate{}, "", invalidQuery("not predicate requires exactly one child", nil)
+	}
+	if predicate.Kind != query.PredicateNot && (len(predicate.Children) < 2 || len(predicate.Children) > 32) {
+		return ResolvedPredicate{}, "", invalidQuery("and/or predicate requires 2 to 32 children", nil)
+	}
+	out := ResolvedPredicate{Kind: predicate.Kind}
+	dataset := ""
+	for _, child := range predicate.Children {
+		if child.Kind != "" {
+			resolved, childDataset, err := resolveBooleanPredicate(model, child)
+			if err != nil {
+				return ResolvedPredicate{}, "", err
+			}
+			if dataset != "" && dataset != childDataset {
+				return ResolvedPredicate{}, "", invalidQuery("boolean predicate leaves must share one dataset in v1", nil)
+			}
+			dataset = childDataset
+			out.Children = append(out.Children, resolved)
+			continue
+		}
+		if err := validateFilter(child); err != nil {
+			return ResolvedPredicate{}, "", err
+		}
+		leaf, err := resolveFilter(model, child)
+		if err != nil {
+			return ResolvedPredicate{}, "", err
+		}
+		if leaf.Kind != FilterTargetField {
+			return ResolvedPredicate{}, "", invalidQuery("metric filters are not supported inside OR/NOT predicates", nil)
+		}
+		if isTimeDimension(leaf.Field) {
+			return ResolvedPredicate{}, "", invalidQuery("time filters are not supported inside OR/NOT predicates in v1", nil)
+		}
+		if dataset != "" && dataset != leaf.Dataset {
+			return ResolvedPredicate{}, "", invalidQuery("boolean predicate leaves must share one dataset in v1", nil)
+		}
+		dataset = leaf.Dataset
+		copy := leaf
+		out.Children = append(out.Children, ResolvedPredicate{Leaf: &copy})
+	}
+	if dataset == "" {
+		return ResolvedPredicate{}, "", invalidQuery("boolean predicate has no filter leaves", nil)
+	}
+	return out, dataset, nil
 }
 
 func validateTimeRelativeBindings(q *SemanticQuerySpec) error {

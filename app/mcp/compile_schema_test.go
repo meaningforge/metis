@@ -94,6 +94,27 @@ func TestQueryMetricsMCPInputSchemaContainsOnlySemanticIntent(t *testing.T) {
 	}
 }
 
+func TestSemanticQueryMCPInputsExposeTaggedPredicateObject(t *testing.T) {
+	for name, schema := range map[string]any{
+		"compile_sql":   compileInputSchema(),
+		"query_metrics": queryMetricsInputSchema(),
+	} {
+		encoded, err := json.Marshal(schema)
+		if err != nil {
+			t.Fatal(err)
+		}
+		text := string(encoded)
+		for _, required := range []string{`"filters":{"$ref":"#/$defs/semantic_predicate"`, `"const":"filter"`, `"const":"and"`, `"const":"or"`, `"const":"not"`} {
+			if !strings.Contains(text, required) {
+				t.Fatalf("%s predicate schema lacks %s: %s", name, required, text)
+			}
+		}
+		if strings.Contains(text, `"filters":{"type":["null","array"]`) {
+			t.Fatalf("%s still advertises the retired filter array: %s", name, text)
+		}
+	}
+}
+
 func TestQueryMetricsToolRegistersOnlyWhenServiceIsProvided(t *testing.T) {
 	ctx := context.Background()
 	serverTransport, clientTransport := mcp.NewInMemoryTransports()

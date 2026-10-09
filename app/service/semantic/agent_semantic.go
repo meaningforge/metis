@@ -298,7 +298,7 @@ type AgentCompileRequest struct {
 	Model                   string              `json:"model,omitempty" jsonschema:"Canonical model ref for metric-free queries; otherwise inferred from semantic refs."`
 	OutputMetrics           []string            `json:"output_metrics,omitempty" jsonschema:"Canonical metric refs that must be visible result columns. Do not include metrics used only by filters."`
 	GroupBy                 []AgentGroupByParam `json:"group_by,omitempty" jsonschema:"Visible dimension columns using refs and types returned by get_dimensions."`
-	Filters                 []query.Filter      `json:"filters,omitempty" jsonschema:"Typed semantic predicates. Multiple filters are combined with AND."`
+	Filters                 query.Predicate     `json:"filters,omitempty" jsonschema:"One tagged filter, and, or, or not predicate object."`
 	OrderBy                 []AgentOrderByParam `json:"order_by,omitempty" jsonschema:"Sort keys in precedence order; use only selected output metrics or group_by dimensions."`
 	Limit                   *int                `json:"limit,omitempty" jsonschema:"Maximum result rows."`
 	projectContextInherited bool
@@ -312,7 +312,7 @@ type AgentQueryMetricsRequest struct {
 	Model                   string              `json:"model,omitempty" jsonschema:"Canonical model ref is optional when metric refs identify one model."`
 	OutputMetrics           []string            `json:"output_metrics,omitempty" jsonschema:"At least one canonical metric ref is required."`
 	GroupBy                 []AgentGroupByParam `json:"group_by,omitempty" jsonschema:"Visible dimension columns using refs and types returned by get_dimensions."`
-	Filters                 []query.Filter      `json:"filters,omitempty" jsonschema:"Typed semantic predicates. Multiple filters are combined with AND."`
+	Filters                 query.Predicate     `json:"filters,omitempty" jsonschema:"One tagged filter, and, or, or not predicate object."`
 	OrderBy                 []AgentOrderByParam `json:"order_by,omitempty" jsonschema:"Sort keys in precedence order; use only selected output metrics or group_by dimensions."`
 	Limit                   *int                `json:"limit,omitempty" jsonschema:"Maximum result rows, tightened by deployment policy."`
 	projectContextInherited bool
@@ -1416,7 +1416,7 @@ func (s *AgentSemanticService) buildCompileRequestContext(ctx context.Context, r
 		Project: req.ProjectID,
 		Model:   model,
 		Limit:   req.Limit,
-		Filters: append([]query.Filter(nil), req.Filters...),
+		Filters: req.Filters,
 	}
 	for _, name := range metricNames {
 		semanticQuery.Metrics = append(semanticQuery.Metrics, query.MetricRef{Name: name})
@@ -1438,12 +1438,16 @@ func (s *AgentSemanticService) buildCompileRequestContext(ctx context.Context, r
 		}
 		semanticQuery.Dimensions = append(semanticQuery.Dimensions, query.DimensionRef{Name: name, Grain: group.Grain})
 	}
-	for i := range semanticQuery.Filters {
-		field, err := normalizeAgentFilterField(project, model, semanticQuery.Filters[i].Field)
+	semanticQuery.Filters, err = semanticQuery.Filters.MapLeaves(func(filter query.Filter) (query.Filter, error) {
+		field, err := normalizeAgentFilterField(project, model, filter.Field)
 		if err != nil {
-			return CompileRequest{}, err
+			return query.Filter{}, err
 		}
-		semanticQuery.Filters[i].Field = field
+		filter.Field = field
+		return filter, nil
+	})
+	if err != nil {
+		return CompileRequest{}, err
 	}
 	for _, order := range req.OrderBy {
 		field, err := normalizeAgentOrderField(project, model, order.Name)
@@ -1828,11 +1832,11 @@ func resolveAgentCompileSelection(project *manifest.ProjectIndex, req AgentCompi
 		}
 		metricNames = names
 	}
-	refs := make([]string, 0, len(req.GroupBy)+len(req.Filters)+len(req.OrderBy))
+	refs := make([]string, 0, len(req.GroupBy)+len(req.Filters.Leaves())+len(req.OrderBy))
 	for _, group := range req.GroupBy {
 		refs = append(refs, group.Name)
 	}
-	for _, filter := range req.Filters {
+	for _, filter := range req.Filters.Leaves() {
 		refs = append(refs, filter.Field)
 	}
 	for _, order := range req.OrderBy {

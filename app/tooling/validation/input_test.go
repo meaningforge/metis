@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-const example = `{"schema_version":1,"queries":[{"id":"revenue","query":{"project":"sales","model":"sales","metrics":[{"name":"total_revenue"}],"filters":[{"field":"region","operator":"eq","value":"APAC"}]}}]}`
+const example = `{"schema_version":1,"queries":[{"id":"revenue","query":{"project":"sales","model":"sales","metrics":[{"name":"total_revenue"}],"filters":{"kind":"filter","filter":{"field":"region","operator":"eq","value":"APAC"}}}}]}`
 
 func TestInventoryStrictness(t *testing.T) {
 	if _, err := ParseInventory([]byte(example), "sales"); err != nil {

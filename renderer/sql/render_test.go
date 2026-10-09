@@ -3,6 +3,7 @@ package sql_test
 import (
 	"fmt"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/meaningforge/metis/query"
@@ -137,6 +138,43 @@ func TestRenderExpressionRejectsWindowFunctionsWithoutOrder(t *testing.T) {
 		if _, err := sql.RenderExpression(testBehavior{}, expr); err == nil {
 			t.Fatalf("RenderExpression(%T) accepted missing order", expr)
 		}
+	}
+}
+
+func TestRenderBooleanPredicatePreservesGroupingAndParameterOrder(t *testing.T) {
+	leaf := func(name string, operator query.FilterOperator, value any) sqlplan.BooleanPredicate {
+		return sqlplan.BooleanPredicate{Leaf: &sqlplan.Predicate{Left: sqlplan.ColumnRef{Table: "orders", Name: name}, Operator: operator, Values: []any{value}}}
+	}
+	boolean := sqlplan.BooleanPredicate{
+		Kind: query.PredicateOr,
+		Children: []sqlplan.BooleanPredicate{
+			leaf("region", query.FilterEQ, "APAC"),
+			{Kind: query.PredicateNot, Children: []sqlplan.BooleanPredicate{leaf("tier", query.FilterEQ, "trial")}},
+		},
+	}
+	plan := &sqlplan.Plan{
+		Root: "root",
+		Blocks: []sqlplan.QueryBlock{
+			{
+				ID: "root",
+				From: sqlplan.RelationRef{
+					FilteredSource: &sqlplan.FilteredTableSource{Name: "analytics.orders", Predicates: []sqlplan.Predicate{{Left: sqlplan.ColumnRef{Name: "tenant_id"}, Operator: query.FilterEQ, Values: []any{"tenant-1"}}}},
+					Alias:          "orders",
+				},
+				Projections:       []sqlplan.Projection{{Expr: sqlplan.ColumnRef{Table: "orders", Name: "amount"}, Alias: "amount"}},
+				BooleanPredicates: []sqlplan.BooleanPredicate{boolean},
+			},
+		},
+	}
+	text, parameters, err := sql.Render(plan, testBehavior{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(text, `WHERE (("orders"."region" = ?) OR (NOT ("orders"."tier" = ?)))`) {
+		t.Fatalf("boolean grouping missing from SQL: %s", text)
+	}
+	if len(parameters) != 3 || parameters[0].Value != "tenant-1" || parameters[1].Value != "APAC" || parameters[2].Value != "trial" {
+		t.Fatalf("parameter order = %#v", parameters)
 	}
 }
 

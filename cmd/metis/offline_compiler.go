@@ -24,29 +24,6 @@ import (
 
 const OfflineProject = "metis_offline"
 
-type Filter struct {
-	Field string `json:"field"`
-	Op    string `json:"op"`
-	Value any    `json:"value,omitempty"`
-}
-
-// The offline op spelling differs, but numeric operands share the public guard.
-func (f *Filter) UnmarshalJSON(data []byte) error {
-	var header struct {
-		Field string `json:"field"`
-		Op    string `json:"op"`
-	}
-	if err := json.Unmarshal(data, &header); err != nil {
-		return err
-	}
-	var common query.Filter
-	if err := json.Unmarshal(data, &common); err != nil {
-		return err
-	}
-	f.Field, f.Op, f.Value = header.Field, header.Op, common.Value
-	return nil
-}
-
 type Dimension struct {
 	Name  string           `json:"name"`
 	Grain *query.TimeGrain `json:"grain,omitempty"`
@@ -74,11 +51,11 @@ func (d *Dimension) UnmarshalJSON(data []byte) error {
 func NewDimension(name string) Dimension { return Dimension{Name: name} }
 
 type QueryRequest struct {
-	Model      string      `json:"model,omitempty"`
-	Metrics    []string    `json:"metrics,omitempty"`
-	Dimensions []Dimension `json:"dimensions,omitempty"`
-	Filters    []Filter    `json:"filters,omitempty"`
-	Limit      *int        `json:"limit,omitempty"`
+	Model      string          `json:"model,omitempty"`
+	Metrics    []string        `json:"metrics,omitempty"`
+	Dimensions []Dimension     `json:"dimensions,omitempty"`
+	Filters    query.Predicate `json:"filters,omitempty"`
+	Limit      *int            `json:"limit,omitempty"`
 }
 
 type Result struct {
@@ -203,13 +180,7 @@ func toSemanticQuery(model string, req QueryRequest) (query.SemanticQuery, error
 			q.Dimensions = append(q.Dimensions, query.DimensionRef{Name: name, Grain: dimension.Grain})
 		}
 	}
-	for _, filter := range req.Filters {
-		op, err := parseOperator(filter.Op)
-		if err != nil {
-			return query.SemanticQuery{}, err
-		}
-		q.Filters = append(q.Filters, query.Filter{Field: filter.Field, Operator: op, Value: filter.Value})
-	}
+	q.Filters = append(query.Predicate(nil), req.Filters...)
 	return q, nil
 }
 

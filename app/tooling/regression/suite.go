@@ -61,7 +61,7 @@ type QueryInput struct {
 	Intent     query.QueryIntent `json:"intent,omitempty" yaml:"intent"`
 	Metrics    []MetricInput     `json:"metrics,omitempty" yaml:"metrics"`
 	Dimensions []DimensionInput  `json:"dimensions,omitempty" yaml:"dimensions"`
-	Filters    []FilterInput     `json:"filters,omitempty" yaml:"filters"`
+	Filters    *PredicateInput   `json:"filters,omitempty" yaml:"filters"`
 	OrderBy    []OrderInput      `json:"order_by,omitempty" yaml:"order_by"`
 	Limit      *int              `json:"limit,omitempty" yaml:"limit"`
 }
@@ -79,6 +79,13 @@ type FilterInput struct {
 	Field    string               `json:"field" yaml:"field"`
 	Operator query.FilterOperator `json:"operator" yaml:"operator"`
 	Value    any                  `json:"value,omitempty" yaml:"value"`
+}
+
+type PredicateInput struct {
+	Kind     string           `json:"kind" yaml:"kind"`
+	Filter   *FilterInput     `json:"filter,omitempty" yaml:"filter"`
+	Children []PredicateInput `json:"children,omitempty" yaml:"children"`
+	Child    *PredicateInput  `json:"child,omitempty" yaml:"child"`
 }
 
 type OrderInput struct {
@@ -364,8 +371,8 @@ func (q QueryInput) semanticQuery() (query.SemanticQuery, error) {
 	for _, order := range q.OrderBy {
 		out.OrderBy = append(out.OrderBy, query.OrderBy{Field: order.Field, Direction: order.Direction})
 	}
-	for _, filter := range q.Filters {
-		encoded, err := json.Marshal(filter)
+	if q.Filters != nil {
+		encoded, err := json.Marshal(q.Filters)
 		if err != nil {
 			return query.SemanticQuery{}, err
 		}
@@ -378,11 +385,11 @@ func (q QueryInput) semanticQuery() (query.SemanticQuery, error) {
 		if err := checkFilterNumbers(original); err != nil {
 			return query.SemanticQuery{}, err
 		}
-		var checked query.Filter
+		var checked query.Predicate
 		if err := json.Unmarshal(encoded, &checked); err != nil {
 			return query.SemanticQuery{}, err
 		}
-		out.Filters = append(out.Filters, checked)
+		out.Filters = checked
 	}
 	return out, nil
 }

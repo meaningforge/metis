@@ -111,6 +111,11 @@ func (r *Resolver) ResolveForRenderer(ctx context.Context, q query.SemanticQuery
 			return nil, &serrors.Error{Code: serrors.ErrInvalidQuery, Message: "unsupported resolved filter target", Details: map[string]any{"field": resolved.Filters[i].Filter.Field, "kind": resolved.Filters[i].Kind}}
 		}
 	}
+	for i := range resolved.BooleanFilters {
+		if err := selectBooleanPredicateExpressions(&resolved.BooleanFilters[i], expressionDialect); err != nil {
+			return nil, err
+		}
+	}
 	for i := range resolved.OrderBy {
 		var expr expression.ResolvedExpression
 		var err error
@@ -133,6 +138,26 @@ func (r *Resolver) ResolveForRenderer(ctx context.Context, q query.SemanticQuery
 		resolved.OrderBy[i].Expression = expr
 	}
 	return resolved, nil
+}
+
+func selectBooleanPredicateExpressions(predicate *ResolvedPredicate, expressionDialect string) error {
+	if predicate == nil {
+		return nil
+	}
+	if predicate.Leaf != nil {
+		expr, err := selectExpression(predicate.Leaf.Field.Expression, expressionDialect)
+		if err != nil {
+			return unsupportedExpressionError("filter field", predicate.Leaf.Filter.Field, expressionDialect, predicate.Leaf.Field.Expression)
+		}
+		predicate.Leaf.Expression = expr
+		return nil
+	}
+	for i := range predicate.Children {
+		if err := selectBooleanPredicateExpressions(&predicate.Children[i], expressionDialect); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func selectExpression(source ossie.Expression, targetDialect string) (expression.ResolvedExpression, error) {

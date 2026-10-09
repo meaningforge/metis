@@ -109,6 +109,9 @@ func projectSemanticPlan(p *projector, plan *SemanticPlan) {
 		p.sequence("joins", len(plan.Joins), func(i int) { projectJoin(p, plan.Joins[i]) })
 		p.sequence("projections", len(plan.Projections), func(i int) { projectProjection(p, plan.Projections[i]) })
 		p.sequence("predicates", len(plan.Predicates), func(i int) { projectPredicate(p, plan.Predicates[i]) })
+		if len(plan.BooleanPredicates) != 0 {
+			p.sequence("boolean_predicates", len(plan.BooleanPredicates), func(i int) { projectBooleanPredicate(p, plan.BooleanPredicates[i]) })
+		}
 		p.sequence("groups", len(plan.Groups), func(i int) { projectGroupBy(p, plan.Groups[i]) })
 		p.sequence("sorts", len(plan.Sorts), func(i int) { projectSort(p, plan.Sorts[i]) })
 		p.optionalNumber("limit", plan.Limit)
@@ -122,6 +125,17 @@ func projectSemanticPlan(p *projector, plan *SemanticPlan) {
 		}
 		projectDenseCalendar(p, "dense_calendar", plan.DenseCalendar)
 		projectCustomDenseCalendar(p, "custom_dense_calendar", plan.CustomDenseCalendar)
+	})
+}
+func projectBooleanPredicate(p *projector, predicate BooleanPredicate) {
+	p.node("boolean_predicate", func() {
+		p.text("kind", string(predicate.Kind))
+		if predicate.Leaf == nil {
+			p.absent("leaf")
+		} else {
+			projectPredicate(p, *predicate.Leaf)
+		}
+		p.sequence("children", len(predicate.Children), func(i int) { projectBooleanPredicate(p, predicate.Children[i]) })
 	})
 }
 

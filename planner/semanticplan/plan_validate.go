@@ -1,6 +1,9 @@
 package semanticplan
 
-import "fmt"
+import (
+	"fmt"
+	"github.com/meaningforge/metis/query"
+)
 
 // ValidateSemanticPlan verifies structural invariants that SQLPlan construction and
 // semantic-plan optimization rely on. It validates planner-owned typed state;
@@ -89,6 +92,11 @@ func validatePlanExpressions(plan *SemanticPlan) error {
 	}
 	if err := validatePredicates("plan", plan.Predicates, nil); err != nil {
 		return err
+	}
+	for i, predicate := range plan.BooleanPredicates {
+		if err := validateBooleanPredicate(predicate, nil); err != nil {
+			return fmt.Errorf("plan boolean predicate %d: %w", i, err)
+		}
 	}
 	if err := validateGroups("plan", plan.Groups); err != nil {
 		return err
@@ -180,6 +188,11 @@ func ValidatePlanConsumerReachability(plan *SemanticPlan, reachable map[string]s
 			return err
 		}
 	}
+	for _, predicate := range plan.BooleanPredicates {
+		if err := validateBooleanPredicate(predicate, reachable); err != nil {
+			return err
+		}
+	}
 	for _, group := range plan.Groups {
 		if err := require("group", group.Name, group.Dataset); err != nil {
 			return err
@@ -187,6 +200,32 @@ func ValidatePlanConsumerReachability(plan *SemanticPlan, reachable map[string]s
 	}
 	for _, sort := range plan.Sorts {
 		if err := require("sort", sort.Name, sort.Dataset); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func validateBooleanPredicate(predicate BooleanPredicate, reachable map[string]struct{}) error {
+	if predicate.Leaf != nil {
+		if predicate.Kind != "" || len(predicate.Children) != 0 {
+			return fmt.Errorf("boolean leaf has logical payload")
+		}
+		return validatePredicates("boolean", []Predicate{*predicate.Leaf}, reachable)
+	}
+	if predicate.Kind == query.PredicateNot {
+		if len(predicate.Children) != 1 {
+			return fmt.Errorf("not predicate requires one child")
+		}
+	} else if predicate.Kind == query.PredicateAnd || predicate.Kind == query.PredicateOr {
+		if len(predicate.Children) < 2 || len(predicate.Children) > 32 {
+			return fmt.Errorf("and/or predicate requires 2 to 32 children")
+		}
+	} else {
+		return fmt.Errorf("unsupported boolean predicate kind %q", predicate.Kind)
+	}
+	for _, child := range predicate.Children {
+		if err := validateBooleanPredicate(child, reachable); err != nil {
 			return err
 		}
 	}

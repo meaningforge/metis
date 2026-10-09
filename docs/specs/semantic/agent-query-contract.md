@@ -66,14 +66,14 @@ type AgentCompileRequest struct {
     Model         string              `json:"model,omitempty"`
     OutputMetrics []string            `json:"output_metrics,omitempty"`
     GroupBy       []AgentGroupByParam `json:"group_by,omitempty"`
-    Filters       []query.Filter      `json:"filters,omitempty"`
+    Filters       query.Predicate     `json:"filters,omitempty"`
     OrderBy       []AgentOrderByParam `json:"order_by,omitempty"`
     Limit         *int                `json:"limit,omitempty"`
 }
 ```
 
 `output_metrics` are only metrics that must appear in the result. A metric used
-solely as `filters[].field` MUST NOT also be added to `output_metrics`.
+solely as a `filters` leaf field MUST NOT also be added to `output_metrics`.
 Output metric refs come from `list_metrics`; group-by dimension refs come from
 `get_dimensions`.
 
@@ -117,8 +117,34 @@ complete corrected item; it never guesses or silently rewrites the request.
 
 ## Filters
 
-Metis intentionally retains the existing typed `query.Filter` contract rather
-than adding a dbt-specific free-form `where` grammar solely for MCP symmetry.
+`SemanticQuery`, Agent compile/query-metrics, offline compilation, and semantic
+regression suites use one optional tagged `query.Predicate` object. There is no
+parallel raw `where`, SQL predicate, or legacy array form. Omission means no
+user filter; explicit `null`, an array, unknown fields/kinds, duplicate keys,
+and ambiguous payloads are invalid.
+
+```json
+{
+  "filters": {
+    "kind": "and",
+    "children": [
+      {
+        "kind": "or",
+        "children": [
+          {"kind": "filter", "filter": {"field": "dimension:sales.region", "operator": "eq", "value": "APAC"}},
+          {"kind": "filter", "filter": {"field": "dimension:sales.segment", "operator": "eq", "value": "enterprise"}}
+        ]
+      },
+      {"kind": "filter", "filter": {"field": "dimension:sales.status", "operator": "eq", "value": "paid"}}
+    ]
+  }
+}
+```
+
+`filter` contains exactly one existing typed `query.Filter`; `and` and `or`
+contain 2–32 `children`; `not` contains exactly one `child`. Limits are depth 8,
+128 nodes, 64 leaves, 256 scalar operands, and 64 KiB of scalar data per
+predicate. Core applies these limits to JSON and programmatic Go construction.
 
 The JSON representation of `Filter.value` preserves natural JSON values:
 
@@ -130,14 +156,26 @@ The JSON representation of `Filter.value` preserves natural JSON values:
 Operator-specific arity and nullability remain Resolver validation
 responsibilities.
 
-The MCP input schema enumerates the supported operator vocabulary directly:
+The MCP input schema exposes the tagged recursive grammar and enumerates the
+supported leaf operator vocabulary directly:
 `eq`, `neq`, `gt`, `gte`, `lt`, `lte`, `in`, `not_in`, `between`, `is_null`,
 and `is_not_null`. `between` is inclusive and takes a two-item array; `in` and
 `not_in` take arrays; null operators omit `value`. Dates and timestamps use
-ISO-8601 strings. Multiple filter objects are combined with `AND`.
+ISO-8601 strings.
 
-Canonical metric/dimension refs used as filter fields are normalized by the MCP
-adapter before Resolver receives the existing `SemanticQuery`.
+The root `and` may retain independently staged ordinary metric or eligible time
+leaves. V1 admits `or` and `not` only when all leaves resolve to non-time
+dimension fields on one input dataset and one pre-aggregation stage. Metric,
+window-result, temporal-output-range, cross-dataset, multi-root, and unproved
+fanout subtrees fail closed; conversion-metric queries do not admit OR/NOT in
+V1. SQL three-valued logic is preserved: in particular,
+`not(x = value)` does not select rows where `x` is `NULL`.
+
+Canonical metric/dimension refs used as filter fields are normalized recursively
+by the MCP adapter before Resolver receives the existing `SemanticQuery`.
+The closed `attribute_metric` and `compare_metrics` workflows retain their
+separate flat shared-filter contracts; V1 does not add arbitrary boolean trees
+to those analytical workflows.
 
 ## Order by
 
@@ -314,8 +352,9 @@ typed values without SQL or internal metric columns.
 
 Equivalent staged identities against the same SemanticManifest must normalize to
 equivalent internal `SemanticQuery` values. Input ordering of metrics, group-by
-items, filters, and order-by keys is preserved unless an existing semantic
-contract explicitly normalizes it.
+items, predicate children, and order-by keys is preserved unless an existing
+semantic contract explicitly normalizes it. AND/OR/NOT shape participates in
+plan and SQLPlan identity.
 
 Diagnostic identity and repair actions must also be deterministic.
 
@@ -325,7 +364,6 @@ New Agent query capabilities should map to typed semantic fields. They must not
 introduce arbitrary `where_sql`, `raw_predicate`, free-form ordering SQL,
 embedded physical targets, or other rendered-SQL escape hatches.
 
-If Metis later adopts a stable semantic predicate language analogous to a
-Semantic Layer `where` expression, it requires an explicit contract/RFC and a
-single canonical parser path; it must not coexist as an accidental second
-filter semantics beside `query.Filter`.
+Any later cross-stage predicate expansion requires an explicit contract and
+proof in the existing predicate path; it must not coexist as an accidental
+second filter language beside `query.Predicate`.

@@ -50,6 +50,12 @@ type ResolvedFilter struct {
 	MetricDatasets []string
 	Expression     expression.ResolvedExpression
 }
+
+type ResolvedPredicate struct {
+	Kind     query.PredicateKind
+	Leaf     *ResolvedFilter
+	Children []ResolvedPredicate
+}
 type OrderTargetKind string
 
 const (
@@ -88,6 +94,7 @@ type SemanticQuerySpec struct {
 	EvaluationMetrics []ResolvedMetric
 	Dimensions        []ResolvedDimension
 	Filters           []ResolvedFilter
+	BooleanFilters    []ResolvedPredicate
 	Relationships     []*ossie.Relationship
 	OrderBy           []ResolvedOrderBy
 	FieldExpressions  map[string]expression.ResolvedExpression

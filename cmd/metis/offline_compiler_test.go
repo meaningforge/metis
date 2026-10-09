@@ -18,7 +18,7 @@ func TestCompileDorisParameterizedSQL(t *testing.T) {
 	result, err := Compile(context.Background(), doc, "DORIS", QueryRequest{
 		Metrics:    []string{"total_revenue"},
 		Dimensions: []Dimension{{Name: "region"}},
-		Filters:    []Filter{{Field: "region", Op: "=", Value: "APAC"}},
+		Filters:    query.Predicate{query.Leaf("region", query.FilterEQ, "APAC")},
 		Limit:      &limit,
 	}, true)
 	if err != nil {
@@ -52,7 +52,7 @@ func TestCompileClickHouseParameterizedSQL(t *testing.T) {
 	result, err := Compile(context.Background(), clickHouseTestDocument(), "CLICKHOUSE", QueryRequest{
 		Metrics:    []string{"total_revenue"},
 		Dimensions: []Dimension{{Name: "order_date", Grain: &grain}},
-		Filters:    []Filter{{Field: "region", Op: "=", Value: "APAC"}},
+		Filters:    query.Predicate{query.Leaf("region", query.FilterEQ, "APAC")},
 		Limit:      &limit,
 	}, true)
 	if err != nil {
@@ -107,7 +107,7 @@ func TestCompileRejectsUnsupportedDialect(t *testing.T) {
 
 func TestCompilePreservesParametersInJSON(t *testing.T) {
 	value := `O'Reilly\path?`
-	result, err := Compile(context.Background(), testDocument(), "DUCKDB", QueryRequest{Metrics: []string{"total_revenue"}, Filters: []Filter{{Field: "region", Op: "eq", Value: value}}}, false)
+	result, err := Compile(context.Background(), testDocument(), "DUCKDB", QueryRequest{Metrics: []string{"total_revenue"}, Filters: query.Predicate{query.Leaf("region", query.FilterEQ, value)}}, false)
 	if err != nil {
 		t.Fatal(err)
 	}

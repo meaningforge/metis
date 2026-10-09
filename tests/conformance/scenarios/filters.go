@@ -35,6 +35,36 @@ var filterScenarios = []Scenario{
 		}
 		return q
 	}(), ResultLiteral{"paid", "300", "2"}),
+	resultScenario("boolean_filter_overlap_counts_once", CategoryFilter, []Capability{CapabilityAggregation, CapabilityFilter, CapabilityBooleanFilter, CapabilityRelationship}, func() query.SemanticQuery {
+		q := semanticQuery([]string{"revenue", "orders_count", "average_order_amount"}, nil)
+		q.Filters = query.Predicate{
+			query.Logical(query.PredicateOr,
+				query.Leaf("region", query.FilterEQ, "APAC"),
+				query.Leaf("segment", query.FilterEQ, "enterprise"),
+			),
+			query.Leaf("status", query.FilterEQ, "paid"),
+		}
+		return q
+	}(), ResultLiteral{"300", "2", "150"}),
+	resultScenario("boolean_filter_with_metric_filter", CategoryFilter, []Capability{CapabilityAggregation, CapabilityDimension, CapabilityFilter, CapabilityBooleanFilter, CapabilityMetricFilter, CapabilityRelationship}, func() query.SemanticQuery {
+		q := semanticQuery([]string{"revenue"}, []query.DimensionRef{{Name: "status"}})
+		q.Filters = query.Predicate{
+			query.Logical(query.PredicateOr,
+				query.Leaf("region", query.FilterEQ, "APAC"),
+				query.Leaf("segment", query.FilterEQ, "enterprise"),
+			),
+			query.Leaf("revenue", query.FilterGT, 100),
+		}
+		return q
+	}(), ResultLiteral{"paid", "300"}),
+	resultScenario("boolean_filter_with_derived_metric", CategoryFilter, []Capability{CapabilityAggregation, CapabilityBooleanFilter, CapabilityDerived, CapabilityFilter, CapabilityRelationship}, func() query.SemanticQuery {
+		q := semanticQuery([]string{"contribution_margin"}, nil)
+		q.Filters = query.Predicate{query.Logical(query.PredicateOr,
+			query.Leaf("region", query.FilterEQ, "APAC"),
+			query.Leaf("segment", query.FilterEQ, "enterprise"),
+		)}
+		return q
+	}(), ResultLiteral{"270"}),
 	resultScenario("metric_filter_source_metric", CategoryFilter, []Capability{CapabilityAggregation, CapabilityDimension, CapabilityMetricFilter}, func() query.SemanticQuery {
 		q := semanticQuery([]string{"revenue"}, []query.DimensionRef{{Name: "status"}})
 		q.Filters = []query.Filter{{Field: "revenue", Operator: query.FilterGT, Value: 100}}

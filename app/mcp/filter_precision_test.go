@@ -30,7 +30,7 @@ func TestMCPRejectsLossyFiltersBeforeServices(t *testing.T) {
 			dialect = `"dialect":"DUCKDB",`
 		}
 		for _, operand := range []string{"9007199254740993", "0.10000000000000000001", "[9007199254740992,9007199254740993]", "[0,1e-400]"} {
-			args := json.RawMessage(`{"project_id":"demo",` + dialect + `"output_metrics":["revenue"],"filters":[{"field":"amount","operator":"in","value":` + operand + `}]}`)
+			args := json.RawMessage(`{"project_id":"demo",` + dialect + `"output_metrics":["revenue"],"filters":{"kind":"filter","filter":{"field":"amount","operator":"in","value":` + operand + `}}}`)
 			result, err := c.CallTool(ctx, &mcp.CallToolParams{Name: name, Arguments: args})
 			if err == nil && (result == nil || !result.IsError) {
 				t.Fatalf("%s accepted lossy input", name)
@@ -51,7 +51,7 @@ func TestMCPRejectsLossyFiltersBeforeServices(t *testing.T) {
 			}
 		}
 		for _, operand := range []string{"0.1", "1.25", "9007199254740992", "[0.1,2]"} {
-			args := json.RawMessage(`{"project_id":"demo",` + dialect + `"output_metrics":["revenue"],"filters":[{"field":"amount","operator":"in","value":` + operand + `}]}`)
+			args := json.RawMessage(`{"project_id":"demo",` + dialect + `"output_metrics":["revenue"],"filters":{"kind":"filter","filter":{"field":"amount","operator":"in","value":` + operand + `}}}`)
 			result, err := c.CallTool(ctx, &mcp.CallToolParams{Name: name, Arguments: args})
 			if err != nil || result == nil {
 				t.Fatalf("compatible input rejected by decoder: %v", err)
@@ -62,6 +62,22 @@ func TestMCPRejectsLossyFiltersBeforeServices(t *testing.T) {
 			if !strings.Contains(string(encoded), "PROJECT_ACCESS_DENIED") {
 				t.Fatalf("expected authorization after valid decode: %s", encoded)
 			}
+		}
+	}
+	for _, name := range []string{ToolAttributeMetric, ToolCompareMetrics} {
+		const operand = "9007199254740993"
+		args := json.RawMessage(`{"filters":[{"field":"amount","operator":"eq","value":` + operand + `}]}`)
+		result, err := c.CallTool(ctx, &mcp.CallToolParams{Name: name, Arguments: args})
+		if err == nil && (result == nil || !result.IsError) {
+			t.Fatalf("%s accepted lossy flat-workflow input", name)
+		}
+		message := fmt.Sprint(err)
+		if result != nil {
+			encoded, _ := json.Marshal(result)
+			message += string(encoded)
+		}
+		if !strings.Contains(message, "INVALID_QUERY") || strings.Contains(message, operand) {
+			t.Fatalf("%s precision response = %s", name, message)
 		}
 	}
 }
