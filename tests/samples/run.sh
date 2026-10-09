@@ -49,7 +49,7 @@ cat >"$WORK/grouped.json" <<'JSON'
 {"model":"sales","metrics":["total_revenue"],"dimensions":["region"]}
 JSON
 cat >"$WORK/filter-limit.json" <<'JSON'
-{"model":"sales","metrics":["total_revenue"],"dimensions":["region"],"filters":[{"field":"region","op":"=","value":"APAC"}],"limit":10}
+{"model":"sales","metrics":["total_revenue"],"dimensions":["region"],"filters":{"kind":"filter","filter":{"field":"region","operator":"eq","value":"APAC"}},"limit":10}
 JSON
 
 for dialect in duckdb doris; do
