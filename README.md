@@ -20,7 +20,9 @@ The same semantic definitions serve the CLI, MCP, REST, and embedded Go APIs.
 - **Deterministic:** structured semantic requests go through validation, resolution,
   planning, and compilation. Metric definitions and relationship rules come from
   the model. Cumulative averages retain and merge their `sum` and `count` state
-  instead of averaging already-finalized period averages.
+  instead of averaging already-finalized period averages. Filtered custom-calendar
+  rolling windows preserve the preceding logical periods required for calculation
+  and apply the requested time range to the final output.
 - **Ready for analytical workflows:** discover semantic assets, compile SQL, query
   metrics, compare periods, and analyze metric-change attribution.
 

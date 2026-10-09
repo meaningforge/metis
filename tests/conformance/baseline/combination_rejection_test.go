@@ -30,24 +30,3 @@ func TestOrderAmountFanoutFailsClosedAcrossTargets(t *testing.T) {
 		})
 	}
 }
-
-// Custom calendar ordinal windows work without a time filter today, but the
-// temporal-range shifter does not support fiscal_week. Record the actual
-// rejection, rather than claiming the built-in calendar result proves it.
-func TestCustomRollingTimeRangeExplicitlyRejectedAcrossTargets(t *testing.T) {
-	base, ok := scenarios.ByName("custom_calendar_rolling_three_fiscal_weeks")
-	if !ok {
-		t.Fatal("missing custom rolling scenario")
-	}
-	for _, target := range evidence.CompilerTargets() {
-		t.Run(target.Dialect, func(t *testing.T) {
-			q := base
-			q.Query.Filters = []query.Filter{{Field: "calendar_day", Operator: query.FilterBetween, Value: []string{"2026-01-19", "2026-01-26"}}}
-			_, _, err := baseline.PlanScenario(q, target.Dialect)
-			var typed *serrors.Error
-			if !errors.As(err, &typed) || typed.Code != serrors.ErrUnsupportedTimeFilter {
-				t.Fatalf("custom rolling plan error = %v, want %s", err, serrors.ErrUnsupportedTimeFilter)
-			}
-		})
-	}
-}

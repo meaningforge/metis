@@ -8,7 +8,7 @@ and all three production Runner/Driver engine harnesses. Logical data lives in
 | --- | --- | --- |
 | Calendar/month end | `calendar_month_end_and_missing_period` | Jan 31 revenue 10 shifts to February's bucket; March 31 revenue 30 shifts to April. Missing current/previous values stay NULL, not current-period copies or implicit zero-fill. |
 | Dense missing bucket (reused) | `custom_calendar_dense_missing_period`, `offset_to_grain_missing_boundary_stays_zero` | Existing explicit dense calendar supplies zero; this is distinct from sparse NULL. |
-| Rolling input/output ranges | `rolling_window_before_output_range` | March output includes January 10 plus March 30 = 40. Clipping input to output range first gives 30. |
+| Rolling input/output ranges | `rolling_window_before_output_range`, `custom_calendar_rolling_filter_preserves_lookback` | Built-in and custom-period windows retain inputs before the visible output range; clipping first produces a distinguishably wrong result. |
 | Algebraic AVG rollup | `cumulative_average_uses_weighted_partial_state` | One row of 100 followed by nine rows of 0 produces cumulative AVG 10, not the unweighted average of period averages 50. |
 | Nested derived/final top-one | `nested_derived_order_limit_after_aggregation` | APAC (50+70-0)/(50+70)=1 beats EU (100-90)/100=.1. Selecting the largest raw row first picks EU. |
 | Aggregate/final top-one | `aggregate_order_limit_after_grouping` | APAC 50+70=120 beats EU 100 despite EU having the largest individual row. |
@@ -33,10 +33,10 @@ the same harness and are reused, not duplicated per engine.
 - Re-aggregating finished DISTINCT counts loses entity state.
   `TestDistinctRegroupRejectsLostStateAcrossTargets` requires
   `INVALID_METRIC_ROLLUP` with HOLISTIC algebra on each compiler target.
-- Custom fiscal rolling plus a time-range filter currently cannot use the
-  built-in temporal range shifter. `TestCustomRollingTimeRangeExplicitlyRejectedAcrossTargets`
-  requires `UNSUPPORTED_TIME_FILTER`. Unfiltered custom ordinal windows remain
-  covered; built-in rolling result evidence does not prove this combination.
+- Custom fiscal rolling plus a time-range filter is covered by
+  `custom_calendar_rolling_filter_preserves_lookback`. The January 19 output
+  remains 40 because January 5 is retained for the three-period window; the
+  visible range is applied only after ordinal-window evaluation.
 
 Scenario presence proves neither execution nor success. Native execution must
 be recorded for the exact commit and engine versions, using the existing

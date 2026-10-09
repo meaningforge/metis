@@ -83,3 +83,27 @@ func TestCustomCalendarRollingCumulativeCompilerConformance(t *testing.T) {
 		})
 	}
 }
+
+func TestCustomCalendarRollingFilterPreservesOrdinalLookback(t *testing.T) {
+	grain := query.TimeGrain("fiscal_week")
+	semanticQuery := query.SemanticQuery{
+		Metrics:    []query.MetricRef{{Name: "rolling_3_fiscal_week_revenue"}},
+		Dimensions: []query.DimensionRef{{Name: "day", Grain: &grain}},
+		Filters:    []query.Filter{{Field: "day", Operator: query.FilterBetween, Value: []string{"2026-01-19", "2026-01-26"}}},
+	}
+	for _, dialect := range []string{"DUCKDB", "DORIS", "CLICKHOUSE"} {
+		t.Run(dialect, func(t *testing.T) {
+			rendered, err := compileModel(t, []byte(customCalendarRollingCompilerModel), "fiscal_rolling", semanticQuery, dialect)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(rendered.Parameters) != 3 || rendered.Parameters[0].Value != "2026-01-26" || rendered.Parameters[1].Value != "2026-01-19" || rendered.Parameters[2].Value != "2026-01-26" {
+				t.Fatalf("%s parameters = %#v, want source upper bound followed by visible range", dialect, rendered.Parameters)
+			}
+			upper := strings.ToUpper(rendered.SQL)
+			if !strings.Contains(upper, "BETWEEN") || !strings.Contains(upper, "<=") || strings.Contains(upper, "INTERVAL") || strings.Contains(upper, "DATE_TRUNC") {
+				t.Fatalf("%s filtered custom rolling SQL has wrong range semantics:\n%s", dialect, rendered.SQL)
+			}
+		})
+	}
+}
