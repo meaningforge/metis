@@ -1,0 +1,43 @@
+package main
+
+import (
+	"context"
+	"encoding/json"
+	"os"
+	"path/filepath"
+	"testing"
+)
+
+func TestOfflineRequestUsesSharedFilterPrecisionGuard(t *testing.T) {
+	decodeQueryRequest := func(data []byte) (QueryRequest, error) {
+		path := filepath.Join(t.TempDir(), "request.json")
+		if err := os.WriteFile(path, data, 0600); err != nil {
+			t.Fatal(err)
+		}
+		return LoadRequestFile(path)
+	}
+	for _, operand := range []string{"9007199254740993", "0.10000000000000000001", "[9007199254740992,9007199254740993]", "[0,1e-400]"} {
+		if _, err := decodeQueryRequest([]byte(`{"filters":[{"field":"amount","op":"in","value":` + operand + `}]}`)); err == nil {
+			t.Fatalf("accepted lossy operand %s", operand)
+		}
+	}
+	for _, operand := range []string{"0.1", "9007199254740992", "[0.1,2]"} {
+		if _, err := decodeQueryRequest([]byte(`{"filters":[{"field":"amount","op":"in","value":` + operand + `}]}`)); err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
+func TestOfflineCompatibleDecimalReachesCompiler(t *testing.T) {
+	var req QueryRequest
+	if err := json.Unmarshal([]byte(`{"metrics":["total_revenue"],"filters":[{"field":"total_revenue","op":">=","value":0.1}]}`), &req); err != nil {
+		t.Fatal(err)
+	}
+	result, err := Compile(context.Background(), testDocument(), "DUCKDB", req, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(result.Parameters) != 1 || result.Parameters[0].Value != float64(0.1) {
+		t.Fatalf("decimal binding changed: %#v", result.Parameters)
+	}
+}

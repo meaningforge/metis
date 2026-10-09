@@ -10,10 +10,8 @@ import (
 	"fmt"
 	"io"
 	"math"
-	"math/big"
 	"os"
 	"regexp"
-	"strconv"
 	"strings"
 
 	"github.com/meaningforge/metis/compiler/artifact"
@@ -389,32 +387,10 @@ func (q QueryInput) semanticQuery() (query.SemanticQuery, error) {
 	return out, nil
 }
 
-// Public filter decoding currently uses float64. Do not change that API here:
-// refuse literals whose decimal value changes through its JSON round trip.
+// Suite YAML tokens and public JSON requests use the same numeric guard.
 func checkFilterNumber(text string) error {
-	if !json.Valid([]byte(text)) {
-		return fmt.Errorf("filter numbers require JSON decimal syntax without YAML base prefixes or leading zeros")
-	}
-	want, err := exactNumber(text)
-	if err != nil {
-		return fmt.Errorf("filter numbers require bounded finite decimal literals")
-	}
-	number, err := strconv.ParseFloat(text, 64)
-	if err != nil {
-		return fmt.Errorf("filter number is outside the supported range")
-	}
-	if want.IsInt() && want.Cmp(new(big.Rat).SetFloat64(number)) != 0 {
-		return fmt.Errorf("integer filter loses precision in the query API")
-	}
-	encoded, err := json.Marshal(number)
-	if err != nil {
-		return fmt.Errorf("filter number must be finite")
-	}
-	got, err := exactNumber(string(encoded))
-	if err != nil || want.Cmp(got) != 0 {
-		return fmt.Errorf("filter number loses precision in the query API; use a supported exact value")
-	}
-	return nil
+	_, err := query.ParseFilterNumber(text)
+	return err
 }
 
 func checkFilterNumbers(value any) error {
