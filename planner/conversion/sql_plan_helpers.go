@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/meaningforge/metis/expression"
 	"github.com/meaningforge/metis/ossie"
 	"github.com/meaningforge/metis/planner/semanticplan"
 	"github.com/meaningforge/metis/serrors"
+	"github.com/meaningforge/metis/sqlplan"
 )
 
 const (
@@ -78,20 +80,52 @@ func sourceGroup(groups []semanticSourceGroup, name string) *semanticSourceGroup
 	return nil
 }
 
-func cumulativeMergeOperator(node semanticplan.SemanticPlanNode, base string, nodesByID map[string]semanticplan.SemanticPlanNode) (string, error) {
+func cumulativeRollupContract(node semanticplan.SemanticPlanNode, base string, nodesByID map[string]semanticplan.SemanticPlanNode) (semanticplan.RollupContract, error) {
 	baseNode, ok := nodesByID[base]
 	if !ok {
-		return "", metricLoweringError("cumulative base metric has no evaluation node", base)
+		return semanticplan.RollupContract{}, metricLoweringError("cumulative base metric has no evaluation node", base)
 	}
 	source, ok := baseNode.(semanticplan.SourceAggregateNode)
 	if !ok {
-		return "", requireMergeableRollup(semanticplan.RollupContract{Reason: "base metric is not a source aggregation, so it retains no partial state to merge"}, node.NodeBase().ID, base)
+		return semanticplan.RollupContract{}, requireMergeableRollup(semanticplan.RollupContract{Reason: "base metric is not a source aggregation, so it retains no partial state to merge"}, node.NodeBase().ID, base)
 	}
 	contract := source.Rollup
 	if err := requireMergeableRollup(contract, node.NodeBase().ID, base); err != nil {
-		return "", err
+		return semanticplan.RollupContract{}, err
 	}
-	return contract.Merge, nil
+	return contract, nil
+}
+
+func rollupWindowSQLPlanExpr(contract semanticplan.RollupContract, source string, partition, orderBy []sqlplan.Expr, frame sqlplan.WindowFrame, precedingRows int) (sqlplan.Expr, error) {
+	if err := semanticplan.ValidateRollupContract(contract); err != nil {
+		return nil, metricLoweringError("cumulative base metric has an invalid rollup contract", "")
+	}
+	merged := make(map[string]sqlplan.Expr, len(contract.Components))
+	for _, component := range contract.Components {
+		merged[component.Name] = sqlplan.WindowExpr{
+			Function:      sqlplan.FunctionCallExpr{Name: component.Merge, Args: []sqlplan.Expr{sqlplan.ColumnRef{Table: source, Name: component.Column}}},
+			PartitionBy:   append([]sqlplan.Expr(nil), partition...),
+			OrderBy:       append([]sqlplan.Expr(nil), orderBy...),
+			Frame:         frame,
+			PrecedingRows: precedingRows,
+		}
+	}
+	switch contract.Finalize {
+	case expression.FinalizeIdentity:
+		return merged[contract.Components[0].Name], nil
+	case expression.FinalizeRatio:
+		numerator, numeratorOK := merged[expression.PartialStateSum]
+		denominator, denominatorOK := merged[expression.PartialStateCount]
+		if !numeratorOK || !denominatorOK {
+			return nil, metricLoweringError("ratio rollup is missing sum or count state", "")
+		}
+		return sqlplan.NullOnZeroDivideExpr{
+			Numerator:   sqlplan.CastExpr{Expr: numerator, Type: sqlplan.CastDecimal38Scale18},
+			Denominator: denominator,
+		}, nil
+	default:
+		return nil, metricLoweringError("cumulative base metric has an unsupported rollup finalizer", "")
+	}
 }
 
 func containsString(values []string, want string) bool {

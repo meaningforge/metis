@@ -44,6 +44,16 @@ func denseTimeRelativeSemanticNodes(nodes []semanticplan.SemanticPlanNode) (map[
 			spec = denseNodeSpec{Name: source.Name, OutputGrain: cloneGroups(base.NodeBase().OutputGrain), Metrics: append([]string(nil), source.Metrics...), FillMetrics: map[string]struct{}{}}
 		}
 		spec.FillMetrics[baseMetric] = struct{}{}
+		if cumulative {
+			if aggregate, ok := base.(semanticplan.SourceAggregateNode); ok {
+				for _, component := range aggregate.Rollup.Components {
+					if !containsString(spec.Metrics, component.Column) {
+						spec.Metrics = append(spec.Metrics, component.Column)
+					}
+					spec.FillMetrics[component.Column] = struct{}{}
+				}
+			}
+		}
 		spec.HasCumulative = spec.HasCumulative || cumulative
 		spec.HasTimeOffset = spec.HasTimeOffset || offset
 		out[source.Name] = spec

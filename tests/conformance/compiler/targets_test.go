@@ -16,6 +16,7 @@ type compilerTarget struct {
 func nativeCapabilities() scenarios.CapabilitySet {
 	return scenarios.Capabilities(
 		scenarios.CapabilityAggregation,
+		scenarios.CapabilityAlgebraicRollup,
 		scenarios.CapabilityDimension,
 		scenarios.CapabilityRelationship,
 		scenarios.CapabilityTemporalRelationship,

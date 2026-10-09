@@ -9,6 +9,7 @@ and all three production Runner/Driver engine harnesses. Logical data lives in
 | Calendar/month end | `calendar_month_end_and_missing_period` | Jan 31 revenue 10 shifts to February's bucket; March 31 revenue 30 shifts to April. Missing current/previous values stay NULL, not current-period copies or implicit zero-fill. |
 | Dense missing bucket (reused) | `custom_calendar_dense_missing_period`, `offset_to_grain_missing_boundary_stays_zero` | Existing explicit dense calendar supplies zero; this is distinct from sparse NULL. |
 | Rolling input/output ranges | `rolling_window_before_output_range` | March output includes January 10 plus March 30 = 40. Clipping input to output range first gives 30. |
+| Algebraic AVG rollup | `cumulative_average_uses_weighted_partial_state` | One row of 100 followed by nine rows of 0 produces cumulative AVG 10, not the unweighted average of period averages 50. |
 | Nested derived/final top-one | `nested_derived_order_limit_after_aggregation` | APAC (50+70-0)/(50+70)=1 beats EU (100-90)/100=.1. Selecting the largest raw row first picks EU. |
 | Aggregate/final top-one | `aggregate_order_limit_after_grouping` | APAC 50+70=120 beats EU 100 despite EU having the largest individual row. |
 | DISTINCT/regroup | `distinct_entity_across_periods_global`, `distinct_entity_across_periods_grouped` | The same customer appears in January and March: global 1, each group 1; summing partial distinct counts incorrectly gives 2. |

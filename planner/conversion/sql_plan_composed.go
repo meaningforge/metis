@@ -89,7 +89,7 @@ func PlanOwnedComposedSQLPlan(plan *semanticplan.SemanticPlan, expressionDialect
 			continue
 		}
 		if cumulative, ok := node.(semanticplan.CumulativeWindowNode); ok && cumulative.CustomCalendarGrainToDate != nil {
-			nodeBlocks, err := customCalendarGrainToDateSQLPlan(node, cteNames, blockByAlias, len(blocks), expressionDialect)
+			nodeBlocks, err := customCalendarGrainToDateSQLPlan(node, cteNames, blockByAlias, nodesByID, len(blocks), expressionDialect)
 			if err != nil {
 				return nil, err
 			}
@@ -198,7 +198,7 @@ func ComposedSQLPlanSupported(plan *semanticplan.SemanticPlan) bool {
 func basicMetricNodeSQLPlan(node semanticplan.SemanticPlanNode, cteNames map[string]string, blockByAlias map[string]sqlplan.QueryBlockID, nodesByID map[string]semanticplan.SemanticPlanNode, expressionDialect string, booleanPredicates []semanticplan.BooleanPredicate, relationshipExistence []semanticplan.RelationshipExistencePredicate) (sqlplan.QueryBlock, error) {
 	base := node.NodeBase()
 	if node.Kind() == semanticplan.SemanticPlanNodeSourceAggregate {
-		return metricSourceNodesSQLPlanWithConstraints([]semanticplan.SemanticPlanNode{node}, expressionDialect, booleanPredicates, relationshipExistence)
+		return metricSourceNodesSQLPlanWithConstraints([]semanticplan.SemanticPlanNode{node}, expressionDialect, booleanPredicates, relationshipExistence, cumulativeRollupSourceIDs(nodesByID))
 	}
 	inputs := make([]string, 0, len(base.Inputs))
 	for _, input := range base.Inputs {
@@ -389,7 +389,7 @@ func cumulativeWindowSQLPlanExpr(node semanticplan.SemanticPlanNode, inputs []st
 	}
 	base := nodeBase.Inputs[0].NodeID
 	baseCTE := inputs[0]
-	merge, err := cumulativeMergeOperator(node, base, nodesByID)
+	contract, err := cumulativeRollupContract(node, base, nodesByID)
 	if err != nil {
 		return nil, err
 	}
@@ -440,13 +440,7 @@ func cumulativeWindowSQLPlanExpr(node semanticplan.SemanticPlanNode, inputs []st
 		}
 		partition = append(partition, sqlplan.TimeGrainExpr{Grain: reset, Expr: sqlplan.ColumnRef{Table: baseCTE, Name: timeGroup.Name}})
 	}
-	return sqlplan.WindowExpr{
-		Function:      sqlplan.FunctionCallExpr{Name: merge, Args: []sqlplan.Expr{sqlplan.ColumnRef{Table: baseCTE, Name: base}}},
-		PartitionBy:   partition,
-		OrderBy:       []sqlplan.Expr{orderBy},
-		Frame:         frame,
-		PrecedingRows: precedingRows,
-	}, nil
+	return rollupWindowSQLPlanExpr(contract, baseCTE, partition, []sqlplan.Expr{orderBy}, frame, precedingRows)
 }
 
 func metricSourceNodeSQLPlan(source semanticSourceGroup, nodes map[string]semanticplan.SemanticPlanNode, expressionDialect string, booleanPredicates []semanticplan.BooleanPredicate, relationshipExistence []semanticplan.RelationshipExistencePredicate) (sqlplan.QueryBlock, error) {
@@ -458,7 +452,7 @@ func metricSourceNodeSQLPlan(source semanticSourceGroup, nodes map[string]semant
 		}
 		sourceNodes = append(sourceNodes, node)
 	}
-	return metricSourceNodesSQLPlanWithConstraints(sourceNodes, expressionDialect, booleanPredicates, relationshipExistence)
+	return metricSourceNodesSQLPlanWithConstraints(sourceNodes, expressionDialect, booleanPredicates, relationshipExistence, cumulativeRollupSourceIDs(nodes))
 }
 
 func metricSourceNodesSQLPlan(nodes []semanticplan.SemanticPlanNode, expressionDialect string) (sqlplan.QueryBlock, error) {
@@ -466,10 +460,10 @@ func metricSourceNodesSQLPlan(nodes []semanticplan.SemanticPlanNode, expressionD
 }
 
 func metricSourceNodesSQLPlanWithBoolean(nodes []semanticplan.SemanticPlanNode, expressionDialect string, booleanPredicates []semanticplan.BooleanPredicate) (sqlplan.QueryBlock, error) {
-	return metricSourceNodesSQLPlanWithConstraints(nodes, expressionDialect, booleanPredicates, nil)
+	return metricSourceNodesSQLPlanWithConstraints(nodes, expressionDialect, booleanPredicates, nil, nil)
 }
 
-func metricSourceNodesSQLPlanWithConstraints(nodes []semanticplan.SemanticPlanNode, expressionDialect string, booleanPredicates []semanticplan.BooleanPredicate, relationshipExistence []semanticplan.RelationshipExistencePredicate) (sqlplan.QueryBlock, error) {
+func metricSourceNodesSQLPlanWithConstraints(nodes []semanticplan.SemanticPlanNode, expressionDialect string, booleanPredicates []semanticplan.BooleanPredicate, relationshipExistence []semanticplan.RelationshipExistencePredicate, retainedStateFor map[string]struct{}) (sqlplan.QueryBlock, error) {
 	if len(nodes) == 0 {
 		return sqlplan.QueryBlock{}, metricLoweringError("source node has no metrics", "")
 	}
@@ -492,8 +486,37 @@ func metricSourceNodesSQLPlanWithConstraints(nodes []semanticplan.SemanticPlanNo
 			return sqlplan.QueryBlock{}, metricLoweringError("source node metric has no typed metric node", node.NodeBase().ID)
 		}
 		shape.Projections = append(shape.Projections, semanticplan.Projection{Name: node.NodeBase().ID, Kind: semanticplan.ProjectionMetric, Metric: metric, Expression: resolved})
+		if source, ok := node.(semanticplan.SourceAggregateNode); ok {
+			if _, required := retainedStateFor[node.NodeBase().ID]; !required {
+				continue
+			}
+			for _, component := range source.Rollup.Components {
+				if component.Column == node.NodeBase().ID {
+					continue
+				}
+				for _, projection := range shape.Projections {
+					if projection.Name == component.Column {
+						return sqlplan.QueryBlock{}, metricLoweringError("rollup state column collides with another source projection", node.NodeBase().ID)
+					}
+				}
+				shape.Projections = append(shape.Projections, semanticplan.Projection{Name: component.Column, Kind: semanticplan.ProjectionMetric, Metric: metric, Expression: component.Expression})
+			}
+		}
 	}
 	return buildSQLPlanBlockFromQueryShape(shape, expressionDialect)
+}
+
+func cumulativeRollupSourceIDs(nodes map[string]semanticplan.SemanticPlanNode) map[string]struct{} {
+	out := map[string]struct{}{}
+	for _, node := range nodes {
+		if _, ok := node.(semanticplan.CumulativeWindowNode); !ok {
+			continue
+		}
+		for _, input := range node.NodeBase().Inputs {
+			out[input.NodeID] = struct{}{}
+		}
+	}
+	return out
 }
 
 func basicComposedOutputSQLPlanBlock(plan *semanticplan.SemanticPlan, nodes []semanticplan.SemanticPlanNode, cteNames map[string]string, inputs []sqlplan.QueryInput) (sqlplan.QueryBlock, error) {

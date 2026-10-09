@@ -584,7 +584,16 @@ func projectSemanticPlanNodeEvaluation(p *projector, name string, node SemanticP
 			p.node("source", func() {
 				p.text("function", rollup.Function)
 				p.text("algebra", string(rollup.Algebra))
-				p.text("merge", rollup.Merge)
+				p.sequence("components", len(rollup.Components), func(i int) {
+					component := rollup.Components[i]
+					p.node("component", func() {
+						p.text("name", component.Name)
+						p.text("column", component.Column)
+						p.text("merge", component.Merge)
+						projectResolvedExpression(p, "expression", component.Expression)
+					})
+				})
+				p.text("finalize", string(rollup.Finalize))
 				p.flag("mergeable", rollup.Mergeable)
 			})
 		}

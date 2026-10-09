@@ -18,6 +18,7 @@ const (
 	CommercePeriodEdges        ID = "commerce_period_edges"
 	CommerceOrdering           ID = "commerce_ordering"
 	CommerceRolling            ID = "commerce_rolling"
+	CommerceAverageRollup      ID = "commerce_average_rollup"
 	OrderDetails               ID = "order_details"
 	DistinctValues             ID = "distinct_values"
 	DefinitionFilters          ID = "definition_filters"
@@ -143,6 +144,25 @@ var SemiAdditiveEdgesModelYAML []byte
 var AmbiguousPathsModelYAML []byte
 
 var definitions = map[ID]Definition{
+	CommerceAverageRollup: {
+		ID: CommerceAverageRollup, Project: ConformanceProject, Model: string(CommerceAverageRollup),
+		Document: renamedFixtureDocument(replaceFixtureDocument(CommerceModelYAML, "    metrics:\n", `    metrics:
+      - name: average_rollup_base
+        datatype: Decimal
+        expression: {dialects: [{dialect: ANSI_SQL, expression: "AVG(orders.amount)"}]}
+        custom_extensions:
+          - vendor_name: METIS
+            data: '{"kind":"time_binding","time_dimension":"order_date"}'
+      - name: cumulative_average_order_amount
+        datatype: Decimal
+        expression: {dialects: [{dialect: ANSI_SQL, expression: "average_rollup_base"}]}
+        custom_extensions:
+          - vendor_name: METIS
+            data: '{"kind":"cumulative","base_metric":"average_rollup_base","time_dimension":"order_date","window":{"type":"unbounded"}}'
+          - vendor_name: METIS
+            data: '{"kind":"time_binding","time_dimension":"order_date"}'
+`), CommerceModel, string(CommerceAverageRollup)),
+	},
 	SemiAdditiveTieRollup: {
 		ID: SemiAdditiveTieRollup, Project: ConformanceProject, Model: string(SemiAdditiveTieRollup),
 		Document: renamedFixtureDocument(replaceFixtureDocument(SemiAdditiveEdgesModelYAML,

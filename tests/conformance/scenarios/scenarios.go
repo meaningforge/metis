@@ -21,6 +21,7 @@ type Capability string
 
 const (
 	CapabilityAggregation                Capability = "aggregation"
+	CapabilityAlgebraicRollup            Capability = "algebraic_rollup"
 	CapabilityDimension                  Capability = "dimension"
 	CapabilityRelationship               Capability = "relationship"
 	CapabilityFilter                     Capability = "filter"

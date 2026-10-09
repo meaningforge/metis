@@ -139,6 +139,9 @@ var compilerExpectations = map[string]CompilerExpectation{
 	"cumulative_metric_by_month": {
 		Fragments: []string{"cumulative_revenue", "OVER (", "ORDER BY", "UNBOUNDED PRECEDING", "CURRENT ROW"},
 	},
+	"cumulative_average_uses_weighted_partial_state": {
+		Fragments: []string{"__metis_rollup_average_rollup_base_sum", "__metis_rollup_average_rollup_base_count", "SUM(", "COUNT(", "NULLIF"},
+	},
 	"cumulative_metric_by_month_and_region": {
 		Fragments: []string{"cumulative_revenue", "OVER (", "PARTITION BY", "region", "ORDER BY", "UNBOUNDED PRECEDING"},
 	},
