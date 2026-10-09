@@ -112,6 +112,9 @@ func projectSemanticPlan(p *projector, plan *SemanticPlan) {
 		if len(plan.BooleanPredicates) != 0 {
 			p.sequence("boolean_predicates", len(plan.BooleanPredicates), func(i int) { projectBooleanPredicate(p, plan.BooleanPredicates[i]) })
 		}
+		if len(plan.RelationshipExistence) != 0 {
+			p.sequence("relationship_existence", len(plan.RelationshipExistence), func(i int) { projectRelationshipExistence(p, plan.RelationshipExistence[i]) })
+		}
 		p.sequence("groups", len(plan.Groups), func(i int) { projectGroupBy(p, plan.Groups[i]) })
 		p.sequence("sorts", len(plan.Sorts), func(i int) { projectSort(p, plan.Sorts[i]) })
 		p.optionalNumber("limit", plan.Limit)
@@ -125,6 +128,21 @@ func projectSemanticPlan(p *projector, plan *SemanticPlan) {
 		}
 		projectDenseCalendar(p, "dense_calendar", plan.DenseCalendar)
 		projectCustomDenseCalendar(p, "custom_dense_calendar", plan.CustomDenseCalendar)
+	})
+}
+
+func projectRelationshipExistence(p *projector, predicate RelationshipExistencePredicate) {
+	p.node("relationship_existence", func() {
+		projectRelationship(p, "relationship", predicate.Relationship)
+		projectDatasetRef(p, "source", predicate.Source)
+		projectDatasetRef(p, "target", predicate.Target)
+		p.sequence("correlations", len(predicate.Correlations), func(i int) {
+			p.node("correlation", func() {
+				p.text("source_column", predicate.Correlations[i].SourceColumn)
+				p.text("target_column", predicate.Correlations[i].TargetColumn)
+			})
+		})
+		projectBooleanPredicate(p, predicate.Predicate)
 	})
 }
 func projectBooleanPredicate(p *projector, predicate BooleanPredicate) {

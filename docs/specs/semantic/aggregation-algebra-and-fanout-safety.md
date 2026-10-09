@@ -77,6 +77,22 @@ Population-preservation evidence is semantic correctness state. It contributes
 to the semantic-plan fingerprint and survives cloning and optimizer join
 deduplication/pruning in lockstep with the relationship it describes.
 
+## Relationship existence and source-grain membership
+
+A relationship-existence predicate is a separate membership operation, not an
+ordinary relationship traversal admitted by duplicate invariance. It retains a
+source row when at least one row on one declared target relationship matches a
+target-owned predicate. The related rows cannot contribute projections,
+grouping, ordering or measure expressions, so their multiplicity does not
+change the source grain.
+
+Physical lowering uses a correlated `EXISTS` predicate over aligned relationship
+keys. It must not lower to an ordinary fanout join, `SUM(DISTINCT measure)`, a
+null-safe correlation, or a target-side projection. Source and target relation
+policies are applied at their respective inputs. Ordinary joined-dimension
+queries retain the population-preservation rules above; the presence of an
+existence filter never weakens their fanout proof obligations.
+
 ## Attribution decomposition use
 
 Metric change attribution consumes these derived properties; it does not add a

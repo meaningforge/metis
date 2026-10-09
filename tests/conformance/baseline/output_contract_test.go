@@ -122,7 +122,7 @@ func (c outputCoverage) assert(t *testing.T) {
 		have int
 		want int
 	}{
-		{"plans with projections", c.projections, 110},
+		{"plans with projections", c.projections, 111},
 		{"plans with an output grain", c.grain, 86},
 		{"plans with ordering", c.ordering, 8},
 		{"plans with a limit", c.limit, 8},

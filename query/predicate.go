@@ -71,7 +71,7 @@ func mapPredicateNode(node Filter, fn func(Filter) (Filter, error)) (Filter, err
 		}
 		return fn(Filter{Field: node.Field, Operator: node.Operator, Value: node.Value})
 	}
-	out := Filter{Kind: node.Kind, Children: make([]Filter, len(node.Children))}
+	out := Filter{Kind: node.Kind, Relationship: node.Relationship, Children: make([]Filter, len(node.Children))}
 	for i := range node.Children {
 		child, err := mapPredicateNode(node.Children[i], fn)
 		if err != nil {
@@ -128,13 +128,19 @@ func validatePredicateNode(node Filter, depth int, budget *predicateBudget, stac
 		}
 		return nil
 	}
-	if node.Kind != PredicateAnd && node.Kind != PredicateOr && node.Kind != PredicateNot {
+	if node.Kind != PredicateAnd && node.Kind != PredicateOr && node.Kind != PredicateNot && node.Kind != PredicateExists {
 		return fmt.Errorf("unsupported predicate kind")
 	}
 	if node.Field != "" || node.Operator != "" || node.Value != nil {
 		return fmt.Errorf("logical predicate cannot contain filter payload")
 	}
-	if node.Kind == PredicateNot {
+	if node.Kind == PredicateExists {
+		if node.Relationship == "" || len(node.Children) != 1 {
+			return fmt.Errorf("exists predicate requires a relationship and one where predicate")
+		}
+	} else if node.Relationship != "" {
+		return fmt.Errorf("logical predicate cannot contain relationship payload")
+	} else if node.Kind == PredicateNot {
 		if len(node.Children) != 1 {
 			return fmt.Errorf("not predicate requires exactly one child")
 		}
@@ -192,6 +198,20 @@ func marshalPredicateNode(node Filter) ([]byte, error) {
 			Kind   string `json:"kind"`
 			Filter Filter `json:"filter"`
 		}{Kind: "filter", Filter: Filter{Field: node.Field, Operator: node.Operator, Value: node.Value}})
+	}
+	if node.Kind == PredicateExists {
+		if node.Relationship == "" || len(node.Children) != 1 {
+			return nil, fmt.Errorf("exists predicate requires a relationship and one where predicate")
+		}
+		where, err := marshalPredicateNode(node.Children[0])
+		if err != nil {
+			return nil, err
+		}
+		return json.Marshal(struct {
+			Kind         PredicateKind   `json:"kind"`
+			Relationship string          `json:"relationship"`
+			Where        json.RawMessage `json:"where"`
+		}{node.Kind, node.Relationship, where})
 	}
 	if node.Kind == PredicateNot {
 		if len(node.Children) != 1 {
@@ -299,6 +319,20 @@ func inspectPredicateNode(data []byte, depth int, budget *predicateBudget) error
 			return fmt.Errorf("not predicate requires child")
 		}
 		if err := inspectPredicateNode(child, depth+1, budget); err != nil {
+			return err
+		}
+	case PredicateExists:
+		allowed["relationship"] = true
+		allowed["where"] = true
+		var relationship string
+		if value, ok := raw["relationship"]; !ok || json.Unmarshal(value, &relationship) != nil || relationship == "" {
+			return fmt.Errorf("exists predicate requires relationship")
+		}
+		where, ok := raw["where"]
+		if !ok {
+			return fmt.Errorf("exists predicate requires where")
+		}
+		if err := inspectPredicateNode(where, depth+1, budget); err != nil {
 			return err
 		}
 	default:
@@ -418,6 +452,23 @@ func unmarshalPredicateNode(data []byte, depth int, budget *predicateBudget) (Fi
 			return Filter{}, err
 		}
 		node.Children = []Filter{child}
+	case PredicateExists:
+		node.Kind = PredicateExists
+		allowed["relationship"] = true
+		allowed["where"] = true
+		b, ok := raw["relationship"]
+		if !ok || json.Unmarshal(b, &node.Relationship) != nil || node.Relationship == "" {
+			return Filter{}, fmt.Errorf("exists predicate requires relationship")
+		}
+		b, ok = raw["where"]
+		if !ok {
+			return Filter{}, fmt.Errorf("exists predicate requires where")
+		}
+		where, err := unmarshalPredicateNode(b, depth+1, budget)
+		if err != nil {
+			return Filter{}, err
+		}
+		node.Children = []Filter{where}
 	default:
 		return Filter{}, fmt.Errorf("unsupported predicate kind")
 	}

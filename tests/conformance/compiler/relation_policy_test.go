@@ -103,6 +103,9 @@ func TestEverySharedScenarioScanRetainsRelationPolicy(t *testing.T) {
 					for _, join := range block.Joins {
 						check(join.Relation)
 					}
+					for _, existence := range block.RelationshipExistence {
+						check(existence.Target)
+					}
 				}
 				if scans == 0 {
 					t.Fatal("no constrained physical scans")

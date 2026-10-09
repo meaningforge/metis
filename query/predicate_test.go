@@ -28,6 +28,28 @@ func TestPredicateRoundTripPreservesBooleanStructure(t *testing.T) {
 	}
 }
 
+func TestPredicateRoundTripPreservesRelationshipExistence(t *testing.T) {
+	doc := []byte(`{"kind":"exists","relationship":"orders_to_items","where":{"kind":"or","children":[{"kind":"filter","filter":{"field":"item_category","operator":"eq","value":"target"}},{"kind":"filter","filter":{"field":"item_tier","operator":"eq","value":"priority"}}]}}`)
+	var predicate Predicate
+	if err := json.Unmarshal(doc, &predicate); err != nil {
+		t.Fatal(err)
+	}
+	if len(predicate) != 1 || predicate[0].Kind != PredicateExists || predicate[0].Relationship != "orders_to_items" || len(predicate[0].Children) != 1 {
+		t.Fatalf("unexpected existence predicate: %#v", predicate)
+	}
+	encoded, err := json.Marshal(predicate)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var roundTrip Predicate
+	if err := json.Unmarshal(encoded, &roundTrip); err != nil {
+		t.Fatal(err)
+	}
+	if got := roundTrip.Leaves(); len(got) != 2 || got[0].Field != "item_category" || got[1].Field != "item_tier" {
+		t.Fatalf("existence leaf order changed: %#v", got)
+	}
+}
+
 func TestPredicateRootAndHasTheSameConjunctsForJSONAndGoConstruction(t *testing.T) {
 	root := Logical(PredicateAnd,
 		Logical(PredicateOr, Leaf("region", FilterEQ, "APAC"), Leaf("tier", FilterEQ, "enterprise")),
@@ -56,6 +78,9 @@ func TestPredicateRejectsLegacyAndAmbiguousShapes(t *testing.T) {
 		`{"kind":"filter","filter":{"field":"region","operator":"eq","value":"APAC"},"extra":true}`,
 		`{"kind":"not","children":[]}`,
 		`{"kind":"or","children":[{"kind":"filter","filter":{"field":"region","operator":"eq","value":"APAC"}}]}`,
+		`{"kind":"exists","where":{"kind":"filter","filter":{"field":"kind","operator":"eq","value":"target"}}}`,
+		`{"kind":"exists","relationship":"orders_to_items"}`,
+		`{"kind":"exists","relationship":"orders_to_items","where":{"kind":"filter","filter":{"field":"kind","operator":"eq","value":"target"}},"child":{"kind":"filter","filter":{"field":"kind","operator":"eq","value":"target"}}}`,
 	} {
 		var predicate Predicate
 		if err := json.Unmarshal([]byte(doc), &predicate); err == nil {

@@ -42,19 +42,21 @@ const (
 )
 
 type Filter struct {
-	Field    string         `json:"field" jsonschema:"Canonical metric or dimension ref returned by semantic discovery."`
-	Operator FilterOperator `json:"operator" jsonschema:"One of eq, neq, gt, gte, lt, lte, in, not_in, between, is_null, or is_not_null. between is inclusive and requires a two-item value array; in and not_in require an array; null operators omit value."`
-	Value    any            `json:"value,omitempty" jsonschema:"JSON scalar or flat scalar array appropriate for operator. Dates and timestamps use ISO-8601 strings."`
-	Kind     PredicateKind  `json:"-"`
-	Children []Filter       `json:"-"`
+	Field        string         `json:"field" jsonschema:"Canonical metric or dimension ref returned by semantic discovery."`
+	Operator     FilterOperator `json:"operator" jsonschema:"One of eq, neq, gt, gte, lt, lte, in, not_in, between, is_null, or is_not_null. between is inclusive and requires a two-item value array; in and not_in require an array; null operators omit value."`
+	Value        any            `json:"value,omitempty" jsonschema:"JSON scalar or flat scalar array appropriate for operator. Dates and timestamps use ISO-8601 strings."`
+	Kind         PredicateKind  `json:"-"`
+	Relationship string         `json:"-"`
+	Children     []Filter       `json:"-"`
 }
 
 type PredicateKind string
 
 const (
-	PredicateAnd PredicateKind = "and"
-	PredicateOr  PredicateKind = "or"
-	PredicateNot PredicateKind = "not"
+	PredicateAnd    PredicateKind = "and"
+	PredicateOr     PredicateKind = "or"
+	PredicateNot    PredicateKind = "not"
+	PredicateExists PredicateKind = "exists"
 )
 
 // Predicate is the single public filters contract. Its top-level slice is an
@@ -67,6 +69,12 @@ func Logical(kind PredicateKind, children ...Filter) Filter {
 
 func Leaf(field string, operator FilterOperator, value any) Filter {
 	return Filter{Field: field, Operator: operator, Value: value}
+}
+
+// Exists retains source rows with at least one related target row matching
+// where. Semantic admission intentionally remains Resolver-owned.
+func Exists(relationship string, where Filter) Filter {
+	return Filter{Kind: PredicateExists, Relationship: relationship, Children: []Filter{where}}
 }
 
 func (f *Filter) UnmarshalJSON(data []byte) error {

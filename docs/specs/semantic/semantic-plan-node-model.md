@@ -16,6 +16,15 @@ The plan is the authority. Read paths must not reconstruct a second DAG from que
 
 Node-specific semantic decisions required by lowering belong to the concrete node type; a node that declares a custom-calendar domain owns it directly, and consumers read it from the node rather than from a plan-level index. Query-wide calendar domains and shared-grain proof belong to plan scope. Query-shape fields such as `Root`, `Joins`, `Projections`, `Predicates`, `Groups` and `Sorts` remain construction inputs, but they are not downstream semantic authority once the DAG is installed.
 
+`SemanticPlan.RelationshipExistence` is plan-owned source-population state. It
+carries the declared relationship, explicit source and target datasets,
+ordered correlation columns, and the resolved target predicate. It is not a
+Join and is lowered only into source-reading SQLPlan blocks. Plan validation,
+cloning, canonical projection, policy installation and optimization must retain
+the complete state. SQLPlan owns the corresponding target relation,
+correlations and target-only predicate; renderers do not rediscover relationship
+meaning.
+
 ## Composition boundaries
 
 A node boundary records why the node must remain distinct for semantic correctness:

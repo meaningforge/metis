@@ -12,16 +12,17 @@ type Plan struct {
 type QueryBlockID string
 
 type QueryBlock struct {
-	ID                QueryBlockID
-	Inputs            []QueryInput
-	From              RelationRef
-	Projections       []Projection
-	Joins             []Join
-	Predicates        []Predicate
-	BooleanPredicates []BooleanPredicate
-	GroupBy           []Expr
-	OrderBy           []Order
-	Limit             *int
+	ID                    QueryBlockID
+	Inputs                []QueryInput
+	From                  RelationRef
+	Projections           []Projection
+	Joins                 []Join
+	Predicates            []Predicate
+	BooleanPredicates     []BooleanPredicate
+	RelationshipExistence []RelationshipExistencePredicate
+	GroupBy               []Expr
+	OrderBy               []Order
+	Limit                 *int
 }
 
 type QueryInputMode string
@@ -84,6 +85,20 @@ type BooleanPredicate struct {
 	Kind     query.PredicateKind
 	Leaf     *Predicate
 	Children []BooleanPredicate
+}
+
+// RelationshipExistencePredicate filters the enclosing source population by
+// requiring a matching row in Target. Correlations compare target columns to
+// outer source columns; Predicate is evaluated only against Target.
+type RelationshipExistencePredicate struct {
+	Target       RelationRef
+	Correlations []RelationshipCorrelation
+	Predicate    BooleanPredicate
+}
+
+type RelationshipCorrelation struct {
+	Outer ColumnRef
+	Inner ColumnRef
 }
 
 type Order struct {

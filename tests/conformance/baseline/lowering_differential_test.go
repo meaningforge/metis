@@ -51,6 +51,7 @@ func TestCompactCorpusIsRecorded(t *testing.T) {
 		"one_hop_join",
 		"order_by_metric_ungrouped",
 		"ordered_ties_secondary_key",
+		"relationship_exists_filters_source_population",
 		"relationship_unmatched_facts",
 		"simple_metric",
 		"temporal_join_half_open_boundary",

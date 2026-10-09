@@ -19,6 +19,7 @@ func ClonePlan(input *SemanticPlan) *SemanticPlan {
 	}
 	plan.Predicates = clonePredicates(input.Predicates)
 	plan.BooleanPredicates = cloneBooleanPredicates(input.BooleanPredicates)
+	plan.RelationshipExistence = cloneRelationshipExistencePredicates(input.RelationshipExistence)
 	plan.Groups = append([]GroupBy(nil), input.Groups...)
 	plan.Sorts = append([]Sort(nil), input.Sorts...)
 	plan.OptimizationTrace = nil
@@ -39,6 +40,19 @@ func ClonePlan(input *SemanticPlan) *SemanticPlan {
 		plan.Limit = &limit
 	}
 	return &plan
+}
+
+func cloneRelationshipExistencePredicates(predicates []RelationshipExistencePredicate) []RelationshipExistencePredicate {
+	if predicates == nil {
+		return nil
+	}
+	out := make([]RelationshipExistencePredicate, len(predicates))
+	for i, predicate := range predicates {
+		out[i] = predicate
+		out[i].Correlations = append([]RelationshipCorrelation(nil), predicate.Correlations...)
+		out[i].Predicate = cloneBooleanPredicates([]BooleanPredicate{predicate.Predicate})[0]
+	}
+	return out
 }
 
 func cloneBooleanPredicates(predicates []BooleanPredicate) []BooleanPredicate {

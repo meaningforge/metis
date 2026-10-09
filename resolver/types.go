@@ -56,6 +56,15 @@ type ResolvedPredicate struct {
 	Leaf     *ResolvedFilter
 	Children []ResolvedPredicate
 }
+
+type ResolvedRelationshipExistence struct {
+	Relationship  *ossie.Relationship
+	SourceDataset string
+	TargetDataset string
+	SourceColumns []string
+	TargetColumns []string
+	Predicate     ResolvedPredicate
+}
 type OrderTargetKind string
 
 const (
@@ -88,17 +97,18 @@ type SemanticQuerySpec struct {
 	// they compile to the same grouped read today. Semantic planning gives metric-free
 	// queries a typed source-selection node whose mode is that distinction, so
 	// the intent has to survive resolution to be represented at all.
-	Intent            query.QueryIntent
-	TimeSpine         *ResolvedTimeSpine
-	Metrics           []ResolvedMetric
-	EvaluationMetrics []ResolvedMetric
-	Dimensions        []ResolvedDimension
-	Filters           []ResolvedFilter
-	BooleanFilters    []ResolvedPredicate
-	Relationships     []*ossie.Relationship
-	OrderBy           []ResolvedOrderBy
-	FieldExpressions  map[string]expression.ResolvedExpression
-	Limit             *int
+	Intent                query.QueryIntent
+	TimeSpine             *ResolvedTimeSpine
+	Metrics               []ResolvedMetric
+	EvaluationMetrics     []ResolvedMetric
+	Dimensions            []ResolvedDimension
+	Filters               []ResolvedFilter
+	BooleanFilters        []ResolvedPredicate
+	RelationshipExistence []ResolvedRelationshipExistence
+	Relationships         []*ossie.Relationship
+	OrderBy               []ResolvedOrderBy
+	FieldExpressions      map[string]expression.ResolvedExpression
+	Limit                 *int
 }
 
 func (q *SemanticQuerySpec) FieldExpression(dataset, name string) (expression.ResolvedExpression, bool) {

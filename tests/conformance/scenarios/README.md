@@ -12,7 +12,8 @@ and all three production Runner/Driver engine harnesses. Logical data lives in
 | Nested derived/final top-one | `nested_derived_order_limit_after_aggregation` | APAC (50+70-0)/(50+70)=1 beats EU (100-90)/100=.1. Selecting the largest raw row first picks EU. |
 | Aggregate/final top-one | `aggregate_order_limit_after_grouping` | APAC 50+70=120 beats EU 100 despite EU having the largest individual row. |
 | DISTINCT/regroup | `distinct_entity_across_periods_global`, `distinct_entity_across_periods_grouped` | The same customer appears in January and March: global 1, each group 1; summing partial distinct counts incorrectly gives 2. |
-| Declared one-to-many | `fanout_base_population_unchanged` | Orders 100 and 50 have 3 and 2 details. Unused relationship must not be traversed: 150, not 400. |
+| Declared one-to-many | `fanout_base_population_unchanged` | Orders 100, 50 and 100 have detail rows, but the unused relationship must not be traversed: 250. |
+| Detail membership without fanout | `relationship_exists_filters_source_population` | Two matching orders both have amount 100; one has two matching details. Correct SUM/COUNT/AVG are 200/2/100. A direct join yields SUM 300, while `SUM(DISTINCT amount)` yields 100. |
 | Last per account/ties/rollup | `semi_additive_last_ties_then_account_rollup` | Last values selected by date then sequence are w1=40, w2=25; rollup 65, not historical sum 145 or an arbitrary tied row. |
 
 Existing `semi_additive_last_with_tie_break`, `semi_additive_queried_week`,

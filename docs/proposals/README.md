@@ -43,7 +43,7 @@ Only engine, semantic-model, query-interface, and developer-tool designs are inc
 
 ## Semantic
 
-- [Safe Relationship Existence Filters](semantic/safe-relationship-existence-filters.md) — Draft; RFC number pending review
+- [RFC-0092: Safe Relationship Existence Filters](semantic/0092-safe-relationship-existence-filters.md) — Implemented
 - [RFC-0091: Bounded Boolean Filter Predicates](semantic/0091-boolean-filter-predicates.md) — Implemented
 
 - [RFC-0013: Time Offset Alignment Semantics](semantic/0013-time-offset-alignment.md) — Implemented

@@ -22,6 +22,13 @@ the [online validation contract](semantic/online-validation.md).
 
 The v0.1 compatibility surface is intentionally narrower than the set of exported Go identifiers in the repository.
 
+The semantic query `filters` field uses the tagged predicate object contract.
+In addition to filter/AND/OR/NOT, `kind: "exists"` is the closed one-hop
+relationship-membership form defined by
+[RFC-0092](../proposals/semantic/0092-safe-relationship-existence-filters.md).
+It preserves source aggregation grain and does not authorize arbitrary SQL,
+implicit joins, target projections or a compatibility alias.
+
 `metis semantic test` is a project-author developer tool, not an additional query
 or analytics operation. Its [suite and report contract](testing/project-compile-regression.md)
 covers offline compilation and runtime metric-result checks. It does not expose

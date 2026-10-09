@@ -12,6 +12,7 @@ var combinationRegressions = func() []Scenario {
 	compilerExpectations["nested_derived_order_limit_after_aggregation"] = CompilerExpectation{Fragments: []string{"nested_margin_ratio", "ORDER BY", "DESC"}}
 	compilerExpectations["aggregate_order_limit_after_grouping"] = CompilerExpectation{Fragments: []string{"revenue", "ORDER BY", "DESC"}}
 	compilerExpectations["fanout_base_population_unchanged"] = CompilerExpectation{Fragments: []string{"SUM(orders.amount)"}}
+	compilerExpectations["relationship_exists_filters_source_population"] = CompilerExpectation{Fragments: []string{"SUM(orders.amount)", "COUNT(orders.order_id)", "AVG(orders.amount)", "EXISTS (SELECT 1 FROM", "fanout_details", "details.kind"}, Parameters: 1}
 	compilerExpectations["semi_additive_last_ties_then_account_rollup"] = CompilerExpectation{Fragments: []string{"inventory_window_sum", "snapshot_sequence"}}
 	compilerExpectations["distinct_entity_across_periods_global"] = CompilerExpectation{Fragments: []string{"COUNT(DISTINCT orders.customer_id)", "WHERE"}, Parameters: 1}
 	compilerExpectations["distinct_entity_across_periods_grouped"] = CompilerExpectation{Fragments: []string{"COUNT(DISTINCT orders.customer_id)", "WHERE"}, Parameters: 1}
@@ -28,9 +29,19 @@ var combinationRegressions = func() []Scenario {
 		resultFixtureScenario(fixtures.CommercePeriodEdges, "distinct_entity_across_periods_grouped", CategoryComposition,
 			[]Capability{CapabilityAggregation, CapabilityDimension, CapabilityTimeGrain, CapabilityRelationship, CapabilityFilter}, distinctPeriodCombination(true), ResultLiteral{"2026-01-01", "1"}, ResultLiteral{"2026-03-01", "1"}),
 		// Merely declaring a one-to-many relationship must not join it:
-		// 100+50=150, not 100*3+50*2=400. Traversal is rejected separately.
+		// 100+50+100=250. Declaring the relationship alone must not change
+		// the source population. Traversal is rejected separately.
 		resultFixtureScenario(fixtures.OrderDetails, "fanout_base_population_unchanged", CategoryJoin,
-			[]Capability{CapabilityAggregation}, fixtureSemanticQuery(fixtures.OrderDetails, []string{"revenue"}, nil), ResultLiteral{"150"}),
+			[]Capability{CapabilityAggregation}, fixtureSemanticQuery(fixtures.OrderDetails, []string{"revenue"}, nil), ResultLiteral{"250"}),
+		// o1 has two matching detail rows and o3 has one; both source amounts
+		// are 100. EXISTS must therefore return sum=200, count=2, avg=100.
+		// A direct join yields 300 and SUM(DISTINCT amount) yields 100.
+		resultFixtureScenario(fixtures.OrderDetails, "relationship_exists_filters_source_population", CategoryJoin,
+			[]Capability{CapabilityAggregation, CapabilityRelationship, CapabilityFilter, CapabilityRelationshipExistence}, func() query.SemanticQuery {
+				q := fixtureSemanticQuery(fixtures.OrderDetails, []string{"revenue", "order_count", "average_order_amount"}, nil)
+				q.Filters = query.Predicate{query.Exists("orders_to_details", query.Leaf("details.kind", query.FilterEQ, "target"))}
+				return q
+			}(), ResultLiteral{"200", "2", "100"}),
 		// January 31 -> February's bucket, not March 3. February has no
 		// source row: NULL is distinct from dense-calendar zero-fill.
 		resultFixtureScenario(fixtures.CommercePeriodEdges, "calendar_month_end_and_missing_period", CategoryTime,

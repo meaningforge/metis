@@ -156,9 +156,9 @@ func commerceOrdering() []Table {
 
 func orderDetails() []Table {
 	return []Table{
-		t("fanout_orders", []string{"order_id"}, []Column{c("order_id", String), c("amount", Decimal)}, r("o1", 100), r("o2", 50)),
+		t("fanout_orders", []string{"order_id"}, []Column{c("order_id", String), c("amount", Decimal)}, r("o1", 100), r("o2", 50), r("o3", 100)),
 		t("fanout_details", []string{"detail_id"}, []Column{c("detail_id", String), c("order_id", String), c("kind", String)},
-			r("d1", "o1", "all"), r("d2", "o1", "all"), r("d3", "o1", "all"), r("d4", "o2", "all"), r("d5", "o2", "all")),
+			r("d1", "o1", "target"), r("d2", "o1", "target"), r("d3", "o1", "other"), r("d4", "o2", "other"), r("d5", "o2", "other"), r("d6", "o3", "target")),
 	}
 }
 

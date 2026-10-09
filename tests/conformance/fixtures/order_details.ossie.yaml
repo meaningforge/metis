@@ -25,3 +25,9 @@ semantic_model:
       - name: revenue
         datatype: Decimal
         expression: {dialects: [{dialect: ANSI_SQL, expression: "SUM(orders.amount)"}]}
+      - name: order_count
+        datatype: Integer
+        expression: {dialects: [{dialect: ANSI_SQL, expression: "COUNT(orders.order_id)"}]}
+      - name: average_order_amount
+        datatype: Decimal
+        expression: {dialects: [{dialect: ANSI_SQL, expression: "AVG(orders.amount)"}]}

@@ -74,6 +74,15 @@ func RequiredDataDependencies(q *resolver.SemanticQuerySpec, metrics *evaluation
 		}
 		c.field(filter.Dataset, filter.Field.Name)
 	}
+	for _, existence := range q.RelationshipExistence {
+		c.relationship(existence.Relationship)
+		for _, filter := range booleanFilterLeaves([]resolver.ResolvedPredicate{existence.Predicate}) {
+			if filter == nil || filter.Field == nil {
+				return DataDependencies{}, fmt.Errorf("resolved relationship existence field is required")
+			}
+			c.field(filter.Dataset, filter.Field.Name)
+		}
+	}
 	for _, order := range q.OrderBy {
 		if order.Kind == resolver.OrderTargetDimension {
 			if order.Field == nil {
