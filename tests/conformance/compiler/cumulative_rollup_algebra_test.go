@@ -136,6 +136,28 @@ func TestCumulativeCountDoesNotMergeByCounting(t *testing.T) {
 	}
 }
 
+// AVG is algebraic rather than distributive: the source grain must retain
+// SUM(value) and COUNT(value), merge both, then divide. Averaging the monthly
+// averages would silently weight every month equally.
+func TestCumulativeAverageRetainsAndMergesSumCountAcrossTargets(t *testing.T) {
+	for _, target := range evidence.CompilerTargets() {
+		t.Run(target.Dialect, func(t *testing.T) {
+			sqlQuery, err := cumulativeOverBase(t, "AVG(orders.amount)", target.Dialect)
+			if err != nil {
+				t.Fatalf("compile: %v", err)
+			}
+			for _, want := range []string{"__metis_rollup_rollup_base_sum", "__metis_rollup_rollup_base_count", "SUM(orders.amount)", "COUNT(orders.amount)", "NULLIF"} {
+				if !strings.Contains(sqlQuery.SQL, want) {
+					t.Fatalf("cumulative AVG SQL missing %q:\n%s", want, sqlQuery.SQL)
+				}
+			}
+			if strings.Contains(sqlQuery.SQL, "AVG(`metric_001_rollup_base`.`rollup_base`)") {
+				t.Fatalf("cumulative AVG re-averaged finalized partials:\n%s", sqlQuery.SQL)
+			}
+		})
+	}
+}
+
 // An aggregation whose partial state the evaluated column does not retain, or
 // which cannot be computed from partials at all, must fail closed rather than
 // produce a plausible wrong number.
@@ -145,9 +167,9 @@ func TestCumulativeFailsClosedOnUnmergeableBase(t *testing.T) {
 		baseExpression string
 		wantAlgebra    string
 	}{
-		// Algebraic: AVG could be merged from (sum, count), but the base CTE
-		// emits the finished ratio, so those partials are already gone.
-		{name: "average", baseExpression: "AVG(orders.amount)", wantAlgebra: "ALGEBRAIC"},
+		// A scalar transformation around AVG is not the aggregate's retained
+		// state recipe and remains fail-closed.
+		{name: "transformed average", baseExpression: "AVG(orders.amount) + 1", wantAlgebra: "ALGEBRAIC"},
 		// Holistic: no partial state makes a distinct count mergeable.
 		{name: "distinct count", baseExpression: "COUNT(DISTINCT orders.customer_id)", wantAlgebra: "HOLISTIC"},
 	} {

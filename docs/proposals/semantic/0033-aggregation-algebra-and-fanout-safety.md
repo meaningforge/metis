@@ -8,7 +8,7 @@
 - **Status:** Implemented
 - **Owners:** Metis maintainers
 - **Created:** 2026-08-21
-- **Last updated:** 2026-08-25
+- **Last updated:** 2026-10-09
 - **Scope:** `expression` typed analysis, `catalog` metric analysis, `planner` fan-out and rollup decisions
 - **Supersedes:** None
 
@@ -285,6 +285,17 @@ base, over a `COUNT(DISTINCT ...)` base, over a function Metis does not model,
 or over any non-source-aggregate base. Each returns `INVALID_METRIC_ROLLUP`
 naming the base metric, its aggregation, and its rollup algebra. All are
 correctness fixes: none of those had a correct compiled form to preserve.
+
+**Follow-on retained-state implementation (2026-10-09).** The original guard
+correctly rejected cumulative `AVG` while the source node emitted only the
+finished ratio. Source aggregate nodes now retain plan-owned `sum` and `count`
+components for a root `AVG(value)` expression. Cumulative lowering merges both
+components with windowed `SUM` and finalizes with guarded division, so groups
+with different row counts remain correctly weighted. A transformed expression
+such as `AVG(value) + 1`, `AVG(DISTINCT value)`, holistic aggregates, and unknown
+state recipes still fail closed. The retained component sequence, expressions,
+merge operators, and finalizer are semantic-plan fingerprint state rather than
+renderer inference.
 
 **A latent defect surfaced by the change.** `cloneSemanticStageEvaluation`
 replaced `Evaluation.Source` with a fresh `&SourceMetricEvaluation{}` rather than

@@ -17,6 +17,7 @@ func CloneNodes(nodes []SemanticPlanNode) ([]SemanticPlanNode, error) {
 		case SourceAggregateNode:
 			node.Base, node.Source, node.MetricState = base, CloneSourceState(node.Source), CloneMetricState(node.MetricState)
 			node.Metric, node.Expression = cloneMetric(node.Metric), cloneResolvedExpression(node.Expression)
+			node.Rollup = CloneRollupContract(node.Rollup)
 			out = append(out, node)
 		case PostAggregateNode:
 			node.Base, node.Source, node.MetricState = base, cloneSemanticSourceState(node.Source), cloneSemanticMetricState(node.MetricState)
@@ -69,6 +70,15 @@ func CloneNodes(nodes []SemanticPlanNode) ([]SemanticPlanNode, error) {
 		}
 	}
 	return out, nil
+}
+
+func CloneRollupContract(in RollupContract) RollupContract {
+	out := in
+	out.Components = append([]RollupComponent(nil), in.Components...)
+	for i := range out.Components {
+		out.Components[i].Expression = cloneResolvedExpression(in.Components[i].Expression)
+	}
+	return out
 }
 
 func CloneNodeBase(in SemanticPlanNodeBase) SemanticPlanNodeBase {

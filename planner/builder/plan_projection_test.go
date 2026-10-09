@@ -150,11 +150,13 @@ func TestProjectedStructureChangesTheFingerprint(t *testing.T) {
 		{name: "rollup mergeability", mutate: func(p *semanticplan.SemanticPlan) {
 			node := p.Nodes[0].(semanticplan.SourceAggregateNode)
 			node.Rollup.Mergeable = false
+			node.Rollup.Components = nil
+			node.Rollup.Finalize = expression.FinalizeNone
 			p.Nodes[0] = node
 		}},
 		{name: "rollup merge operator", mutate: func(p *semanticplan.SemanticPlan) {
 			node := p.Nodes[0].(semanticplan.SourceAggregateNode)
-			node.Rollup.Merge = "MAX"
+			node.Rollup.Components[0].Merge = "MAX"
 			p.Nodes[0] = node
 		}},
 		{name: "requested membership", mutate: func(p *semanticplan.SemanticPlan) { p.Requested = append(p.Requested, "extra") }},
@@ -308,6 +310,11 @@ func planFieldDispositions() []planFieldDisposition {
 		{
 			typ:       reflect.TypeOf(semanticplan.BooleanPredicate{}),
 			projected: []string{"Kind", "Leaf", "Children"},
+			excluded:  map[string]string{},
+		},
+		{
+			typ:       reflect.TypeOf(semanticplan.RollupComponent{}),
+			projected: []string{"Name", "Column", "Expression", "Merge"},
 			excluded:  map[string]string{},
 		},
 		{
@@ -544,7 +551,10 @@ func populatedFixturePlan() *semanticplan.SemanticPlan {
 		ExtensionEvidence:   []extension.Evidence{extension.MetricScaleEvidence{Identity: extension.Identity{Namespace: "METIS", Kind: "metric_scale", Scope: "metric"}, Metric: "revenue", Version: "1", Factor: 2}},
 		Node: semanticplan.SourceAggregateNode{
 			Metric: metric, Expression: revenueExpression,
-			Rollup: semanticplan.RollupContract{Function: "SUM", Algebra: "DISTRIBUTIVE", Merge: "SUM", Mergeable: true},
+			Rollup: semanticplan.RollupContract{
+				Function: "SUM", Algebra: "DISTRIBUTIVE", Finalize: expression.FinalizeIdentity, Mergeable: true,
+				Components: []semanticplan.RollupComponent{{Name: expression.PartialStateSum, Column: "revenue", Expression: revenueExpression, Merge: "SUM"}},
+			},
 		},
 	}
 	cumulativeStage := semanticNodeFixture{

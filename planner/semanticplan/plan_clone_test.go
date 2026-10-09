@@ -4,6 +4,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/meaningforge/metis/expression"
 	"github.com/meaningforge/metis/query"
 )
 
@@ -21,6 +22,10 @@ func TestClonePlanOwnsMutablePlanStateAndDropsTrace(t *testing.T) {
 				RequiredDatasets: []string{"orders", "customers"},
 			},
 			MetricState: SemanticMetricState{Metrics: []string{"revenue"}},
+			Rollup: RollupContract{
+				Function: "SUM", Algebra: expression.RollupDistributive, Finalize: expression.FinalizeIdentity, Mergeable: true,
+				Components: []RollupComponent{{Name: expression.PartialStateSum, Column: "revenue", Expression: expression.NewResolvedExpression("ANSI_SQL", "SUM(amount)"), Merge: "SUM"}},
+			},
 		}},
 		DenseCalendar: &DenseCalendarPlan{OutputPredicates: []Predicate{{Dataset: "calendar"}}},
 		SharedGrain:   &SharedGrainResolution{Metrics: []MetricSharedGrainEvidence{{RootDatasets: []string{"orders"}}}},
@@ -37,6 +42,7 @@ func TestClonePlanOwnsMutablePlanStateAndDropsTrace(t *testing.T) {
 	clone.SharedGrain.Metrics[0].RootDatasets[0] = "changed"
 	node := clone.Nodes[0].(SourceAggregateNode)
 	node.Source.SourceRoots[0] = "changed"
+	node.Rollup.Components[0].Column = "changed"
 	clone.Nodes[0] = node
 
 	if got, want := plan.Projections[0].Datasets, []string{"orders", "customers"}; !reflect.DeepEqual(got, want) {
@@ -50,6 +56,9 @@ func TestClonePlanOwnsMutablePlanStateAndDropsTrace(t *testing.T) {
 	}
 	if got := plan.Nodes[0].(SourceAggregateNode).Source.SourceRoots[0]; got != "orders" {
 		t.Fatalf("node source roots mutated through clone: %q", got)
+	}
+	if got := plan.Nodes[0].(SourceAggregateNode).Rollup.Components[0].Column; got != "revenue" {
+		t.Fatalf("rollup components mutated through clone: %q", got)
 	}
 }
 

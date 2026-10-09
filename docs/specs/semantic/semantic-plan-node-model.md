@@ -63,6 +63,13 @@ The concrete `SemanticPlanNode` type is the semantic discriminator and authority
 
 Examples include custom-calendar mappings for time offsets, rolling cumulative windows, grain-to-date evaluation, conversions, offset-to-grain boundaries, rollup contracts, semi-additive selection state, and attribution operands/period evidence. Lowering consumes these node-owned values rather than reading independent semantic side channels from `SemanticPlan`.
 
+A source aggregate rollup contract owns an ordered retained-state component
+sequence. Each component records its source expression, carried column, and
+merge operator, plus the contract's finalizer. Distributive aggregates retain
+one component; an algebraic `AVG` retains `sum` and `count`. SQLPlan lowering
+consumes that state and must not infer an aggregate recipe from a metric name or
+opaque rendered SQL.
+
 Ratio attribution lowering fails closed unless both ordered operands are governed source aggregates at the exact decomposition grain, carry resolved physical expressions and additive identity-fill authority, and describe the same source population and filter work. Missing segments remain distinguishable from present segments whose denominator is zero. Undefined segment or total ratios produce null decomposition/reconciliation values plus explicit defined-state output; they are never coerced to zero.
 
 Attribution period evidence remains canonical RFC3339 in semantic explain and fingerprints. SQLPlan period predicates materialize the same UTC instant with target-neutral SQL timestamp lexical form; physical formatting is not a second semantic time interpretation.

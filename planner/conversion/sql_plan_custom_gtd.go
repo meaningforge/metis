@@ -5,7 +5,7 @@ import (
 	"github.com/meaningforge/metis/sqlplan"
 )
 
-func customCalendarGrainToDateSQLPlan(node semanticplan.SemanticPlanNode, cteNames map[string]string, blockByAlias map[string]sqlplan.QueryBlockID, next int, expressionDialect string) ([]sqlplan.QueryBlock, error) {
+func customCalendarGrainToDateSQLPlan(node semanticplan.SemanticPlanNode, cteNames map[string]string, blockByAlias map[string]sqlplan.QueryBlockID, nodesByID map[string]semanticplan.SemanticPlanNode, next int, expressionDialect string) ([]sqlplan.QueryBlock, error) {
 	cumulative, ok := node.(semanticplan.CumulativeWindowNode)
 	nodeBase := node.NodeBase()
 	if !ok || cumulative.CustomCalendarGrainToDate == nil || len(nodeBase.Inputs) != 1 {
@@ -50,7 +50,14 @@ func customCalendarGrainToDateSQLPlan(node semanticplan.SemanticPlanNode, cteNam
 		}
 	}
 	partition = append(partition, sqlplan.ColumnRef{Table: mappingAlias, Name: resetBucket})
-	window := sqlplan.WindowExpr{Function: sqlplan.FunctionCallExpr{Name: "SUM", Args: []sqlplan.Expr{sqlplan.ColumnRef{Table: baseAlias, Name: cumulative.Spec.BaseMetric}}}, PartitionBy: partition, OrderBy: []sqlplan.Expr{sqlplan.ColumnRef{Table: mappingAlias, Name: queryOrdinal}}, Frame: sqlplan.WindowRowsUnboundedPrecedingToCurrent}
+	contract, err := cumulativeRollupContract(node, cumulative.Spec.BaseMetric, nodesByID)
+	if err != nil {
+		return nil, err
+	}
+	window, err := rollupWindowSQLPlanExpr(contract, baseAlias, partition, []sqlplan.Expr{sqlplan.ColumnRef{Table: mappingAlias, Name: queryOrdinal}}, sqlplan.WindowRowsUnboundedPrecedingToCurrent, 0)
+	if err != nil {
+		return nil, err
+	}
 	block.Projections = append(block.Projections, sqlplan.Projection{Expr: window, Alias: nodeBase.ID})
 	return []sqlplan.QueryBlock{mapping, block}, nil
 }

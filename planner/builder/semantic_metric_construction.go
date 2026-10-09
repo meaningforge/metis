@@ -220,7 +220,7 @@ func lowerMetricEvaluationPlan(q *resolver.SemanticQuerySpec, evaluationPlan *ev
 		var semanticNode semanticplan.SemanticPlanNode
 		switch node.Kind {
 		case evaluation.MetricEvaluationSource:
-			semanticNode = semanticplan.SourceAggregateNode{Base: base, Source: source, MetricState: metricState, Metric: metric, Expression: resolvedExpression, Rollup: sourceRollupContract(q.Model, node.ID, node.Expression.SourceDialect)}
+			semanticNode = semanticplan.SourceAggregateNode{Base: base, Source: source, MetricState: metricState, Metric: metric, Expression: resolvedExpression, Rollup: sourceRollupContract(node.ID, resolvedExpression)}
 		case evaluation.MetricEvaluationDerived:
 			switch semanticKind {
 			case semanticplan.SemanticPlanNodePostAggregate:

@@ -232,8 +232,9 @@ func (SourceSelectionNode) semanticPlanNode()     {}
 // typed-nil interface values.
 func ValidateNode(node SemanticPlanNode) error {
 	switch node := node.(type) {
-	case SourceAggregateNode,
-		PostAggregateNode,
+	case SourceAggregateNode:
+		return ValidateRollupContract(node.Rollup)
+	case PostAggregateNode,
 		JoinAggregatesNode,
 		CrossJoinAggregatesNode,
 		CumulativeWindowNode,

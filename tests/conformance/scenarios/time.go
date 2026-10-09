@@ -1,6 +1,9 @@
 package scenarios
 
-import "github.com/meaningforge/metis/query"
+import (
+	"github.com/meaningforge/metis/query"
+	"github.com/meaningforge/metis/tests/conformance/fixtures"
+)
 
 var timeScenarios = []Scenario{
 	resultScenario("time_month", CategoryTime, []Capability{CapabilityAggregation, CapabilityDimension, CapabilityTimeGrain}, timeGrainQuery(query.TimeGrainMonth), ResultLiteral{"2026-01-01", "300"}, ResultLiteral{"2026-02-01", "50"}),
@@ -22,6 +25,10 @@ var timeScenarios = []Scenario{
 		grain := query.TimeGrainQuarter
 		return semanticQuery([]string{"cumulative_revenue"}, []query.DimensionRef{{Name: "order_date", Grain: &grain}})
 	}(), ResultLiteral{"2026-01-01", "350"}),
+	resultFixtureScenario(fixtures.CommerceAverageRollup, "cumulative_average_uses_weighted_partial_state", CategoryTime, []Capability{CapabilityAggregation, CapabilityAlgebraicRollup, CapabilityDimension, CapabilityTimeGrain, CapabilityCumulative}, func() query.SemanticQuery {
+		grain := query.TimeGrainMonth
+		return fixtureSemanticQuery(fixtures.CommerceAverageRollup, []string{"cumulative_average_order_amount"}, []query.DimensionRef{{Name: "order_date", Grain: &grain}})
+	}(), ResultLiteral{"2026-01-01", "100"}, ResultLiteral{"2026-02-01", "10"}),
 	resultScenario("time_offset_previous_month", CategoryTime, []Capability{CapabilityAggregation, CapabilityDimension, CapabilityTimeGrain, CapabilityTimeOffset}, func() query.SemanticQuery {
 		grain := query.TimeGrainMonth
 		return semanticQuery([]string{"previous_month_revenue"}, []query.DimensionRef{{Name: "order_date", Grain: &grain}})

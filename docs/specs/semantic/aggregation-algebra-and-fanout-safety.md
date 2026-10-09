@@ -22,10 +22,14 @@ duplicate-invariant. `SUM`, `COUNT`, `AVG`, and conditional sums are duplicate-
 sensitive.
 
 A source aggregate may be rolled up only when its plan-owned `RollupContract`
-proves one aggregation call, distributive algebra, and a retained one-component
-partial state with identity finalization. The merge operator is derived from
-the aggregation: notably, `COUNT` partial values merge with `SUM`. Unsupported
-rollups fail with `INVALID_METRIC_ROLLUP`.
+proves one root aggregation call and retains every component required by its
+derived algebra. `SUM`, `COUNT`, `MIN`, and `MAX` retain one component with
+identity finalization; notably, `COUNT` partial values merge with `SUM`. `AVG`
+retains `SUM(value)` and `COUNT(value)`, merges both with `SUM`, and finalizes
+with `merged_sum / NULLIF(merged_count, 0)`. A scalar transformation around an
+aggregate is not the aggregate's retained state and fails closed. Distinct,
+holistic, unknown, and incomplete state recipes fail with
+`INVALID_METRIC_ROLLUP`.
 
 ## Population-preservation evidence
 

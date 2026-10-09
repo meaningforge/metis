@@ -60,9 +60,15 @@ func summableBaseStages(stage semanticNodeFixture) map[string]semanticNodeFixtur
 			ID:   input.NodeID,
 			Kind: semanticplan.SemanticPlanNodeSourceAggregate,
 			Node: semanticplan.SourceAggregateNode{Rollup: semanticplan.RollupContract{
-				Function:  "SUM",
-				Algebra:   expression.RollupDistributive,
-				Merge:     "SUM",
+				Function: "SUM",
+				Algebra:  expression.RollupDistributive,
+				Components: []semanticplan.RollupComponent{{
+					Name:       expression.PartialStateSum,
+					Column:     input.NodeID,
+					Expression: expression.NewResolvedExpression("ANSI_SQL", "SUM(value)"),
+					Merge:      "SUM",
+				}},
+				Finalize:  expression.FinalizeIdentity,
 				Mergeable: true,
 			}},
 		}

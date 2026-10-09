@@ -39,6 +39,7 @@ var datasets = map[conformance.ID]func() []Table{
 	conformance.CommercePeriodEdges:        commercePeriodEdges,
 	conformance.CommerceOrdering:           commerceOrdering,
 	conformance.CommerceRolling:            commercePeriodEdges,
+	conformance.CommerceAverageRollup:      commerceAverageRollup,
 	conformance.TemporalRelationship:       temporalRelationship,
 	conformance.DistinctValues:             distinctValues,
 	conformance.DefinitionFilters:          definitionFilters,
@@ -151,6 +152,24 @@ func commerceOrdering() []Table {
 	tables[0].Rows[0][6], tables[0].Rows[0][7] = 50, 0
 	tables[0].Rows[1][6], tables[0].Rows[1][7] = 70, 0
 	tables[0].Rows[2][6], tables[0].Rows[2][7] = 100, 90
+	return tables
+}
+
+func commerceAverageRollup() []Table {
+	tables := commerce()
+	tables[0].Rows = [][]any{
+		r("avg01", "c1", "p1", "2026-01-15", "2026-01-16", "2026-01-15", 100, 0, "paid"),
+		r("avg02", "c1", "p1", "2026-02-10", "2026-02-11", "2026-02-10", 0, 0, "paid"),
+		r("avg03", "c1", "p1", "2026-02-10", "2026-02-11", "2026-02-10", 0, 0, "paid"),
+		r("avg04", "c1", "p1", "2026-02-10", "2026-02-11", "2026-02-10", 0, 0, "paid"),
+		r("avg05", "c1", "p1", "2026-02-10", "2026-02-11", "2026-02-10", 0, 0, "paid"),
+		r("avg06", "c1", "p1", "2026-02-10", "2026-02-11", "2026-02-10", 0, 0, "paid"),
+		r("avg07", "c1", "p1", "2026-02-10", "2026-02-11", "2026-02-10", 0, 0, "paid"),
+		r("avg08", "c1", "p1", "2026-02-10", "2026-02-11", "2026-02-10", 0, 0, "paid"),
+		r("avg09", "c1", "p1", "2026-02-10", "2026-02-11", "2026-02-10", 0, 0, "paid"),
+		r("avg10", "c1", "p1", "2026-02-10", "2026-02-11", "2026-02-10", 0, 0, "paid"),
+	}
+	tables[5].Rows = [][]any{r("2026-01-15"), r("2026-02-10")}
 	return tables
 }
 

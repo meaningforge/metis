@@ -19,6 +19,7 @@ type Target struct {
 
 var realEngineCapabilities = scenarios.Capabilities(
 	scenarios.CapabilityAggregation,
+	scenarios.CapabilityAlgebraicRollup,
 	scenarios.CapabilityDimension,
 	scenarios.CapabilityRelationship,
 	scenarios.CapabilityTemporalRelationship,
