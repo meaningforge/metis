@@ -36,6 +36,8 @@ func TestServerParameterClosedDomain(t *testing.T) {
 	}{
 		{nil, "Nullable(String)", `\N`}, {true, "Bool", "true"}, {[]byte{0, 255}, "String", "\\0" + string([]byte{255})},
 		{json.Number("10.2500"), "Decimal(76,4)", "10.2500"}, {json.Number("9007199254740993"), "Int64", "9007199254740993"},
+		{json.Number("12345678901234567890123456789012345678"), "Decimal(76,0)", "12345678901234567890123456789012345678"},
+		{json.Number("0.10000000000000000001"), "Decimal(76,20)", "0.10000000000000000001"},
 		{"2026-01-01T12:34:56.123456Z", "String", "2026-01-01T12:34:56.123456Z"},
 	} {
 		kind, text, err := serverParameter(tc.value)

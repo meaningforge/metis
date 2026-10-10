@@ -2,8 +2,10 @@ package resolver_test
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/meaningforge/metis/manifest"
@@ -36,6 +38,18 @@ semantic_model:
             datatype: Decimal
             expression:
               dialects: [{dialect: ANSI_SQL, expression: orders.amount}]
+          - name: order_number
+            datatype: Integer
+            expression:
+              dialects: [{dialect: ANSI_SQL, expression: orders.order_number}]
+          - name: score
+            datatype: Float
+            expression:
+              dialects: [{dialect: ANSI_SQL, expression: orders.score}]
+          - name: active
+            datatype: Boolean
+            expression:
+              dialects: [{dialect: ANSI_SQL, expression: orders.active}]
           - name: order_date
             datatype: Date
             expression:
@@ -180,6 +194,60 @@ func TestResolveMetricAndDimensionAcrossRelationship(t *testing.T) {
 	}
 	if len(resolved.Dimensions) != 1 || resolved.Dimensions[0].Dataset != "customer" {
 		t.Fatalf("unexpected dimension resolution: %#v", resolved.Dimensions)
+	}
+}
+
+func TestResolvePreservesExactNumericFilterOperandsByDatatype(t *testing.T) {
+	r := newResolver(t)
+	var q query.SemanticQuery
+	body := `{"project":"ignored","model":"sales","metrics":[{"name":"total_revenue"}],"filters":{"kind":"and","children":[` +
+		`{"kind":"filter","filter":{"field":"order_number","operator":"eq","value":9007199254740993}},` +
+		`{"kind":"filter","filter":{"field":"amount","operator":"between","value":[0.10000000000000000001,1e3]}}]}}`
+	if err := json.Unmarshal([]byte(body), &q); err != nil {
+		t.Fatal(err)
+	}
+	resolved, err := r.Resolve(context.Background(), q)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := resolved.Filters[0].Filter.Value; got != json.Number("9007199254740993") {
+		t.Fatalf("integer operand = %#v", got)
+	}
+	values, ok := resolved.Filters[1].Filter.Value.([]any)
+	if !ok || !reflect.DeepEqual(values, []any{json.Number("0.10000000000000000001"), json.Number("1000")}) {
+		t.Fatalf("decimal operands = %#v", resolved.Filters[1].Filter.Value)
+	}
+}
+
+func TestResolveRejectsDatatypeIncompatibleFilterOperandsWithoutDisclosure(t *testing.T) {
+	r := newResolver(t)
+	for _, tc := range []struct {
+		field   string
+		operand string
+	}{
+		{"order_number", `1.5`},
+		{"order_number", `9223372036854775808`},
+		{"amount", `1e38`},
+		{"amount", `1e-39`},
+		{"amount", `"1.25"`},
+		{"order_id", `123`},
+		{"order_date", `20260101`},
+		{"active", `1`},
+		{"score", `1e309`},
+	} {
+		var q query.SemanticQuery
+		body := `{"model":"sales","metrics":[{"name":"total_revenue"}],"filters":{"kind":"filter","filter":{"field":"` + tc.field + `","operator":"eq","value":` + tc.operand + `}}}`
+		if err := json.Unmarshal([]byte(body), &q); err != nil {
+			t.Fatalf("decode %s: %v", tc.field, err)
+		}
+		_, err := r.Resolve(context.Background(), q)
+		var semanticErr *serrors.Error
+		if !errors.As(err, &semanticErr) || semanticErr.Code != serrors.ErrInvalidFilterValue {
+			t.Fatalf("%s error = %v", tc.field, err)
+		}
+		if strings.Contains(err.Error(), tc.operand) {
+			t.Fatalf("error disclosed operand: %v", err)
+		}
 	}
 }
 

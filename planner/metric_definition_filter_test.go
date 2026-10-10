@@ -2,6 +2,7 @@ package planner_test
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 
 	"github.com/meaningforge/metis/planner"
@@ -130,7 +131,7 @@ func TestPostAggregateDefinitionFilterIsOwnedByDerivedMetricOutput(t *testing.T)
 		t.Fatalf("post predicates = %#v", graph.Output.Predicates)
 	}
 	predicate := graph.Output.Predicates[0]
-	if predicate.Name != "average_order_value" || predicate.Filter.Field != "average_order_value" || predicate.Filter.Operator != query.FilterGTE || predicate.Filter.Value != float64(50) {
+	if predicate.Name != "average_order_value" || predicate.Filter.Field != "average_order_value" || predicate.Filter.Operator != query.FilterGTE || predicate.Filter.Value != json.Number("50") {
 		t.Fatalf("post predicate = %#v", predicate)
 	}
 	for _, stage := range semanticPlanNodeFixturesForTest(graph) {

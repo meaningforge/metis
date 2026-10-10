@@ -167,9 +167,6 @@ func ParseSuite(data []byte) (Suite, string, error) {
 	if err := validateYAMLNode(&node); err != nil {
 		return Suite{}, "", err
 	}
-	if err := validateFilterLiterals(node.Content[0]); err != nil {
-		return Suite{}, "", err
-	}
 	decoder := yaml.NewDecoder(bytes.NewReader(data))
 	decoder.KnownFields(true)
 	var suite Suite
@@ -179,6 +176,9 @@ func ParseSuite(data []byte) (Suite, string, error) {
 	var trailing yaml.Node
 	if err := decoder.Decode(&trailing); err != io.EOF {
 		return Suite{}, "", fmt.Errorf("suite must contain exactly one document")
+	}
+	if err := restoreSuiteFilterValues(node.Content[0], &suite); err != nil {
+		return Suite{}, "", err
 	}
 	if err := suite.validate(); err != nil {
 		return Suite{}, "", err
@@ -394,7 +394,7 @@ func (q QueryInput) semanticQuery() (query.SemanticQuery, error) {
 	return out, nil
 }
 
-// Suite YAML tokens and public JSON requests use the same numeric guard.
+// Suite YAML tokens and public JSON requests use the same numeric syntax.
 func checkFilterNumber(text string) error {
 	_, err := query.ParseFilterNumber(text)
 	return err
@@ -420,48 +420,89 @@ func checkFilterNumbers(value any) error {
 	return nil
 }
 
-// Inspect original YAML/JSON tokens before YAML decoding could itself round a
-// decimal. Only numeric filter values are subject to this public-API boundary.
-func validateFilterLiterals(root *yaml.Node) error {
-	field := func(n *yaml.Node, name string) *yaml.Node {
-		if n == nil || n.Kind != yaml.MappingNode {
-			return nil
-		}
-		for i := 0; i < len(n.Content); i += 2 {
-			if n.Content[i].Value == name {
-				return n.Content[i+1]
-			}
-		}
-		return nil
-	}
-	var check func(*yaml.Node) error
-	check = func(n *yaml.Node) error {
-		if n == nil {
-			return nil
-		}
-		if n.Kind == yaml.ScalarNode && (n.Tag == "!!int" || n.Tag == "!!float" || (n.Tag == "!!str" && n.Style == 0 && numericFilterLiteral.MatchString(n.Value))) {
-			return checkFilterNumber(n.Value)
-		}
-		for _, child := range n.Content {
-			if err := check(child); err != nil {
-				return err
-			}
-		}
-		return nil
-	}
-	cases := field(root, "cases")
-	if cases == nil {
+// restoreSuiteFilterValues reads numeric tokens from the YAML syntax tree after
+// strict typed decoding. This prevents YAML's interface decoding from rounding
+// a number before the shared query decoder can preserve it as json.Number.
+func restoreSuiteFilterValues(root *yaml.Node, suite *Suite) error {
+	cases := yamlField(root, "cases")
+	if cases == nil || suite == nil || len(cases.Content) != len(suite.Cases) {
 		return nil
 	}
 	for i, c := range cases.Content {
-		filters := field(field(field(c, "request"), "query"), "filters")
-		if filters == nil {
+		filters := yamlField(yamlField(yamlField(c, "request"), "query"), "filters")
+		if filters == nil || suite.Cases[i].Request.Query.Filters == nil {
 			continue
 		}
-		for j, f := range filters.Content {
-			if err := check(field(f, "value")); err != nil {
-				return fmt.Errorf("case %d filter %d: %w", i, j, err)
+		if err := restorePredicateFilterValues(filters, suite.Cases[i].Request.Query.Filters); err != nil {
+			return fmt.Errorf("case %d filters: %w", i, err)
+		}
+	}
+	return nil
+}
+
+func restorePredicateFilterValues(node *yaml.Node, predicate *PredicateInput) error {
+	if node == nil || predicate == nil {
+		return nil
+	}
+	switch predicate.Kind {
+	case "filter":
+		valueNode := yamlField(yamlField(node, "filter"), "value")
+		if valueNode == nil || predicate.Filter == nil {
+			return nil
+		}
+		value, err := decodeFilterYAMLValue(valueNode)
+		if err != nil {
+			return err
+		}
+		predicate.Filter.Value = value
+	case "and", "or":
+		children := yamlField(node, "children")
+		if children == nil || children.Kind != yaml.SequenceNode || len(children.Content) != len(predicate.Children) {
+			return nil
+		}
+		for i := range predicate.Children {
+			if err := restorePredicateFilterValues(children.Content[i], &predicate.Children[i]); err != nil {
+				return err
 			}
+		}
+	case "not":
+		return restorePredicateFilterValues(yamlField(node, "child"), predicate.Child)
+	}
+	return nil
+}
+
+func decodeFilterYAMLValue(node *yaml.Node) (any, error) {
+	if node == nil || node.Tag == "!!null" {
+		return nil, nil
+	}
+	if node.Kind == yaml.SequenceNode {
+		out := make([]any, len(node.Content))
+		for i, child := range node.Content {
+			value, err := decodeFilterYAMLValue(child)
+			if err != nil {
+				return nil, err
+			}
+			out[i] = value
+		}
+		return out, nil
+	}
+	if node.Kind == yaml.ScalarNode && (node.Tag == "!!int" || node.Tag == "!!float" || (node.Tag == "!!str" && node.Style == 0 && numericFilterLiteral.MatchString(node.Value))) {
+		return query.ParseFilterNumber(node.Value)
+	}
+	var value any
+	if err := node.Decode(&value); err != nil {
+		return nil, err
+	}
+	return value, nil
+}
+
+func yamlField(node *yaml.Node, name string) *yaml.Node {
+	if node == nil || node.Kind != yaml.MappingNode {
+		return nil
+	}
+	for i := 0; i < len(node.Content); i += 2 {
+		if node.Content[i].Value == name {
+			return node.Content[i+1]
 		}
 	}
 	return nil

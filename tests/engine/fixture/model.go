@@ -5,6 +5,7 @@
 package fixture
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
@@ -15,13 +16,17 @@ import (
 type LogicalType string
 
 const (
-	String   LogicalType = "string"
-	Integer  LogicalType = "integer"
-	Float    LogicalType = "float"
-	Decimal  LogicalType = "decimal"
-	Boolean  LogicalType = "boolean"
-	Date     LogicalType = "date"
-	DateTime LogicalType = "datetime"
+	String  LogicalType = "string"
+	Integer LogicalType = "integer"
+	Float   LogicalType = "float"
+	Decimal LogicalType = "decimal"
+	// ExactDecimal is reserved for precision-boundary fixtures that must use a
+	// physical DECIMAL(38,20) on every engine rather than the general corpus's
+	// deliberately mixed physical representations.
+	ExactDecimal LogicalType = "exact_decimal"
+	Boolean      LogicalType = "boolean"
+	Date         LogicalType = "date"
+	DateTime     LogicalType = "datetime"
 )
 
 type Column struct {
@@ -126,7 +131,7 @@ func Validate(dataset Dataset) error {
 
 func knownType(value LogicalType) bool {
 	switch value {
-	case String, Integer, Float, Decimal, Boolean, Date, DateTime:
+	case String, Integer, Float, Decimal, ExactDecimal, Boolean, Date, DateTime:
 		return true
 	default:
 		return false
@@ -148,6 +153,9 @@ func validValue(logicalType LogicalType, value any) bool {
 		case int, int64, float64:
 			return true
 		}
+	case ExactDecimal:
+		_, ok := value.(json.Number)
+		return ok
 	case Boolean:
 		_, ok := value.(bool)
 		return ok
@@ -188,6 +196,11 @@ func literal(value any) (string, error) {
 		return strconv.FormatInt(typed, 10), nil
 	case float64:
 		return strconv.FormatFloat(typed, 'g', -1, 64), nil
+	case json.Number:
+		if _, err := json.Marshal(typed); err != nil {
+			return "", fmt.Errorf("invalid exact decimal fixture value")
+		}
+		return typed.String(), nil
 	default:
 		return "", fmt.Errorf("unsupported canonical fixture value %T", value)
 	}

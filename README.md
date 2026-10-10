@@ -140,6 +140,12 @@ The response includes `sql_render_result` and `output_schema`. This endpoint
 compiles the query without executing it. `/v1/explain` accepts the same request
 shape and returns `SQLExplainResult`: semantic planning evidence, the same
 `sql_render_result` and `output_schema` as Compile, and any compilation warnings.
+
+Numeric filter operands remain exact until their semantic field is resolved.
+For example, an Integer filter value of `9007199254740993` and a Decimal filter
+value of `0.10000000000000000001` are parameterized without first passing
+through float64. Incompatible or out-of-range operands return
+`INVALID_FILTER_VALUE` without disclosing the value.
 Explain generates SQL without executing it.
 
 To filter source metrics by matching rows on one declared detail relationship

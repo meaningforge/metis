@@ -1,6 +1,7 @@
 package fixture
 
 import (
+	"encoding/json"
 	"sort"
 
 	conformance "github.com/meaningforge/metis/tests/conformance/fixtures"
@@ -12,6 +13,7 @@ const (
 	RatioAttributionUndefinedSegment conformance.ID = "ratio_attribution_undefined_segment"
 	RatioAttributionUndefinedTotal   conformance.ID = "ratio_attribution_undefined_total"
 	MetricScale                      conformance.ID = "metric_scale"
+	ExactFilterNumbers               conformance.ID = "exact_filter_numbers"
 )
 
 func Lookup(id conformance.ID) (Dataset, bool) {
@@ -62,11 +64,21 @@ var datasets = map[conformance.ID]func() []Table{
 	RatioAttributionUndefinedSegment:       ratioAttributionUndefinedSegment,
 	RatioAttributionUndefinedTotal:         ratioAttributionUndefinedTotal,
 	MetricScale:                            metricScale,
+	ExactFilterNumbers:                     exactFilterNumbers,
 }
 
 func metricScale() []Table {
 	return []Table{t("metric_scale_orders", []string{"id"}, []Column{c("id", String), c("amount", Decimal)},
 		r("o1", 10), r("o2", 20))}
+}
+
+func exactFilterNumbers() []Table {
+	return []Table{t("exact_filter_numbers", []string{"id"}, []Column{
+		c("id", String), c("large_id", Integer), c("exact_amount", ExactDecimal),
+	},
+		r("target", int64(9007199254740993), json.Number("0.10000000000000000001")),
+		r("rounded_neighbor", int64(9007199254740992), json.Number("0.10000000000000000000")),
+	)}
 }
 
 func c(name string, logicalType LogicalType) Column {

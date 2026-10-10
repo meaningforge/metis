@@ -219,6 +219,18 @@ func (e *ProductionExecution) RunRegisteredMetricScale(t *testing.T) scenarios.R
 	return e.executeCompiled(t, "registered_metric_scale", compiled)
 }
 
+// RunExactFilterNumbers exercises public JSON decoding, semantic datatype
+// admission, parameter rendering, backend binding, and result selection as one
+// production path.
+func (e *ProductionExecution) RunExactFilterNumbers(t *testing.T) scenarios.ResultSet {
+	t.Helper()
+	if e == nil || e.runtime == nil || e.route.Backend.Renderer == nil {
+		t.Fatal("production conformance execution is not configured")
+	}
+	compiled := compileExactFilterNumbers(t, e.route.Backend.Renderer)
+	return e.executeCompiled(t, "exact_filter_numbers", compiled)
+}
+
 func conformanceResult(t *testing.T, result runner.ResultSet) scenarios.ResultSet {
 	t.Helper()
 	columns := make([]scenarios.ResultColumn, len(result.Schema.Columns))

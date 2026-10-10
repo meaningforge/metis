@@ -125,10 +125,10 @@ ceilings can be stricter and are never relaxed. Results are complete or fail;
 truncation cannot turn a failure into a pass.
 
 Precision safety covers request inputs as well as result expectations. The tool
-must reject numeric filter literals that lose precision through the current
-public query decoder; it must not silently change a request to make it executable.
-Time expectations beyond the supported nine fractional-second digits fail rather
-than truncate. These guards do not redefine public REST/MCP request semantics.
+preserves bounded numeric filter tokens exactly and delegates datatype/range
+admission to the same Resolver path as REST and MCP; it must not silently change
+a request to make it executable. Time expectations beyond the supported nine
+fractional-second digits fail rather than truncate.
 
 Report outputs cannot alias the suite or configuration. Explicit overwrite only
 permits recognizable Metis reports, never arbitrary model/source files. Stable

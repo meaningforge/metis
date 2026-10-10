@@ -106,6 +106,8 @@ func clickHouseFixtureType(logicalType enginefixture.LogicalType) (string, error
 		// physically inexact source as well. The compiled root cast, not fixture
 		// DDL, is responsible for delivering exact Decimal values to Runner.
 		return "Float64", nil
+	case enginefixture.ExactDecimal:
+		return "Decimal(38,20)", nil
 	case enginefixture.Boolean:
 		return "Bool", nil
 	case enginefixture.Date:

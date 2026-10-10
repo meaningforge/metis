@@ -9,8 +9,9 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
-// The SDK schema/defaulting path decodes untyped numbers before typed tool
-// input. Validate original filter bytes first so rounding cannot hide a loss.
+// The SDK schema/defaulting path may inspect untyped numbers before typed tool
+// input. Decode original filter bytes first so the canonical query decoder owns
+// exact numeric tokens and bounded syntax on every tool path.
 func guardFilterPrecision(next mcp.MethodHandler) mcp.MethodHandler {
 	return func(ctx context.Context, method string, request mcp.Request) (mcp.Result, error) {
 		if method == "tools/call" {

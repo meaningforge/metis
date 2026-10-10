@@ -34,17 +34,16 @@ level, duplicate keys or case IDs, multiple documents, YAML aliases, unsupported
 operations, or more than 100 cases are rejected. The suite is limited to 1 MiB.
 The CLI Project and every request Project must match the suite Project.
 
-Numeric filter literals must survive the existing query API's `float64` boundary
-without changing their decimal round-trip value; integer literals must also be
-exactly representable. Lossy values such as `9007199254740993` or
-`0.10000000000000000001` are rejected before execution, including inside arrays.
-Normal literals such as `0.1` and `1.25` remain supported. The tool reuses the
-shared query guard also enforced by REST, MCP and offline CLI decoding; this
-does not introduce a new numeric filter type. Quoted
-values remain strings, not a workaround that coerces strings into exact numbers.
-Filter numbers use bounded JSON decimal syntax (up to 256 characters and a
-three-digit exponent); YAML base prefixes, leading zeros, digit separators,
-and other unsupported numeric forms are rejected rather than reinterpreted.
+Numeric filter literals retain their exact YAML/JSON decimal token through the
+shared query decoder. Values such as `9007199254740993` and
+`0.10000000000000000001` therefore remain distinct, including inside arrays,
+until Resolver validates them against the target Integer, Decimal, or Float
+datatype. Quoted values remain strings, not a workaround that coerces strings
+into numbers. Filter numbers use bounded JSON decimal syntax (up to 256
+characters and a three-digit exponent); YAML base prefixes, leading zeros,
+digit separators, and other unsupported numeric forms are rejected rather than
+reinterpreted. Datatype range and compatibility failures use the same semantic
+error contract as REST, MCP, online validation, and the offline CLI.
 
 ```yaml
 schema_version: 1

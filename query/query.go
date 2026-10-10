@@ -138,7 +138,7 @@ func decodeFilterValue(raw json.RawMessage) (any, error) {
 
 func isFilterScalar(value any) bool {
 	switch value.(type) {
-	case string, float64, bool:
+	case string, json.Number, bool:
 		return true
 	default:
 		return false

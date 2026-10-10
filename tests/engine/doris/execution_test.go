@@ -155,6 +155,8 @@ func dorisFixtureType(logicalType enginefixture.LogicalType) (string, error) {
 		return "DOUBLE", nil
 	case enginefixture.Decimal:
 		return "DECIMAL(20,12)", nil
+	case enginefixture.ExactDecimal:
+		return "DECIMAL(38,20)", nil
 	case enginefixture.Boolean:
 		return "BOOLEAN", nil
 	case enginefixture.Date:

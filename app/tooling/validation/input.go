@@ -7,10 +7,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"math/big"
 	"os"
 	"reflect"
-	"strconv"
 	"strings"
 
 	"github.com/meaningforge/metis/query"
@@ -127,14 +125,6 @@ func strictShape(n *yaml.Node, typ reflect.Type) error {
 			if err := strictShape(child, childType); err != nil {
 				return err
 			}
-		}
-	} else if typ.Kind() == reflect.Interface && (n.Tag == "!!int" || n.Tag == "!!float") {
-		// Filter's public decoder stores numeric values in float64.
-		original, ok := new(big.Rat).SetString(n.Value)
-		value, err := strconv.ParseFloat(n.Value, 64)
-		roundtrip, valid := new(big.Rat).SetString(strconv.FormatFloat(value, 'g', -1, 64))
-		if !ok || !valid || err != nil || original.Cmp(roundtrip) != 0 {
-			return fmt.Errorf("filter numeric value loses precision")
 		}
 	}
 	return nil
