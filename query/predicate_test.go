@@ -109,15 +109,16 @@ func TestPredicateRejectsProgrammaticCyclesAndBudgets(t *testing.T) {
 	}
 }
 
-func TestPredicateNestedNumericGuardDoesNotDiscloseOperand(t *testing.T) {
+func TestPredicateNestedNumericLiteralRemainsExact(t *testing.T) {
 	const operand = "9007199254740993"
 	var predicate Predicate
 	err := json.Unmarshal([]byte(`{"kind":"not","child":{"kind":"filter","filter":{"field":"id","operator":"eq","value":`+operand+`}}}`), &predicate)
-	if err == nil {
-		t.Fatal("accepted lossy integer")
+	if err != nil {
+		t.Fatal(err)
 	}
-	if strings.Contains(err.Error(), operand) {
-		t.Fatalf("error disclosed operand: %v", err)
+	got, ok := predicate.Leaves()[0].Value.(json.Number)
+	if !ok || got.String() != operand {
+		t.Fatalf("numeric operand = %#v", predicate.Leaves()[0].Value)
 	}
 }
 
@@ -125,7 +126,7 @@ func TestPredicateCountsTheWholeStructureBeforeParsingNumbers(t *testing.T) {
 	leaf := func(index int) string {
 		value := "1"
 		if index == 0 {
-			value = "9007199254740993"
+			value = "1e9999"
 		}
 		return `{"kind":"filter","filter":{"field":"id","operator":"eq","value":` + value + `}}`
 	}

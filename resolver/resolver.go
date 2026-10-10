@@ -510,13 +510,21 @@ func resolveFilter(model *manifest.ModelIndex, f query.Filter) (ResolvedFilter, 
 		if len(datasets) == 0 {
 			return ResolvedFilter{}, invalidQuery("metric filter dataset cannot be determined from canonical dependency index", map[string]any{"metric": f.Field})
 		}
-		return ResolvedFilter{Filter: f, Kind: FilterTargetMetric, Metric: metric, MetricDatasets: datasets}, nil
+		normalized, err := normalizeFilterValue(f, metric.Datatype)
+		if err != nil {
+			return ResolvedFilter{}, err
+		}
+		return ResolvedFilter{Filter: normalized, Kind: FilterTargetMetric, Metric: metric, MetricDatasets: datasets}, nil
 	}
 	h, err := resolveField(model, f.Field)
 	if err != nil {
 		return ResolvedFilter{}, err
 	}
-	return ResolvedFilter{Filter: f, Kind: FilterTargetField, Dataset: h.Dataset, Field: h.Field}, nil
+	normalized, err := normalizeFilterValue(f, h.Field.Datatype)
+	if err != nil {
+		return ResolvedFilter{}, err
+	}
+	return ResolvedFilter{Filter: normalized, Kind: FilterTargetField, Dataset: h.Dataset, Field: h.Field}, nil
 }
 func validMetricFilterOperator(op query.FilterOperator) bool {
 	switch op {

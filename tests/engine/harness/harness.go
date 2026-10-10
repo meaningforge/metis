@@ -82,6 +82,7 @@ func RunSharedExecutionContract(t *testing.T, backend Backend) {
 		})
 	}
 	runRegisteredMetricScaleContract(t, backend)
+	runExactFilterNumbersContract(t, backend)
 	runDataPolicyContract(t, backend)
 }
 
@@ -107,6 +108,32 @@ func runRegisteredMetricScaleContract(t *testing.T, backend Backend) {
 		}
 		if err := compareResult(expected, actual); err != nil {
 			t.Fatalf("%s registered metric-scale result mismatch: %v", backend.Name, err)
+		}
+	})
+}
+
+func runExactFilterNumbersContract(t *testing.T, backend Backend) {
+	t.Helper()
+	t.Run(string(enginefixture.ExactFilterNumbers), func(t *testing.T) {
+		backend.Prepare(t, enginefixture.ExactFilterNumbers)
+		execution := backend.OpenExecution(t)
+		if execution == nil {
+			t.Fatalf("%s backend returned nil production Execution", backend.Name)
+		}
+		actual := execution.RunExactFilterNumbers(t)
+		value, err := scenarios.ParseResultValue(scenarios.ResultString, "target")
+		if err != nil {
+			t.Fatal(err)
+		}
+		expected := &scenarios.ResultExpectation{
+			ResultSet: scenarios.ResultSet{
+				Columns: []scenarios.ResultColumn{{Name: "id", ValueKind: scenarios.ResultString}},
+				Rows:    []scenarios.ResultRow{{value}},
+			},
+			Comparison: scenarios.ResultUnordered,
+		}
+		if err := compareResult(expected, actual); err != nil {
+			t.Fatalf("%s exact-filter result mismatch: %v", backend.Name, err)
 		}
 	})
 }

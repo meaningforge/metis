@@ -144,13 +144,20 @@ func serverParameter(value any) (string, string, error) {
 		if n, err := strconv.ParseUint(string(v), 10, 64); err == nil {
 			return "UInt64", strconv.FormatUint(n, 10), nil
 		}
-		// No float conversion of exact decimal evidence. Unsupported exponent or
-		// excessively wide decimals remain explicit until a typed contract exists.
+		// No float conversion of exact decimal evidence. Resolver expands query
+		// exponents and enforces the semantic datatype range before this binding.
 		s := string(v)
 		parts := strings.Split(s, ".")
-		if len(parts) == 2 && !strings.ContainsAny(s, "eE+") && len(strings.TrimPrefix(parts[0], "-"))+len(parts[1]) <= 76 && len(parts[1]) > 0 {
-			if _, err := json.Marshal(v); err == nil {
-				return fmt.Sprintf("Decimal(76,%d)", len(parts[1])), s, nil
+		if (len(parts) == 1 || len(parts) == 2) && !strings.ContainsAny(s, "eE+") {
+			scale := 0
+			if len(parts) == 2 {
+				scale = len(parts[1])
+			}
+			digits := len(strings.TrimPrefix(parts[0], "-")) + scale
+			if digits <= 76 && (len(parts) == 1 || scale > 0) {
+				if _, err := json.Marshal(v); err == nil {
+					return fmt.Sprintf("Decimal(76,%d)", scale), s, nil
+				}
 			}
 		}
 	}

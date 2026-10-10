@@ -20,7 +20,8 @@ nor changes fanout admission, metric aggregation, row policy, or time semantics.
 
 This contract is implemented across REST, MCP, the offline CLI, SemanticPlan,
 SQLPlan, and all built-in renderers. The numeric precision guard merged in PR
-#31 remains authoritative for every numeric leaf.
+#31's fail-closed boundary, now upgraded to exact typed numeric operands, remains
+authoritative for every numeric leaf.
 
 ## Motivation
 

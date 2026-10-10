@@ -1,6 +1,7 @@
 package validation
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -17,13 +18,22 @@ func TestInventoryStrictness(t *testing.T) {
 		strings.Replace(example, `"name":"total_revenue"`, `"name":"total_revenue","sql":"secret"`, 1),
 		strings.Replace(example, `"operator":"eq"`, `"operator":"eq","unknown":true`, 1),
 		strings.Replace(example, `"project":"sales"`, `"project":"sales","project":"sales"`, 1),
-		strings.Replace(example, `"value":"APAC"`, `"value":9007199254740993`, 1),
 		strings.Replace(example, `"sales"`, `"other"`, 1),
 		example + example,
 		`{"schema_version":1,"queries":[]}`,
 	} {
 		if _, err := ParseInventory([]byte(data), "sales"); err == nil {
 			t.Fatalf("accepted invalid inventory: %s", data)
+		}
+	}
+	for _, literal := range []string{"9007199254740993", "0.10000000000000000001"} {
+		input := strings.Replace(example, `"value":"APAC"`, `"value":`+literal, 1)
+		inventory, err := ParseInventory([]byte(input), "sales")
+		if err != nil {
+			t.Fatalf("exact numeric filter %s: %v", literal, err)
+		}
+		if got := inventory.Queries[0].Query.Filters.Leaves()[0].Value; fmt.Sprint(got) != literal {
+			t.Fatalf("numeric filter = %#v, want %s", got, literal)
 		}
 	}
 }
