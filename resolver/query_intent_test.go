@@ -60,7 +60,7 @@ func TestDistinctValuesIntentRejectsMetricFiltersAndOrdering(t *testing.T) {
 	metricFilter := query.SemanticQuery{
 		Model: "sales", Intent: query.QueryIntentDistinctValues,
 		Dimensions: []query.DimensionRef{{Name: "region"}},
-		Filters:    []query.Filter{{Field: "total_revenue", Operator: query.FilterGT, Value: 100}},
+		Filters:    []query.Filter{{Field: "total_revenue", Operator: query.FilterGT, Value: "100"}},
 	}
 	if err := resolveDistinctValues(t, metricFilter); err == nil || !strings.Contains(err.Error(), "metric filters") {
 		t.Fatalf("metric filter error = %v", err)

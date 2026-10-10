@@ -119,13 +119,13 @@ func TestPostAggregationDefinitionFilterTargetsOwningMetric(t *testing.T) {
 	valid := MetricDefinitionFilterSpec{
 		Kind:    MetricExtensionDefinitionFilter,
 		Stage:   MetricDefinitionFilterStagePostAggregation,
-		Filters: []query.Filter{{Field: "conversion_rate", Operator: query.FilterGTE, Value: 0.5}},
+		Filters: []query.Filter{{Field: "conversion_rate", Operator: query.FilterGTE, Value: "0.5"}},
 	}
 	if err := ValidateMetricDefinitionFilterModel(model, "conversion_rate", valid); err != nil {
 		t.Fatal(err)
 	}
 	invalid := valid
-	invalid.Filters = []query.Filter{{Field: "revenue", Operator: query.FilterGTE, Value: 100}}
+	invalid.Filters = []query.Filter{{Field: "revenue", Operator: query.FilterGTE, Value: "100"}}
 	if err := ValidateMetricDefinitionFilterModel(model, "conversion_rate", invalid); err == nil {
 		t.Fatal("expected foreign metric target to fail")
 	}
@@ -158,7 +158,7 @@ semantic_model:
         expression: {dialects: [{dialect: ANSI_SQL, expression: "revenue / order_count"}]}
         custom_extensions:
           - vendor_name: METIS
-            data: '{"kind":"definition_filter","stage":"post_aggregation","filters":[{"field":"average_order_value","operator":"gte","value":50}]}'
+            data: '{"kind":"definition_filter","stage":"post_aggregation","filters":[{"field":"average_order_value","operator":"gte","value":"50"}]}'
 `)
 	if _, err := NewLoader().Load(model); err != nil {
 		t.Fatalf("post-aggregation definition filter model: %v", err)

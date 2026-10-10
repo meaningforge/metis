@@ -33,24 +33,24 @@ var compositionScenarios = []Scenario{
 	}(), ResultLiteral{"2026-01-01", NullValue}, ResultLiteral{"2026-02-01", "-0.8333333333333334"}, ResultLiteral{"2026-03-01", NullValue}),
 	resultScenario("metric_filter_derived_metric", CategoryComposition, []Capability{CapabilityAggregation, CapabilityDimension, CapabilityDerived, CapabilityMetricFilter}, func() query.SemanticQuery {
 		q := semanticQuery([]string{"revenue"}, []query.DimensionRef{{Name: "status"}})
-		q.Filters = []query.Filter{{Field: "contribution_margin", Operator: query.FilterBetween, Value: []int{100, 10000}}}
+		q.Filters = []query.Filter{{Field: "contribution_margin", Operator: query.FilterBetween, Value: []string{"100", "10000"}}}
 		return q
 	}(), ResultLiteral{"paid", "300"}),
 	resultScenario("metric_filter_time_offset_metric", CategoryComposition, []Capability{CapabilityAggregation, CapabilityDimension, CapabilityTimeGrain, CapabilityTimeOffset, CapabilityMetricFilter}, func() query.SemanticQuery {
 		grain := query.TimeGrainMonth
 		q := semanticQuery([]string{"revenue"}, []query.DimensionRef{{Name: "order_date", Grain: &grain}})
-		q.Filters = []query.Filter{{Field: "previous_month_revenue", Operator: query.FilterGT, Value: 0}}
+		q.Filters = []query.Filter{{Field: "previous_month_revenue", Operator: query.FilterGT, Value: "0"}}
 		return q
 	}(), ResultLiteral{"2026-02-01", "50"}),
 	resultScenario("metric_filter_with_dimension_filter", CategoryComposition, []Capability{CapabilityAggregation, CapabilityDimension, CapabilityFilter, CapabilityMetricFilter}, func() query.SemanticQuery {
 		q := semanticQuery([]string{"revenue"}, []query.DimensionRef{{Name: "status"}})
-		q.Filters = []query.Filter{{Field: "status", Operator: query.FilterEQ, Value: "paid"}, {Field: "revenue", Operator: query.FilterGT, Value: 100}}
+		q.Filters = []query.Filter{{Field: "status", Operator: query.FilterEQ, Value: "paid"}, {Field: "revenue", Operator: query.FilterGT, Value: "100"}}
 		return q
 	}(), ResultLiteral{"paid", "300"}),
 	resultScenario("metric_filter_cumulative_metric", CategoryComposition, []Capability{CapabilityAggregation, CapabilityDimension, CapabilityTimeGrain, CapabilityCumulative, CapabilityMetricFilter}, func() query.SemanticQuery {
 		grain := query.TimeGrainMonth
 		q := semanticQuery([]string{"cumulative_revenue"}, []query.DimensionRef{{Name: "order_date", Grain: &grain}})
-		q.Filters = []query.Filter{{Field: "cumulative_revenue", Operator: query.FilterGT, Value: 300}}
+		q.Filters = []query.Filter{{Field: "cumulative_revenue", Operator: query.FilterGT, Value: "300"}}
 		return q
 	}(), ResultLiteral{"2026-02-01", "350"}),
 }

@@ -83,7 +83,7 @@ func TestFilterOnlyDerivedMetricInheritsCanonicalTimeBinding(t *testing.T) {
 		Project: "metricflow-reference", Model: "commerce",
 		Metrics:    []query.MetricRef{{Name: "revenue"}},
 		Dimensions: []query.DimensionRef{{Name: "order_date", Grain: &grain}},
-		Filters:    []query.Filter{{Field: "revenue_growth_rate", Operator: query.FilterGT, Value: 0}},
+		Filters:    []query.Filter{{Field: "revenue_growth_rate", Operator: query.FilterGT, Value: "0"}},
 	}
 	resolved, err := r.Resolve(context.Background(), q)
 	if err != nil {

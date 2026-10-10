@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/jsonschema-go/jsonschema"
 	service "github.com/meaningforge/metis/app/service/semantic"
 	"github.com/meaningforge/metis/renderer"
 	"github.com/meaningforge/metis/renderer/builtin"
@@ -113,6 +114,54 @@ func TestSemanticQueryMCPInputsExposeTaggedPredicateObject(t *testing.T) {
 			t.Fatalf("%s still advertises the retired filter array: %s", name, text)
 		}
 	}
+}
+
+func TestMCPFilterValueSchemasUseStringLiterals(t *testing.T) {
+	for name, schema := range map[string]*jsonschema.Schema{
+		"compile_sql":      compileInputSchema(),
+		"query_metrics":    queryMetricsInputSchema(),
+		"attribute_metric": attributeMetricInputSchema(),
+		"compare_metrics":  compareMetricsInputSchema(),
+	} {
+		values := filterValueSchemas(schema)
+		if len(values) == 0 {
+			t.Fatalf("%s schema has no filter value", name)
+		}
+		for _, value := range values {
+			if len(value.OneOf) != 2 || value.OneOf[0].Type != "string" || value.OneOf[1].Type != "array" || value.OneOf[1].Items == nil || value.OneOf[1].Items.Type != "string" {
+				t.Fatalf("%s filter value schema = %#v", name, value)
+			}
+		}
+	}
+}
+
+func filterValueSchemas(root *jsonschema.Schema) []*jsonschema.Schema {
+	seen := map[*jsonschema.Schema]bool{}
+	var out []*jsonschema.Schema
+	var visit func(*jsonschema.Schema)
+	visit = func(schema *jsonschema.Schema) {
+		if schema == nil || seen[schema] {
+			return
+		}
+		seen[schema] = true
+		if schema.Properties != nil && schema.Properties["field"] != nil && schema.Properties["operator"] != nil && schema.Properties["value"] != nil {
+			out = append(out, schema.Properties["value"])
+		}
+		for _, child := range schema.Properties {
+			visit(child)
+		}
+		for _, child := range schema.Defs {
+			visit(child)
+		}
+		visit(schema.Items)
+		for _, list := range [][]*jsonschema.Schema{schema.AllOf, schema.AnyOf, schema.OneOf} {
+			for _, child := range list {
+				visit(child)
+			}
+		}
+	}
+	visit(root)
+	return out
 }
 
 func TestQueryMetricsToolRegistersOnlyWhenServiceIsProvided(t *testing.T) {

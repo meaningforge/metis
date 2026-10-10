@@ -92,4 +92,4 @@ semantic_model:
               expression: revenue / order_count
         custom_extensions:
           - vendor_name: METIS
-            data: '{"kind":"definition_filter","stage":"post_aggregation","filters":[{"field":"average_order_value","operator":"gte","value":50}]}'
+            data: '{"kind":"definition_filter","stage":"post_aggregation","filters":[{"field":"average_order_value","operator":"gte","value":"50"}]}'

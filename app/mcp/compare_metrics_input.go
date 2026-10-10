@@ -12,5 +12,6 @@ func compareMetricsInputSchema() *jsonschema.Schema {
 	if err != nil {
 		panic(fmt.Sprintf("build compare_metrics MCP input schema: %v", err))
 	}
+	attachFlatFilterSchema(schema)
 	return schema
 }

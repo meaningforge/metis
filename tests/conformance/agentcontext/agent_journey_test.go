@@ -95,7 +95,7 @@ func TestMetricFilterDoesNotProjectFilterOnlyMetric(t *testing.T) {
 			Type: service.AgentGroupByDimension,
 		}},
 		Filters: []query.Filter{{
-			Field: "metric:commerce.contribution_margin", Operator: query.FilterBetween, Value: []int{100, 10000},
+			Field: "metric:commerce.contribution_margin", Operator: query.FilterBetween, Value: []string{"100", "10000"},
 		}},
 	})
 	if err != nil {

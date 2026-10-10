@@ -74,7 +74,7 @@ semantic_model:
         expression: {dialects: [{dialect: ANSI_SQL, expression: "revenue / orders"}]}
         custom_extensions:
           - vendor_name: METIS
-            data: '{"kind":"definition_filter","stage":"post_aggregation","filters":[{"field":"average_order_value","operator":"gte","value":50}]}'
+            data: '{"kind":"definition_filter","stage":"post_aggregation","filters":[{"field":"average_order_value","operator":"gte","value":"50"}]}'
 `
 
 func TestMetricDefinitionFilterIsOwnedBySourceMetric(t *testing.T) {
@@ -106,7 +106,7 @@ func TestMetricDefinitionFilterComposesWithQueryPredicate(t *testing.T) {
 	resolved := resolveMetricEvaluation(t, metricDefinitionFilterModel, query.SemanticQuery{
 		Model:   "sales",
 		Metrics: []query.MetricRef{{Name: "gold_revenue"}},
-		Filters: []query.Filter{{Field: "amount", Operator: query.FilterGT, Value: 0}},
+		Filters: []query.Filter{{Field: "amount", Operator: query.FilterGT, Value: "0"}},
 	})
 	plan, err := planner.New().Plan(context.Background(), resolved, mustRenderer(t, "DUCKDB"))
 	if err != nil {
@@ -145,7 +145,7 @@ func TestPostAggregateDefinitionFilterComposesWithQueryMetricPredicate(t *testin
 	resolved := resolveMetricEvaluation(t, postAggregateDefinitionFilterModel, query.SemanticQuery{
 		Model:   "sales",
 		Metrics: []query.MetricRef{{Name: "average_order_value"}},
-		Filters: []query.Filter{{Field: "average_order_value", Operator: query.FilterLTE, Value: 100}},
+		Filters: []query.Filter{{Field: "average_order_value", Operator: query.FilterLTE, Value: "100"}},
 	})
 	plan, err := planner.New().Plan(context.Background(), resolved, mustRenderer(t, "DUCKDB"))
 	if err != nil {

@@ -73,8 +73,8 @@ func strictShape(n *yaml.Node, typ reflect.Type) error {
 		typ = typ.Elem()
 	}
 	// Predicate is a tagged recursive sum with its own strict JSON decoder.
-	// Traverse it as raw structure here so duplicate keys and numeric precision
-	// remain visible, then let query.Predicate enforce its closed grammar.
+	// Traverse it as raw structure here so duplicate keys remain visible, then
+	// let query.Predicate enforce its closed grammar and string operands.
 	if typ == reflect.TypeOf(query.Predicate{}) {
 		typ = reflect.TypeOf((*any)(nil)).Elem()
 	}

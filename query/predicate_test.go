@@ -53,7 +53,7 @@ func TestPredicateRoundTripPreservesRelationshipExistence(t *testing.T) {
 func TestPredicateRootAndHasTheSameConjunctsForJSONAndGoConstruction(t *testing.T) {
 	root := Logical(PredicateAnd,
 		Logical(PredicateOr, Leaf("region", FilterEQ, "APAC"), Leaf("tier", FilterEQ, "enterprise")),
-		Leaf("revenue", FilterGT, 100),
+		Leaf("revenue", FilterGT, "100"),
 	)
 	programmatic := Predicate{root}
 	encoded, err := json.Marshal(programmatic)
@@ -97,7 +97,7 @@ func TestPredicateRejectsProgrammaticCyclesAndBudgets(t *testing.T) {
 	}
 	tooMany := make([]Filter, 33)
 	for i := range tooMany {
-		tooMany[i] = Leaf("region", FilterEQ, i)
+		tooMany[i] = Leaf("region", FilterEQ, "APAC")
 	}
 	if err := (Predicate{Logical(PredicateOr, tooMany...)}).Validate(); err == nil {
 		t.Fatal("accepted excessive fanout")
@@ -109,26 +109,30 @@ func TestPredicateRejectsProgrammaticCyclesAndBudgets(t *testing.T) {
 	}
 }
 
-func TestPredicateNestedNumericLiteralRemainsExact(t *testing.T) {
+func TestPredicateNestedNumericStringRemainsExact(t *testing.T) {
 	const operand = "9007199254740993"
 	var predicate Predicate
-	err := json.Unmarshal([]byte(`{"kind":"not","child":{"kind":"filter","filter":{"field":"id","operator":"eq","value":`+operand+`}}}`), &predicate)
+	err := json.Unmarshal([]byte(`{"kind":"not","child":{"kind":"filter","filter":{"field":"id","operator":"eq","value":"`+operand+`"}}}`), &predicate)
 	if err != nil {
 		t.Fatal(err)
 	}
-	got, ok := predicate.Leaves()[0].Value.(json.Number)
-	if !ok || got.String() != operand {
+	got, ok := predicate.Leaves()[0].Value.(string)
+	if !ok || got != operand {
 		t.Fatalf("numeric operand = %#v", predicate.Leaves()[0].Value)
 	}
 }
 
-func TestPredicateCountsTheWholeStructureBeforeParsingNumbers(t *testing.T) {
+func TestPredicateRejectsNonStringOperand(t *testing.T) {
+	var predicate Predicate
+	err := json.Unmarshal([]byte(`{"kind":"filter","filter":{"field":"id","operator":"eq","value":1}}`), &predicate)
+	if err == nil || !strings.Contains(err.Error(), "string") {
+		t.Fatalf("validation = %v, want string operand error", err)
+	}
+}
+
+func TestPredicateCountsTheWholeStringStructure(t *testing.T) {
 	leaf := func(index int) string {
-		value := "1"
-		if index == 0 {
-			value = "1e9999"
-		}
-		return `{"kind":"filter","filter":{"field":"id","operator":"eq","value":` + value + `}}`
+		return `{"kind":"filter","filter":{"field":"id","operator":"eq","value":"1"}}`
 	}
 	groups := make([]string, 3)
 	next := 0

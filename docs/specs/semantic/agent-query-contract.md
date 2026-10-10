@@ -25,18 +25,21 @@ Planner, optimizer, and compiler still receive the same canonical
 
 Natural-language interpretation remains outside Metis Core.
 
-Numeric filter operands retain the original bounded JSON number token until the
-Resolver knows the target semantic datatype. Integer filters accept exact signed
-64-bit integers; Decimal filters accept exact values with up to 38 digits of SQL
-precision and scale; Float filters use finite float64 semantics. Numeric values
-are rejected for String, Boolean, and temporal fields, and quoted values remain
-strings rather than an implicit numeric cast. These rules apply to scalars and
-every `in`, `not_in`, or `between` member. Numbers are limited to 256 characters
-and a three-digit exponent, and out-of-range/type errors never echo the operand.
-REST, MCP, offline CLI, online validation, and semantic regression suites share
-this path. Thus `9007199254740993` and `0.10000000000000000001` reach compatible
-Integer/Decimal database parameters without float64 rounding; precision already
-lost by a caller before JSON encoding cannot be recovered.
+Public filter operands are string literals or flat string arrays. The Resolver
+interprets each literal only after resolving the target semantic datatype:
+String and Opaque remain strings; Boolean accepts exactly `"true"` or `"false"`;
+Integer accepts exact signed 64-bit decimal literals; Decimal accepts exact
+values with up to 38 digits of SQL precision and scale; Float uses finite
+float64 semantics; temporal datatypes use their documented ISO forms. The same
+rules apply to every `in`, `not_in`, or `between` member. Numeric literals are
+limited to 256 characters and a three-digit exponent. Out-of-range/type errors
+never echo the operand.
+
+REST, MCP, offline CLI, online validation, semantic regression suites, and Go
+query construction share this contract. Thus `"9007199254740993"` and
+`"0.10000000000000000001"` reach compatible Integer/Decimal database parameters
+without JSON-number rounding. The public contract does not expose database
+casts, SQL expressions, functions, or a free-form `where` language.
 
 Filter operators are also checked against the resolved semantic datatype before
 planning. Boolean and Opaque fields support equality, membership, and null
@@ -159,12 +162,13 @@ one declared `relationship` and one target-side `where` predicate. Limits are de
 128 nodes, 64 leaves, 256 scalar operands, and 64 KiB of scalar data per
 predicate. Core applies these limits to JSON and programmatic Go construction.
 
-The JSON representation of `Filter.value` preserves natural JSON values:
+The JSON representation of `Filter.value` is intentionally small:
 
-- string, number, and boolean scalars are accepted;
-- `null` is representable for operators whose semantic validation permits it;
-- a flat array of scalar or null values is accepted for set/range operators;
-- JSON objects and nested arrays are rejected.
+- one string literal is accepted for scalar operators;
+- a flat string array is accepted for set/range operators;
+- `is_null` and `is_not_null` omit `value`;
+- JSON numbers, booleans, null array members, objects, and nested arrays are
+  rejected at the query boundary.
 
 Operator-specific arity and nullability remain Resolver validation
 responsibilities.
@@ -172,9 +176,9 @@ responsibilities.
 The MCP input schema exposes the tagged recursive grammar and enumerates the
 supported leaf operator vocabulary directly:
 `eq`, `neq`, `gt`, `gte`, `lt`, `lte`, `in`, `not_in`, `between`, `is_null`,
-and `is_not_null`. `between` is inclusive and takes a two-item array; `in` and
-`not_in` take arrays; null operators omit `value`. Dates and timestamps use
-ISO-8601 strings.
+and `is_not_null`. `between` is inclusive and takes a two-item string array;
+`in` and `not_in` take string arrays; null operators omit `value`. Dates and
+timestamps use ISO-8601 strings.
 
 The root `and` may retain independently staged ordinary metric or eligible time
 leaves. V1 admits `or` and `not` only when all leaves resolve to non-time

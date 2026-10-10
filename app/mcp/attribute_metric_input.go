@@ -12,5 +12,6 @@ func attributeMetricInputSchema() *jsonschema.Schema {
 	if err != nil {
 		panic(fmt.Sprintf("build attribute_metric MCP input schema: %v", err))
 	}
+	attachFlatFilterSchema(schema)
 	return schema
 }

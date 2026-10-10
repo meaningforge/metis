@@ -40,7 +40,7 @@ func TestFingerprintMetricEvaluationPlanIsDeterministicAndRootCanonical(t *testi
 	resolved := resolveMetricEvaluation(t, metricEvaluationModel, query.SemanticQuery{
 		Model:   "finance",
 		Metrics: []query.MetricRef{{Name: "revenue"}},
-		Filters: []query.Filter{{Field: "revenue", Operator: query.FilterGT, Value: float64(0)}},
+		Filters: []query.Filter{{Field: "revenue", Operator: query.FilterGT, Value: "0"}},
 	})
 	plan, err := evaluation.BuildMetricEvaluationPlan(resolved)
 	if err != nil {

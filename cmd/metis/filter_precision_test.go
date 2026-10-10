@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func TestOfflineRequestPreservesExactFilterNumbers(t *testing.T) {
+func TestOfflineRequestRequiresStringFilterOperands(t *testing.T) {
 	decodeQueryRequest := func(data []byte) (QueryRequest, error) {
 		path := filepath.Join(t.TempDir(), "request.json")
 		if err := os.WriteFile(path, data, 0600); err != nil {
@@ -16,12 +16,12 @@ func TestOfflineRequestPreservesExactFilterNumbers(t *testing.T) {
 		}
 		return LoadRequestFile(path)
 	}
-	for _, operand := range []string{"9007199254740993", "0.10000000000000000001", "[9007199254740992,9007199254740993]", "[0,1e-400]"} {
+	for _, operand := range []string{`"9007199254740993"`, `"0.10000000000000000001"`, `["9007199254740992","9007199254740993"]`, `["0","1e-400"]`} {
 		if _, err := decodeQueryRequest([]byte(`{"filters":{"kind":"filter","filter":{"field":"amount","operator":"in","value":` + operand + `}}}`)); err != nil {
 			t.Fatalf("exact operand %s: %v", operand, err)
 		}
 	}
-	for _, operand := range []string{"1e9999", "+1", "01"} {
+	for _, operand := range []string{"1", "true", `["1",2]`} {
 		if _, err := decodeQueryRequest([]byte(`{"filters":{"kind":"filter","filter":{"field":"amount","operator":"eq","value":` + operand + `}}}`)); err == nil {
 			t.Fatalf("accepted unsupported operand %s", operand)
 		}
@@ -30,7 +30,7 @@ func TestOfflineRequestPreservesExactFilterNumbers(t *testing.T) {
 
 func TestOfflineCompatibleDecimalReachesCompiler(t *testing.T) {
 	var req QueryRequest
-	if err := json.Unmarshal([]byte(`{"metrics":["total_revenue"],"filters":{"kind":"filter","filter":{"field":"total_revenue","operator":"gte","value":0.1}}}`), &req); err != nil {
+	if err := json.Unmarshal([]byte(`{"metrics":["total_revenue"],"filters":{"kind":"filter","filter":{"field":"total_revenue","operator":"gte","value":"0.1"}}}`), &req); err != nil {
 		t.Fatal(err)
 	}
 	result, err := Compile(context.Background(), testDocument(), "DUCKDB", req, false)

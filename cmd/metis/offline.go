@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"os"
 	"regexp"
-	"strconv"
 	"strings"
 
 	"github.com/meaningforge/metis/ossie"
@@ -139,7 +138,7 @@ func genSQL(args []string) int {
 			fmt.Fprintln(os.Stderr, "ERROR: --time-range must be start,end")
 			return 2
 		}
-		req.Filters = append(req.Filters, query.Leaf(field, query.FilterBetween, []any{strings.TrimSpace(parts[0]), strings.TrimSpace(parts[1])}))
+		req.Filters = append(req.Filters, query.Leaf(field, query.FilterBetween, []string{strings.TrimSpace(parts[0]), strings.TrimSpace(parts[1])}))
 	}
 
 	result, err := Compile(context.Background(), doc, strings.ToUpper(strings.TrimSpace(*dialect)), req, *strict)
@@ -247,24 +246,8 @@ func parseFilter(raw string) (query.Filter, error) {
 	value := strings.TrimSpace(m[3])
 	if len(value) >= 2 && ((value[0] == '\'' && value[len(value)-1] == '\'') || (value[0] == '"' && value[len(value)-1] == '"')) {
 		value = value[1 : len(value)-1]
-		return query.Leaf(m[1], op, value), nil
-	}
-	if b, err := strconv.ParseBool(value); err == nil {
-		return query.Leaf(m[1], op, b), nil
-	}
-	if n, err := query.ParseFilterNumber(value); err == nil {
-		return query.Leaf(m[1], op, n), nil
-	} else if filterNumberLike(value) {
-		return query.Filter{}, err
 	}
 	return query.Leaf(m[1], op, value), nil
-}
-
-func filterNumberLike(value string) bool {
-	if value == "" {
-		return false
-	}
-	return (value[0] >= '0' && value[0] <= '9') || value[0] == '-' || value[0] == '+' || value[0] == '.'
 }
 
 func inferTimeField(doc *ossie.Document, requestedModel string, dimensions []Dimension) (string, error) {

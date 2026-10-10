@@ -9,10 +9,9 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
-// The SDK schema/defaulting path may inspect untyped numbers before typed tool
-// input. Decode original filter bytes first so the canonical query decoder owns
-// exact numeric tokens and bounded syntax on every tool path.
-func guardFilterPrecision(next mcp.MethodHandler) mcp.MethodHandler {
+// Decode original filter bytes before the SDK constructs typed tool input so
+// every MCP path enforces the shared string-literal operand contract.
+func guardFilterOperands(next mcp.MethodHandler) mcp.MethodHandler {
 	return func(ctx context.Context, method string, request mcp.Request) (mcp.Result, error) {
 		if method == "tools/call" {
 			if params, ok := request.GetParams().(*mcp.CallToolParamsRaw); ok {
@@ -25,7 +24,7 @@ func guardFilterPrecision(next mcp.MethodHandler) mcp.MethodHandler {
 					err = json.Unmarshal(params.Arguments, &input)
 				case ToolAttributeMetric, ToolCompareMetrics:
 					// These workflows deliberately retain their flat conjunction
-					// contract in RFC-0091, but still require the shared numeric guard.
+					// contract in RFC-0091, but still require the shared operand guard.
 					var input struct {
 						Filters []query.Filter `json:"filters"`
 					}
