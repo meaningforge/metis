@@ -146,6 +146,10 @@ For example, an Integer filter value of `9007199254740993` and a Decimal filter
 value of `0.10000000000000000001` are parameterized without first passing
 through float64. Incompatible or out-of-range operands return
 `INVALID_FILTER_VALUE` without disclosing the value.
+The Resolver also rejects ordered comparisons for Boolean and Opaque fields and
+validates Date, Time, DateTime, and DateTimeTz literals before planning. A query
+targets one selected data source; Metis does not perform cross-database query
+execution.
 Explain generates SQL without executing it.
 
 To filter source metrics by matching rows on one declared detail relationship

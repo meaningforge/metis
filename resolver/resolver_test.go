@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"reflect"
 	"strings"
 	"testing"
@@ -55,6 +56,22 @@ semantic_model:
             expression:
               dialects: [{dialect: ANSI_SQL, expression: orders.order_date}]
             dimension: {}
+          - name: order_time
+            datatype: Time
+            expression:
+              dialects: [{dialect: ANSI_SQL, expression: orders.order_time}]
+          - name: created_at
+            datatype: DateTime
+            expression:
+              dialects: [{dialect: ANSI_SQL, expression: orders.created_at}]
+          - name: occurred_at
+            datatype: DateTimeTz
+            expression:
+              dialects: [{dialect: ANSI_SQL, expression: orders.occurred_at}]
+          - name: native_value
+            datatype: Opaque
+            expression:
+              dialects: [{dialect: ANSI_SQL, expression: orders.native_value}]
       - name: customer
         source: sales.public.customer
         fields:
@@ -67,6 +84,10 @@ semantic_model:
             expression:
               dialects: [{dialect: ANSI_SQL, expression: customer.region}]
             dimension: {}
+          - name: vip
+            datatype: Boolean
+            expression:
+              dialects: [{dialect: ANSI_SQL, expression: customer.vip}]
     relationships:
       - name: orders_to_customer
         from: orders
@@ -246,6 +267,87 @@ func TestResolveRejectsDatatypeIncompatibleFilterOperandsWithoutDisclosure(t *te
 			t.Fatalf("%s error = %v", tc.field, err)
 		}
 		if strings.Contains(err.Error(), tc.operand) {
+			t.Fatalf("error disclosed operand: %v", err)
+		}
+	}
+}
+
+func TestResolveRejectsDatatypeIncompatibleFilterOperators(t *testing.T) {
+	r := newResolver(t)
+	for _, filter := range []query.Filter{
+		{Field: "active", Operator: query.FilterGT, Value: true},
+		{Field: "active", Operator: query.FilterBetween, Value: []bool{false, true}},
+		{Field: "native_value", Operator: query.FilterLTE, Value: "vendor-value"},
+		{Field: "native_value", Operator: query.FilterBetween, Value: []string{"a", "z"}},
+	} {
+		_, err := r.Resolve(context.Background(), query.SemanticQuery{Model: "sales", Metrics: []query.MetricRef{{Name: "total_revenue"}}, Filters: []query.Filter{filter}})
+		assertErrorCode(t, err, serrors.ErrInvalidFilterValue)
+	}
+}
+
+func TestResolveRejectsDatatypeIncompatibleOperatorsAcrossPredicateForms(t *testing.T) {
+	r := newResolver(t)
+	queries := []query.SemanticQuery{
+		{
+			Model:   "sales",
+			Metrics: []query.MetricRef{{Name: "total_revenue"}},
+			Filters: query.Predicate{query.Logical(query.PredicateOr,
+				query.Leaf("active", query.FilterGT, true),
+				query.Leaf("active", query.FilterEQ, true),
+			)},
+		},
+		{
+			Model:   "sales",
+			Metrics: []query.MetricRef{{Name: "total_revenue"}},
+			Filters: query.Predicate{query.Exists("orders_to_customer",
+				query.Leaf("customer.vip", query.FilterLT, true),
+			)},
+		},
+	}
+	for _, semanticQuery := range queries {
+		_, err := r.Resolve(context.Background(), semanticQuery)
+		assertErrorCode(t, err, serrors.ErrInvalidFilterValue)
+	}
+}
+
+func TestResolveAcceptsSupportedBooleanAndOpaqueFilterOperators(t *testing.T) {
+	r := newResolver(t)
+	filters := []query.Filter{
+		{Field: "active", Operator: query.FilterEQ, Value: true},
+		{Field: "active", Operator: query.FilterIN, Value: []bool{false, true}},
+		{Field: "active", Operator: query.FilterIsNotNull},
+		{Field: "native_value", Operator: query.FilterEQ, Value: "vendor-value"},
+		{Field: "native_value", Operator: query.FilterNotIn, Value: []string{"a", "b"}},
+		{Field: "native_value", Operator: query.FilterIsNull},
+	}
+	if _, err := r.Resolve(context.Background(), query.SemanticQuery{Model: "sales", Metrics: []query.MetricRef{{Name: "total_revenue"}}, Filters: filters}); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestResolveValidatesTemporalFilterLiterals(t *testing.T) {
+	r := newResolver(t)
+	valid := []query.Filter{
+		{Field: "order_date", Operator: query.FilterEQ, Value: "2026-09-09"},
+		{Field: "order_time", Operator: query.FilterBetween, Value: []string{"12:30:45", "12:30:45.123456789"}},
+		{Field: "created_at", Operator: query.FilterGTE, Value: "2026-09-09T12:30:45.123"},
+		{Field: "created_at", Operator: query.FilterLT, Value: "2026-09-09T12:30:45Z"},
+		{Field: "occurred_at", Operator: query.FilterLT, Value: "2026-09-09T12:30:45+08:00"},
+	}
+	if _, err := r.Resolve(context.Background(), query.SemanticQuery{Model: "sales", Metrics: []query.MetricRef{{Name: "total_revenue"}}, Filters: valid}); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, filter := range []query.Filter{
+		{Field: "order_date", Operator: query.FilterEQ, Value: "2026-02-30"},
+		{Field: "order_time", Operator: query.FilterEQ, Value: "25:00:00"},
+		{Field: "created_at", Operator: query.FilterEQ, Value: "2026-09-09 12:30:45"},
+		{Field: "occurred_at", Operator: query.FilterEQ, Value: "2026-09-09T12:30:45"},
+		{Field: "order_date", Operator: query.FilterIN, Value: []string{"2026-09-09", "not-a-date"}},
+	} {
+		_, err := r.Resolve(context.Background(), query.SemanticQuery{Model: "sales", Metrics: []query.MetricRef{{Name: "total_revenue"}}, Filters: []query.Filter{filter}})
+		assertErrorCode(t, err, serrors.ErrInvalidFilterValue)
+		if strings.Contains(err.Error(), fmt.Sprint(filter.Value)) {
 			t.Fatalf("error disclosed operand: %v", err)
 		}
 	}

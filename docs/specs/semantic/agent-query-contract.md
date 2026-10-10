@@ -38,6 +38,16 @@ this path. Thus `9007199254740993` and `0.10000000000000000001` reach compatible
 Integer/Decimal database parameters without float64 rounding; precision already
 lost by a caller before JSON encoding cannot be recovered.
 
+Filter operators are also checked against the resolved semantic datatype before
+planning. Boolean and Opaque fields support equality, membership, and null
+tests, but not ordered comparison or `between`. String, numeric, and temporal
+fields support the full operator vocabulary. Date, Time, DateTime, and
+DateTimeTz operands must respectively use `YYYY-MM-DD`, ISO local time, ISO
+date-time (with an optional explicit offset), and RFC3339 forms; invalid
+calendar or clock values fail with `INVALID_FILTER_VALUE` without echoing the
+operand. These are semantic query rules for one selected source target. Core
+does not coordinate types, joins, or execution across databases.
+
 `attribute_metric` contains no dialect, DataSource, target, Renderer, Driver,
 limit, ordering, top-k, or raw predicate field. Its periods are exact RFC3339
 instants with explicit offsets. Agents select refs and periods, but must not
