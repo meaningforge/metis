@@ -218,12 +218,12 @@ func TestResolveMetricAndDimensionAcrossRelationship(t *testing.T) {
 	}
 }
 
-func TestResolvePreservesExactNumericFilterOperandsByDatatype(t *testing.T) {
+func TestResolveParsesStringFilterOperandsByDatatype(t *testing.T) {
 	r := newResolver(t)
 	var q query.SemanticQuery
 	body := `{"project":"ignored","model":"sales","metrics":[{"name":"total_revenue"}],"filters":{"kind":"and","children":[` +
-		`{"kind":"filter","filter":{"field":"order_number","operator":"eq","value":9007199254740993}},` +
-		`{"kind":"filter","filter":{"field":"amount","operator":"between","value":[0.10000000000000000001,1e3]}}]}}`
+		`{"kind":"filter","filter":{"field":"order_number","operator":"eq","value":"9007199254740993"}},` +
+		`{"kind":"filter","filter":{"field":"amount","operator":"between","value":["0.10000000000000000001","1e3"]}}]}}`
 	if err := json.Unmarshal([]byte(body), &q); err != nil {
 		t.Fatal(err)
 	}
@@ -231,12 +231,35 @@ func TestResolvePreservesExactNumericFilterOperandsByDatatype(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := resolved.Filters[0].Filter.Value; got != json.Number("9007199254740993") {
+	if got := resolved.Filters[0].Filter.Value; got != int64(9007199254740993) {
 		t.Fatalf("integer operand = %#v", got)
 	}
 	values, ok := resolved.Filters[1].Filter.Value.([]any)
 	if !ok || !reflect.DeepEqual(values, []any{json.Number("0.10000000000000000001"), json.Number("1000")}) {
 		t.Fatalf("decimal operands = %#v", resolved.Filters[1].Filter.Value)
+	}
+}
+
+func TestResolveConvertsBooleanFloatAndStringLiterals(t *testing.T) {
+	r := newResolver(t)
+	resolved, err := r.Resolve(context.Background(), query.SemanticQuery{
+		Model:   "sales",
+		Metrics: []query.MetricRef{{Name: "total_revenue"}},
+		Filters: query.Predicate{
+			query.Leaf("active", query.FilterEQ, "true"),
+			query.Leaf("score", query.FilterGTE, "1.25"),
+			query.Leaf("order_id", query.FilterEQ, "123"),
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	values := make(map[string]any, len(resolved.Filters))
+	for _, filter := range resolved.Filters {
+		values[filter.Filter.Field] = filter.Filter.Value
+	}
+	if values["active"] != true || values["score"] != float64(1.25) || values["order_id"] != "123" {
+		t.Fatalf("typed values = %#v", values)
 	}
 }
 
@@ -246,15 +269,13 @@ func TestResolveRejectsDatatypeIncompatibleFilterOperandsWithoutDisclosure(t *te
 		field   string
 		operand string
 	}{
-		{"order_number", `1.5`},
-		{"order_number", `9223372036854775808`},
-		{"amount", `1e38`},
-		{"amount", `1e-39`},
-		{"amount", `"1.25"`},
-		{"order_id", `123`},
-		{"order_date", `20260101`},
-		{"active", `1`},
-		{"score", `1e309`},
+		{"order_number", `"1.5"`},
+		{"order_number", `"9223372036854775808"`},
+		{"amount", `"1e38"`},
+		{"amount", `"1e-39"`},
+		{"order_date", `"20260101"`},
+		{"active", `"1"`},
+		{"score", `"1e309"`},
 	} {
 		var q query.SemanticQuery
 		body := `{"model":"sales","metrics":[{"name":"total_revenue"}],"filters":{"kind":"filter","filter":{"field":"` + tc.field + `","operator":"eq","value":` + tc.operand + `}}}`
@@ -275,8 +296,8 @@ func TestResolveRejectsDatatypeIncompatibleFilterOperandsWithoutDisclosure(t *te
 func TestResolveRejectsDatatypeIncompatibleFilterOperators(t *testing.T) {
 	r := newResolver(t)
 	for _, filter := range []query.Filter{
-		{Field: "active", Operator: query.FilterGT, Value: true},
-		{Field: "active", Operator: query.FilterBetween, Value: []bool{false, true}},
+		{Field: "active", Operator: query.FilterGT, Value: "true"},
+		{Field: "active", Operator: query.FilterBetween, Value: []string{"false", "true"}},
 		{Field: "native_value", Operator: query.FilterLTE, Value: "vendor-value"},
 		{Field: "native_value", Operator: query.FilterBetween, Value: []string{"a", "z"}},
 	} {
@@ -292,15 +313,15 @@ func TestResolveRejectsDatatypeIncompatibleOperatorsAcrossPredicateForms(t *test
 			Model:   "sales",
 			Metrics: []query.MetricRef{{Name: "total_revenue"}},
 			Filters: query.Predicate{query.Logical(query.PredicateOr,
-				query.Leaf("active", query.FilterGT, true),
-				query.Leaf("active", query.FilterEQ, true),
+				query.Leaf("active", query.FilterGT, "true"),
+				query.Leaf("active", query.FilterEQ, "true"),
 			)},
 		},
 		{
 			Model:   "sales",
 			Metrics: []query.MetricRef{{Name: "total_revenue"}},
 			Filters: query.Predicate{query.Exists("orders_to_customer",
-				query.Leaf("customer.vip", query.FilterLT, true),
+				query.Leaf("customer.vip", query.FilterLT, "true"),
 			)},
 		},
 	}
@@ -313,8 +334,8 @@ func TestResolveRejectsDatatypeIncompatibleOperatorsAcrossPredicateForms(t *test
 func TestResolveAcceptsSupportedBooleanAndOpaqueFilterOperators(t *testing.T) {
 	r := newResolver(t)
 	filters := []query.Filter{
-		{Field: "active", Operator: query.FilterEQ, Value: true},
-		{Field: "active", Operator: query.FilterIN, Value: []bool{false, true}},
+		{Field: "active", Operator: query.FilterEQ, Value: "true"},
+		{Field: "active", Operator: query.FilterIN, Value: []string{"false", "true"}},
 		{Field: "active", Operator: query.FilterIsNotNull},
 		{Field: "native_value", Operator: query.FilterEQ, Value: "vendor-value"},
 		{Field: "native_value", Operator: query.FilterNotIn, Value: []string{"a", "b"}},
@@ -406,7 +427,7 @@ func TestResolveRelationshipExistenceRejectsUnsafeShapes(t *testing.T) {
 		filters query.Predicate
 	}{
 		{name: "source field", filters: query.Predicate{query.Exists("orders_to_customer", query.Leaf("orders.order_date", query.FilterEQ, "2026-01-01"))}},
-		{name: "metric target", filters: query.Predicate{query.Exists("orders_to_customer", query.Leaf("total_revenue", query.FilterGT, 0))}},
+		{name: "metric target", filters: query.Predicate{query.Exists("orders_to_customer", query.Leaf("total_revenue", query.FilterGT, "0"))}},
 		{name: "nested under or", filters: query.Predicate{query.Logical(query.PredicateOr,
 			query.Exists("orders_to_customer", query.Leaf("customer.region", query.FilterEQ, "APAC")),
 			query.Leaf("orders.order_date", query.FilterEQ, "2026-01-01"),
@@ -447,7 +468,7 @@ func TestResolveRootAndStagesBooleanAndMetricLeavesIndependently(t *testing.T) {
 				query.Leaf("region", query.FilterEQ, "APAC"),
 				query.Leaf("region", query.FilterEQ, "EMEA"),
 			),
-			query.Leaf("total_revenue", query.FilterGT, 100),
+			query.Leaf("total_revenue", query.FilterGT, "100"),
 		)},
 	})
 	if err != nil {
@@ -469,7 +490,7 @@ func TestResolveBooleanPredicateRejectsUnsafeStagesAndDatasets(t *testing.T) {
 			query.Leaf("order_date", query.FilterGTE, "2026-01-01"),
 		),
 		"metric": query.Logical(query.PredicateNot,
-			query.Leaf("total_revenue", query.FilterGT, 10),
+			query.Leaf("total_revenue", query.FilterGT, "10"),
 		),
 	} {
 		t.Run(name, func(t *testing.T) {

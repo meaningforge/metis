@@ -33,7 +33,7 @@ var dataEdgeScenarios = []Scenario{
 		ResultLiteral{"APAC", "92.5"}, ResultLiteral{"EU", "-50"}),
 	resultFixtureScenario(fixtures.CommerceAdversarial, "metric_filter_zero_and_negative_groups", CategoryFilter, []Capability{CapabilityAggregation, CapabilityDimension, CapabilityMetricFilter}, func() query.SemanticQuery {
 		q := fixtureSemanticQuery(fixtures.CommerceAdversarial, []string{"revenue"}, []query.DimensionRef{{Name: "status"}})
-		q.Filters = []query.Filter{{Field: "revenue", Operator: query.FilterLTE, Value: 0}}
+		q.Filters = []query.Filter{{Field: "revenue", Operator: query.FilterLTE, Value: "0"}}
 		return q
 	}(), ResultLiteral{"refunded", "0"}, ResultLiteral{"cancelled", "0"}, ResultLiteral{"failed", "0"}),
 	resultFixtureScenario(fixtures.CommerceAdversarial, "ordered_ties_secondary_key", CategoryQueryIntent, []Capability{CapabilityAggregation, CapabilityDimension, CapabilityFilter, CapabilityOrdering}, func() query.SemanticQuery {

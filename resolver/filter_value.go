@@ -16,7 +16,9 @@ import (
 
 const maxFilterDecimalPrecision = 38
 
-func normalizeFilterValue(filter query.Filter, datatype ossie.DataType) (query.Filter, error) {
+// NormalizeFilterValue parses one public string operand using the resolved
+// semantic datatype. The returned value is suitable for typed SQL parameters.
+func NormalizeFilterValue(filter query.Filter, datatype ossie.DataType) (query.Filter, error) {
 	if !filterOperatorSupportsDatatype(filter.Operator, datatype) {
 		return query.Filter{}, invalidFilterValue(filter, datatype, "filter operator is incompatible with the semantic datatype")
 	}
@@ -85,31 +87,35 @@ func normalizeFilterScalar(value any, datatype ossie.DataType) (any, error) {
 	if value == nil {
 		return nil, fmt.Errorf("non-null operand required")
 	}
+	text, ok := value.(string)
+	if !ok {
+		return nil, fmt.Errorf("string literal required")
+	}
 	switch datatype {
 	case ossie.DataTypeString:
-		if _, ok := value.(string); !ok {
-			return nil, fmt.Errorf("string operand required")
-		}
-		return value, nil
+		return text, nil
 	case ossie.DataTypeDate, ossie.DataTypeTime, ossie.DataTypeDateTime, ossie.DataTypeDateTimeTz:
-		text, ok := value.(string)
-		if !ok || !validTemporalFilterLiteral(datatype, text) {
+		if !validTemporalFilterLiteral(datatype, text) {
 			return nil, fmt.Errorf("valid temporal operand required")
 		}
-		return value, nil
+		return text, nil
 	case ossie.DataTypeBoolean:
-		if _, ok := value.(bool); !ok {
+		switch text {
+		case "true":
+			return true, nil
+		case "false":
+			return false, nil
+		default:
 			return nil, fmt.Errorf("boolean operand required")
 		}
-		return value, nil
 	case ossie.DataTypeInteger:
-		return normalizeIntegerOperand(value)
+		return normalizeIntegerOperand(text)
 	case ossie.DataTypeDecimal:
-		return normalizeDecimalOperand(value)
+		return normalizeDecimalOperand(text)
 	case ossie.DataTypeFloat:
-		return normalizeFloatOperand(value)
+		return normalizeFloatOperand(text)
 	case "", ossie.DataTypeOpaque:
-		return value, nil
+		return text, nil
 	default:
 		return nil, fmt.Errorf("unsupported semantic datatype")
 	}
@@ -137,89 +143,27 @@ func validTemporalFilterLiteral(datatype ossie.DataType, text string) bool {
 	return false
 }
 
-func normalizeIntegerOperand(value any) (any, error) {
-	switch v := value.(type) {
-	case json.Number:
-		canonical, integral, _, _, err := canonicalExactNumber(v.String())
-		if err != nil || !integral {
-			return nil, fmt.Errorf("integer operand required")
-		}
-		if _, err := strconv.ParseInt(canonical, 10, 64); err != nil {
-			return nil, fmt.Errorf("integer operand is outside the supported range")
-		}
-		return json.Number(canonical), nil
-	case int:
-		return v, nil
-	case int8:
-		return v, nil
-	case int16:
-		return v, nil
-	case int32:
-		return v, nil
-	case int64:
-		return v, nil
-	case uint, uint8, uint16, uint32, uint64:
-		text := fmt.Sprint(v)
-		if _, err := strconv.ParseInt(text, 10, 64); err != nil {
-			return nil, fmt.Errorf("integer operand is outside the supported range")
-		}
-		return v, nil
-	default:
+func normalizeIntegerOperand(text string) (any, error) {
+	canonical, integral, _, _, err := canonicalExactNumber(text)
+	if err != nil || !integral {
 		return nil, fmt.Errorf("integer operand required")
 	}
+	parsed, err := strconv.ParseInt(canonical, 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("integer operand is outside the supported range")
+	}
+	return parsed, nil
 }
 
-func normalizeDecimalOperand(value any) (any, error) {
-	switch v := value.(type) {
-	case json.Number:
-		canonical, _, precision, scale, err := canonicalExactNumber(v.String())
-		if err != nil || precision > maxFilterDecimalPrecision || scale > maxFilterDecimalPrecision {
-			return nil, fmt.Errorf("decimal operand is outside the supported range")
-		}
-		return json.Number(canonical), nil
-	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64:
-		return v, nil
-	case float32:
-		if math.IsNaN(float64(v)) || math.IsInf(float64(v), 0) {
-			return nil, fmt.Errorf("decimal operand must be finite")
-		}
-		if _, _, precision, scale, err := canonicalExactNumber(strconv.FormatFloat(float64(v), 'g', -1, 32)); err != nil || precision > maxFilterDecimalPrecision || scale > maxFilterDecimalPrecision {
-			return nil, fmt.Errorf("decimal operand is outside the supported range")
-		}
-		return v, nil
-	case float64:
-		if math.IsNaN(v) || math.IsInf(v, 0) {
-			return nil, fmt.Errorf("decimal operand must be finite")
-		}
-		if _, _, precision, scale, err := canonicalExactNumber(strconv.FormatFloat(v, 'g', -1, 64)); err != nil || precision > maxFilterDecimalPrecision || scale > maxFilterDecimalPrecision {
-			return nil, fmt.Errorf("decimal operand is outside the supported range")
-		}
-		return v, nil
-	default:
-		return nil, fmt.Errorf("decimal operand required")
+func normalizeDecimalOperand(text string) (any, error) {
+	canonical, _, precision, scale, err := canonicalExactNumber(text)
+	if err != nil || precision > maxFilterDecimalPrecision || scale > maxFilterDecimalPrecision {
+		return nil, fmt.Errorf("decimal operand is outside the supported range")
 	}
+	return json.Number(canonical), nil
 }
 
-func normalizeFloatOperand(value any) (any, error) {
-	var text string
-	switch v := value.(type) {
-	case json.Number:
-		text = v.String()
-	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64:
-		text = fmt.Sprint(v)
-	case float32:
-		if math.IsNaN(float64(v)) || math.IsInf(float64(v), 0) {
-			return nil, fmt.Errorf("float operand must be finite")
-		}
-		return v, nil
-	case float64:
-		if math.IsNaN(v) || math.IsInf(v, 0) {
-			return nil, fmt.Errorf("float operand must be finite")
-		}
-		return v, nil
-	default:
-		return nil, fmt.Errorf("float operand required")
-	}
+func normalizeFloatOperand(text string) (any, error) {
 	n, err := strconv.ParseFloat(text, 64)
 	if err != nil || math.IsNaN(n) || math.IsInf(n, 0) {
 		return nil, fmt.Errorf("float operand is outside the supported range")

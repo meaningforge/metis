@@ -116,7 +116,7 @@ func newServerWithDimensionValues(discoveryService *service.DiscoveryService, co
 		manager = managers[0]
 	}
 	server := mcp.NewServer(&mcp.Implementation{Name: "metis", Version: version.Version}, &mcp.ServerOptions{Instructions: agentSemanticInstructions})
-	server.AddReceivingMiddleware(guardFilterPrecision)
+	server.AddReceivingMiddleware(guardFilterOperands)
 	router := generationRouter{fallback: runtimeservice.SemanticServices{
 		Discovery: discoveryService, Compile: compileService, QueryMetrics: queryMetrics,
 		DimensionValues: dimensionValues, AttributeMetric: attributeMetric, CompareMetrics: compareMetrics,

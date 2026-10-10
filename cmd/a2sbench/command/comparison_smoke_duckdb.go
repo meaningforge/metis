@@ -164,7 +164,7 @@ func frozenComparisonScenarios() []comparisonScenario {
 		{Name: "population_union_multi_metric", Question: comparisonQuestion, Metrics: []string{metricRevenue, metricSessions}, Dimensions: []string{region}},
 		{Name: "ungrouped_multi_metric_totals", Question: "Compare total revenue and total sessions between July and August 2026 without grouping. Return both period values, delta, and percent change.", Metrics: []string{metricRevenue, metricSessions}},
 		{Name: "zero_baseline_region", Question: "Compare revenue and sessions between July and August 2026 for the north region, grouped by region. Preserve the zero baseline and report whether percent change is defined.", Metrics: []string{metricRevenue, metricSessions}, Dimensions: []string{region}, Filters: []query.Filter{{Field: region, Operator: query.FilterEQ, Value: "north"}}},
-		{Name: "null_entry_exit_revenue", Question: "Compare revenue between July and August 2026 by region, restricted to null_value, south, and west. Preserve SQL NULL, entering, and exiting members without replacing them with zero.", Metrics: []string{metricRevenue}, Dimensions: []string{region}, Filters: []query.Filter{{Field: region, Operator: query.FilterIN, Value: []any{"null_value", "south", "west"}}}},
+		{Name: "null_entry_exit_revenue", Question: "Compare revenue between July and August 2026 by region, restricted to null_value, south, and west. Preserve SQL NULL, entering, and exiting members without replacing them with zero.", Metrics: []string{metricRevenue}, Dimensions: []string{region}, Filters: []query.Filter{{Field: region, Operator: query.FilterIN, Value: []string{"null_value", "south", "west"}}}},
 	}
 }
 

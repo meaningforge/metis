@@ -78,7 +78,7 @@ semantic_model:
         expression: {dialects: [{dialect: ANSI_SQL, expression: "revenue / order_count"}]}
         custom_extensions:
           - vendor_name: METIS
-            data: '{"kind":"definition_filter","stage":"post_aggregation","filters":[{"field":"average_order_value","operator":"gte","value":50}]}'
+            data: '{"kind":"definition_filter","stage":"post_aggregation","filters":[{"field":"average_order_value","operator":"gte","value":"50"}]}'
 `
 
 func TestMetricDefinitionFilterCompilerConformance(t *testing.T) {
@@ -110,7 +110,7 @@ func TestMetricDefinitionFilterCompilerConformance(t *testing.T) {
 func TestMetricDefinitionFilterComposesWithQueryFilterInSQL(t *testing.T) {
 	query, err := compileModel(t, []byte(metricDefinitionFilterCompilerModel), "sales", query.SemanticQuery{
 		Metrics: []query.MetricRef{{Name: "gold_revenue"}},
-		Filters: []query.Filter{{Field: "amount", Operator: query.FilterGT, Value: 100}},
+		Filters: []query.Filter{{Field: "amount", Operator: query.FilterGT, Value: "100"}},
 	}, "CLICKHOUSE")
 	if err != nil {
 		t.Fatal(err)
@@ -152,7 +152,7 @@ func TestPostAggregateDefinitionFilterComposesWithQueryMetricFilterInSQL(t *test
 	query, err := compileModel(t, []byte(postAggregateDefinitionFilterCompilerModel), "sales", query.SemanticQuery{
 		Metrics:    []query.MetricRef{{Name: "average_order_value"}},
 		Dimensions: []query.DimensionRef{{Name: "segment"}},
-		Filters:    []query.Filter{{Field: "average_order_value", Operator: query.FilterLTE, Value: 100}},
+		Filters:    []query.Filter{{Field: "average_order_value", Operator: query.FilterLTE, Value: "100"}},
 	}, "CLICKHOUSE")
 	if err != nil {
 		t.Fatal(err)

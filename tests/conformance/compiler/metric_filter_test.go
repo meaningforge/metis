@@ -35,7 +35,7 @@ func TestSourceMetricFilterIsPostEvaluation(t *testing.T) {
 	q := query.SemanticQuery{
 		Metrics:    []query.MetricRef{{Name: "revenue"}},
 		Dimensions: []query.DimensionRef{{Name: "status"}},
-		Filters:    []query.Filter{{Field: "revenue", Operator: query.FilterGT, Value: 1000}},
+		Filters:    []query.Filter{{Field: "revenue", Operator: query.FilterGT, Value: "1000"}},
 	}
 	plan, sqlQuery, err := compile(t, q, "DORIS")
 	if err != nil {
@@ -67,7 +67,7 @@ func TestFilterOnlyMetricIsEvaluatedButNotProjected(t *testing.T) {
 	q := query.SemanticQuery{
 		Metrics:    []query.MetricRef{{Name: "orders_count"}},
 		Dimensions: []query.DimensionRef{{Name: "status"}},
-		Filters:    []query.Filter{{Field: "revenue", Operator: query.FilterGTE, Value: 500}},
+		Filters:    []query.Filter{{Field: "revenue", Operator: query.FilterGTE, Value: "500"}},
 	}
 	plan, sqlQuery, err := compile(t, q, "DORIS")
 	if err != nil {
@@ -88,7 +88,7 @@ func TestDerivedMetricFilterRunsAfterDerivedEvaluation(t *testing.T) {
 	q := query.SemanticQuery{
 		Metrics:    []query.MetricRef{{Name: "revenue"}},
 		Dimensions: []query.DimensionRef{{Name: "status"}},
-		Filters:    []query.Filter{{Field: "contribution_margin", Operator: query.FilterBetween, Value: []int{100, 10000}}},
+		Filters:    []query.Filter{{Field: "contribution_margin", Operator: query.FilterBetween, Value: []string{"100", "10000"}}},
 	}
 	plan, sqlQuery, err := compile(t, q, "DORIS")
 	if err != nil {
@@ -117,7 +117,7 @@ func TestTimeOffsetMetricFilterRunsAfterOffsetEvaluation(t *testing.T) {
 	q := query.SemanticQuery{
 		Metrics:    []query.MetricRef{{Name: "revenue"}},
 		Dimensions: []query.DimensionRef{{Name: "order_date", Grain: &grain}, {Name: "region"}},
-		Filters:    []query.Filter{{Field: "previous_month_revenue", Operator: query.FilterGT, Value: 0}},
+		Filters:    []query.Filter{{Field: "previous_month_revenue", Operator: query.FilterGT, Value: "0"}},
 	}
 	plan, sqlQuery, err := compile(t, q, "DORIS")
 	if err != nil {
@@ -147,7 +147,7 @@ func TestMetricAndDimensionFiltersKeepSeparatePlacement(t *testing.T) {
 		Dimensions: []query.DimensionRef{{Name: "status"}},
 		Filters: []query.Filter{
 			{Field: "status", Operator: query.FilterEQ, Value: "paid"},
-			{Field: "revenue", Operator: query.FilterGT, Value: 1000},
+			{Field: "revenue", Operator: query.FilterGT, Value: "1000"},
 		},
 	}
 	plan, sqlQuery, err := compile(t, q, "DORIS")
@@ -191,7 +191,7 @@ func TestCumulativeMetricFilterRunsAfterWindowEvaluation(t *testing.T) {
 	q := query.SemanticQuery{
 		Metrics:    []query.MetricRef{{Name: "cumulative_revenue"}},
 		Dimensions: []query.DimensionRef{{Name: "order_date", Grain: &grain}},
-		Filters:    []query.Filter{{Field: "cumulative_revenue", Operator: query.FilterGT, Value: 5000}},
+		Filters:    []query.Filter{{Field: "cumulative_revenue", Operator: query.FilterGT, Value: "5000"}},
 	}
 	plan, sqlQuery, err := compile(t, q, "DORIS")
 	if err != nil {
@@ -225,7 +225,7 @@ func TestCumulativeMetricFilterRunsAfterWindowEvaluation(t *testing.T) {
 }
 
 func TestMetricFilterRejectsUnsupportedEqualityInV1(t *testing.T) {
-	q := query.SemanticQuery{Metrics: []query.MetricRef{{Name: "revenue"}}, Filters: []query.Filter{{Field: "revenue", Operator: query.FilterEQ, Value: 100}}}
+	q := query.SemanticQuery{Metrics: []query.MetricRef{{Name: "revenue"}}, Filters: []query.Filter{{Field: "revenue", Operator: query.FilterEQ, Value: "100"}}}
 	_, _, err := compile(t, q, "DORIS")
 	if err == nil || !strings.Contains(err.Error(), "metric filters v1") {
 		t.Fatalf("error = %v, want explicit metric-filter v1 operator error", err)

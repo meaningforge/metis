@@ -4,6 +4,7 @@ import (
 	"github.com/meaningforge/metis/ossie"
 	"github.com/meaningforge/metis/planner/semanticplan"
 	"github.com/meaningforge/metis/query"
+	"github.com/meaningforge/metis/resolver"
 )
 
 func planPostEvaluationPredicates(plan *semanticplan.SemanticPlan) []semanticplan.PostEvaluationPredicate {
@@ -35,11 +36,17 @@ func planPostDefinitionFilters(plan *semanticplan.SemanticPlan) []query.Filter {
 	}
 	var out []query.Filter
 	for _, node := range plan.Nodes {
-		spec, ok, err := ossie.MetricDefinitionFilter(semanticplan.NodeMetric(node))
+		metric := semanticplan.NodeMetric(node)
+		spec, ok, err := ossie.MetricDefinitionFilter(metric)
 		if err != nil || !ok || ossie.EffectiveMetricDefinitionFilterStage(spec) != ossie.MetricDefinitionFilterStagePostAggregation {
 			continue
 		}
-		out = append(out, spec.Filters...)
+		for _, filter := range spec.Filters {
+			normalized, err := resolver.NormalizeFilterValue(filter, metric.Datatype)
+			if err == nil {
+				out = append(out, normalized)
+			}
+		}
 	}
 	return out
 }

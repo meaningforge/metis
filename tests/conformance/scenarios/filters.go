@@ -53,7 +53,7 @@ var filterScenarios = []Scenario{
 				query.Leaf("region", query.FilterEQ, "APAC"),
 				query.Leaf("segment", query.FilterEQ, "enterprise"),
 			),
-			query.Leaf("revenue", query.FilterGT, 100),
+			query.Leaf("revenue", query.FilterGT, "100"),
 		}
 		return q
 	}(), ResultLiteral{"paid", "300"}),
@@ -67,12 +67,12 @@ var filterScenarios = []Scenario{
 	}(), ResultLiteral{"270"}),
 	resultScenario("metric_filter_source_metric", CategoryFilter, []Capability{CapabilityAggregation, CapabilityDimension, CapabilityMetricFilter}, func() query.SemanticQuery {
 		q := semanticQuery([]string{"revenue"}, []query.DimensionRef{{Name: "status"}})
-		q.Filters = []query.Filter{{Field: "revenue", Operator: query.FilterGT, Value: 100}}
+		q.Filters = []query.Filter{{Field: "revenue", Operator: query.FilterGT, Value: "100"}}
 		return q
 	}(), ResultLiteral{"paid", "300"}),
 	resultScenario("metric_filter_hidden_metric", CategoryFilter, []Capability{CapabilityAggregation, CapabilityDimension, CapabilityMetricFilter}, func() query.SemanticQuery {
 		q := semanticQuery([]string{"orders_count"}, []query.DimensionRef{{Name: "status"}})
-		q.Filters = []query.Filter{{Field: "revenue", Operator: query.FilterGTE, Value: 100}}
+		q.Filters = []query.Filter{{Field: "revenue", Operator: query.FilterGTE, Value: "100"}}
 		return q
 	}(), ResultLiteral{"paid", "2"}),
 	resultFixtureScenario(

@@ -38,7 +38,10 @@ Discovery / Semantic Context
 
 Execution selection remains on the enclosing transport-neutral `service.CompileRequest` through `execution_binding`. The earlier query-local physical `target` shape is rejected rather than silently competing with execution resolution.
 
-Filters retain natural JSON scalar/flat-array operands for compatibility, but arbitrary objects and nested arrays are rejected at the query boundary. Operator-specific arity and semantic validity remain Resolver-owned.
+Filters use string literals or flat string arrays. The Resolver interprets them
+from the referenced semantic datatype; JSON numbers, booleans, null array
+members, arbitrary objects, and nested arrays are rejected at the query
+boundary. Operator-specific arity and semantic validity remain Resolver-owned.
 
 Raw SQL fields such as `where_sql`, `raw_predicate`, and free-form ordering expressions are not part of the semantic query contract.
 

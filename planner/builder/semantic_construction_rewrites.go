@@ -13,7 +13,8 @@ func applySemanticMetricDefinitionFilters(input *ConstructionInput, q *resolver.
 	}
 	for i, node := range input.Nodes {
 		base := node.NodeBase()
-		spec, ok, err := ossie.MetricDefinitionFilter(semanticplan.NodeMetric(node))
+		metric := semanticplan.NodeMetric(node)
+		spec, ok, err := ossie.MetricDefinitionFilter(metric)
 		if err != nil {
 			return DefinitionFilterPlanningError(base.ID, "invalid metric definition-filter extension", err)
 		}
@@ -23,7 +24,11 @@ func applySemanticMetricDefinitionFilters(input *ConstructionInput, q *resolver.
 		switch ossie.EffectiveMetricDefinitionFilterStage(spec) {
 		case ossie.MetricDefinitionFilterStagePostAggregation:
 			for _, filter := range spec.Filters {
-				input.PostEvaluationPredicates = append(input.PostEvaluationPredicates, semanticplan.PostEvaluationPredicate{Name: base.ID, Filter: filter})
+				normalized, err := resolver.NormalizeFilterValue(filter, metric.Datatype)
+				if err != nil {
+					return DefinitionFilterPlanningError(base.ID, "metric definition-filter value is incompatible with its datatype", err)
+				}
+				input.PostEvaluationPredicates = append(input.PostEvaluationPredicates, semanticplan.PostEvaluationPredicate{Name: base.ID, Filter: normalized})
 			}
 			continue
 		case ossie.MetricDefinitionFilterStagePreAggregation:
@@ -42,7 +47,11 @@ func applySemanticMetricDefinitionFilters(input *ConstructionInput, q *resolver.
 			if !ok {
 				return DefinitionFilterPlanningError(base.ID, "metric definition-filter field has no compatible target expression", nil)
 			}
-			predicate := semanticplan.Predicate{Filter: filter, Dataset: handle.Dataset, Field: handle.Field, Expression: resolvedExpression}
+			normalized, err := resolver.NormalizeFilterValue(filter, handle.Field.Datatype)
+			if err != nil {
+				return DefinitionFilterPlanningError(base.ID, "metric definition-filter value is incompatible with its datatype", err)
+			}
+			predicate := semanticplan.Predicate{Filter: normalized, Dataset: handle.Dataset, Field: handle.Field, Expression: resolvedExpression}
 			base.Predicates = append(base.Predicates, semanticplan.SemanticPlanNodePredicate{
 				Scope:       semanticplan.SemanticPredicatePreAggregation,
 				OwnerNodeID: base.ID,

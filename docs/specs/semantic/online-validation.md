@@ -34,7 +34,8 @@ than being guessed from text.
 ClickHouse supports parameterized queries with server-side named values. Execution
 and validation use one transport adapter that changes only placeholder spelling,
 preserving the compiler artifact and ordered values. It handles strings, integers,
-finite floats, booleans, binary strings, NULL and supported exact JSON numbers.
+finite floats, booleans, binary strings, NULL and exact numeric parameters
+produced by semantic resolution.
 Date/time strings retain their original text; the engine validates contextual
 conversion. Use engine-accepted formats (the pinned ClickHouse DateTime64 range
 example uses `YYYY-MM-DD HH:MM:SS`). No timezone inference or global parsing-setting
@@ -44,8 +45,8 @@ follow the same path and remain absent from reports. Unsupported parameter forms
 and ambiguous SQL quoting/counts fail pure preflight before credential resolution.
 
 DuckDB uses native prepared `EXPLAIN` with ordered bound parameters, never
-`EXPLAIN ANALYZE`. Exact JSON numbers use the same decimal text conversion as
-production execution. Parameter arity, missing tables and missing columns are
+`EXPLAIN ANALYZE`. Exact numeric parameters use the same decimal text conversion
+as production execution. Parameter arity, missing tables and missing columns are
 checked by the engine without executing the inspected SELECT. An existing local
 file is opened read-only; capture and online checks require the optional CGO
 build. See the [local walkthrough](../../../examples/authoring/duckdb/README.md).

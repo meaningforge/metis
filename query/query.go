@@ -1,7 +1,6 @@
 package query
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 )
@@ -44,7 +43,7 @@ const (
 type Filter struct {
 	Field        string         `json:"field" jsonschema:"Canonical metric or dimension ref returned by semantic discovery."`
 	Operator     FilterOperator `json:"operator" jsonschema:"One of eq, neq, gt, gte, lt, lte, in, not_in, between, is_null, or is_not_null. between is inclusive and requires a two-item value array; in and not_in require an array; null operators omit value."`
-	Value        any            `json:"value,omitempty" jsonschema:"JSON scalar or flat scalar array appropriate for operator. Dates and timestamps use ISO-8601 strings."`
+	Value        any            `json:"value,omitempty" jsonschema:"String literal or flat string array. The resolver interprets literals using the referenced semantic field datatype; dates and timestamps use ISO-8601."`
 	Kind         PredicateKind  `json:"-"`
 	Relationship string         `json:"-"`
 	Children     []Filter       `json:"-"`
@@ -98,51 +97,27 @@ func (f *Filter) UnmarshalJSON(data []byte) error {
 }
 
 func decodeFilterValue(raw json.RawMessage) (any, error) {
-	if len(raw) == 0 || string(raw) == "null" {
+	if len(raw) == 0 {
 		return nil, nil
 	}
-	var value any
-	decoder := json.NewDecoder(bytes.NewReader(raw))
-	decoder.UseNumber()
-	if err := decoder.Decode(&value); err != nil {
-		return nil, err
+	if string(raw) == "null" {
+		return nil, fmt.Errorf("filter value must be omitted instead of null")
 	}
-	if n, ok := value.(json.Number); ok {
-		return ParseFilterNumber(string(n))
+	var scalar string
+	if err := json.Unmarshal(raw, &scalar); err == nil {
+		return scalar, nil
 	}
-	if value == nil {
-		return nil, nil
-	}
-	if isFilterScalar(value) {
-		return value, nil
-	}
-	items, ok := value.([]any)
-	if !ok {
-		return nil, fmt.Errorf("filter value must be a scalar or flat scalar array")
-	}
-	for i, item := range items {
-		if n, ok := item.(json.Number); ok {
-			checked, err := ParseFilterNumber(string(n))
-			if err != nil {
-				return nil, err
+	var items []json.RawMessage
+	if err := json.Unmarshal(raw, &items); err == nil {
+		values := make([]string, len(items))
+		for i := range items {
+			if err := json.Unmarshal(items[i], &values[i]); err != nil || string(items[i]) == "null" {
+				return nil, fmt.Errorf("filter array values must be strings")
 			}
-			items[i] = checked
-			continue
 		}
-		if !isFilterScalar(item) && item != nil {
-			return nil, fmt.Errorf("filter array values must be scalar")
-		}
+		return values, nil
 	}
-	return items, nil
-}
-
-func isFilterScalar(value any) bool {
-	switch value.(type) {
-	case string, json.Number, bool:
-		return true
-	default:
-		return false
-	}
+	return nil, fmt.Errorf("filter value must be a string or flat string array")
 }
 
 type SortDirection string

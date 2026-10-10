@@ -174,9 +174,9 @@ func (p *Predicate) UnmarshalJSON(data []byte) error {
 	if len(trimmed) > 0 && trimmed[0] == '[' {
 		return fmt.Errorf("filters must use the predicate object contract")
 	}
-	// Complete the structural and aggregate-size pass before Filter decoding
-	// performs exact-number compatibility checks. This keeps resource bounds
-	// authoritative even when an early leaf also contains an invalid number.
+	// Complete the structural and aggregate-size pass before Filter decoding.
+	// This keeps resource bounds authoritative even when an early leaf also
+	// contains an invalid operand shape.
 	if err := inspectPredicateNode(data, 1, &predicateBudget{}); err != nil {
 		return err
 	}
@@ -350,28 +350,9 @@ func rawFilterOperandSize(raw json.RawMessage) (int, int, error) {
 	if len(raw) == 0 || bytes.Equal(bytes.TrimSpace(raw), []byte("null")) {
 		return 0, 0, nil
 	}
-	var value any
-	decoder := json.NewDecoder(bytes.NewReader(raw))
-	decoder.UseNumber()
-	if err := decoder.Decode(&value); err != nil {
+	value, err := decodeFilterValue(raw)
+	if err != nil {
 		return 0, 0, err
-	}
-	validScalar := func(value any) bool {
-		switch value.(type) {
-		case nil, string, json.Number, bool:
-			return true
-		default:
-			return false
-		}
-	}
-	if values, ok := value.([]any); ok {
-		for _, item := range values {
-			if !validScalar(item) {
-				return 0, 0, fmt.Errorf("filter array values must be scalar")
-			}
-		}
-	} else if !validScalar(value) {
-		return 0, 0, fmt.Errorf("filter value must be a scalar or flat scalar array")
 	}
 	return filterOperandSize(value)
 }
@@ -566,30 +547,12 @@ func filterOperandSize(value any) (int, int, error) {
 	}
 	count, total := 0, 0
 	for _, item := range items {
-		if item == nil {
-			continue
-		}
-		if !isPredicateScalar(item) {
-			return 0, 0, fmt.Errorf("filter value must be a scalar or flat scalar array")
-		}
-		b, err := json.Marshal(item)
-		if err != nil {
-			return 0, 0, err
+		text, ok := item.(string)
+		if !ok {
+			return 0, 0, fmt.Errorf("filter value must be a string or flat string array")
 		}
 		count++
-		total += len(b)
+		total += len(text)
 	}
 	return count, total, nil
-}
-
-func isPredicateScalar(value any) bool {
-	switch value.(type) {
-	case string, bool, json.Number,
-		int, int8, int16, int32, int64,
-		uint, uint8, uint16, uint32, uint64,
-		float32, float64:
-		return true
-	default:
-		return false
-	}
 }

@@ -38,7 +38,7 @@ func compileExactFilterNumbers(t *testing.T, selected renderer.Renderer) *artifa
 		t.Fatal(err)
 	}
 	var semanticQuery query.SemanticQuery
-	body := `{"project":"exact-filter-reference","model":"exact_filters","dimensions":[{"name":"id"}],"filters":{"kind":"and","children":[{"kind":"filter","filter":{"field":"large_id","operator":"eq","value":9007199254740993}},{"kind":"filter","filter":{"field":"exact_amount","operator":"eq","value":0.10000000000000000001}}]}}`
+	body := `{"project":"exact-filter-reference","model":"exact_filters","dimensions":[{"name":"id"}],"filters":{"kind":"and","children":[{"kind":"filter","filter":{"field":"large_id","operator":"eq","value":"9007199254740993"}},{"kind":"filter","filter":{"field":"exact_amount","operator":"eq","value":"0.10000000000000000001"}}]}}`
 	if err := json.Unmarshal([]byte(body), &semanticQuery); err != nil {
 		t.Fatal(err)
 	}

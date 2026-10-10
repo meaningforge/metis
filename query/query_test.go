@@ -14,7 +14,7 @@ func TestSemanticQueryJSONRoundTrip(t *testing.T) {
 		"dimensions":[{"name":"order_date","grain":"month"}],
 		"filters":{"kind":"and","children":[
 			{"kind":"filter","filter":{"field":"country","operator":"eq","value":"US"}},
-			{"kind":"filter","filter":{"field":"revenue","operator":"between","value":[10,20]}}
+			{"kind":"filter","filter":{"field":"revenue","operator":"between","value":["10","20"]}}
 		]},
 		"order_by":[{"field":"revenue","direction":"desc"}],
 		"limit":100
@@ -69,18 +69,27 @@ func TestFilterJSONRejectsNestedArrayOperand(t *testing.T) {
 	}
 }
 
-func TestFilterJSONAcceptsNaturalScalarAndFlatArrayOperands(t *testing.T) {
+func TestFilterJSONAcceptsStringAndFlatStringArrayOperands(t *testing.T) {
 	cases := []string{
 		`{"field":"country","operator":"eq","value":"US"}`,
-		`{"field":"active","operator":"eq","value":true}`,
-		`{"field":"revenue","operator":"gte","value":10.5}`,
-		`{"field":"country","operator":"in","value":["US","JP",null]}`,
+		`{"field":"active","operator":"eq","value":"true"}`,
+		`{"field":"revenue","operator":"gte","value":"10.5"}`,
+		`{"field":"country","operator":"in","value":["US","JP"]}`,
 		`{"field":"deleted_at","operator":"is_null"}`,
 	}
 	for _, tc := range cases {
 		var filter Filter
 		if err := json.Unmarshal([]byte(tc), &filter); err != nil {
 			t.Fatalf("unmarshal %s: %v", tc, err)
+		}
+	}
+}
+
+func TestFilterJSONRejectsNonStringOperands(t *testing.T) {
+	for _, value := range []string{`null`, `true`, `10.5`, `["US",null]`, `["US",2]`} {
+		var filter Filter
+		if err := json.Unmarshal([]byte(`{"field":"field","operator":"eq","value":`+value+`}`), &filter); err == nil {
+			t.Fatalf("accepted non-string operand %s", value)
 		}
 	}
 }

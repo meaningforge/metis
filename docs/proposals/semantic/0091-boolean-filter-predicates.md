@@ -19,9 +19,10 @@ metric/time conjuncts remain expressible through the same tree. It accepts no SQ
 nor changes fanout admission, metric aggregation, row policy, or time semantics.
 
 This contract is implemented across REST, MCP, the offline CLI, SemanticPlan,
-SQLPlan, and all built-in renderers. The numeric precision guard merged in PR
-#31's fail-closed boundary, now upgraded to exact typed numeric operands, remains
-authoritative for every numeric leaf.
+SQLPlan, and all built-in renderers. Public leaf values use strings or string
+arrays; semantic resolution converts them to exact typed operands before
+planning. The fail-closed operand boundary remains authoritative for every
+leaf.
 
 ## Motivation
 

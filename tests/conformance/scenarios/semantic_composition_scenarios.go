@@ -18,7 +18,7 @@ var semanticCompositionScenarios = func() []Scenario {
 		resultScenario("shared_grain_derived_with_source_metric", CategoryComposition, []Capability{CapabilityAggregation, CapabilityDimension, CapabilityDerived}, semanticQuery([]string{"revenue", "contribution_margin"}, []query.DimensionRef{{Name: "status"}}), ResultLiteral{"paid", "300", "270"}, ResultLiteral{"refunded", "50", "45"}),
 		resultScenario("metric_filter_multi_metric", CategoryComposition, []Capability{CapabilityAggregation, CapabilityDimension, CapabilityDerived, CapabilityMetricFilter}, func() query.SemanticQuery {
 			q := semanticQuery([]string{"revenue", "orders_count"}, []query.DimensionRef{{Name: "status"}})
-			q.Filters = []query.Filter{{Field: "contribution_margin", Operator: query.FilterGT, Value: 100}}
+			q.Filters = []query.Filter{{Field: "contribution_margin", Operator: query.FilterGT, Value: "100"}}
 			return q
 		}(), ResultLiteral{"paid", "300", "2"}),
 		resultScenario("semantic_extension_derived_metric", CategoryComposition, []Capability{CapabilityAggregation, CapabilityDerived}, semanticQuery([]string{"scaled_net_revenue"}, nil), ResultLiteral{"665"}),
@@ -33,7 +33,7 @@ var semanticCalendarCompositionScenarios = []Scenario{
 		[]Capability{CapabilityAggregation, CapabilityDimension, CapabilityFilter, CapabilityCumulative, CapabilityCustomCalendar, CapabilityDenseCalendar},
 		func() query.SemanticQuery {
 			q := customGrainQuery(fixtures.CustomCalendarRolling, "rolling_3_fiscal_week_revenue", "calendar_day", query.TimeGrain("fiscal_week"))
-			q.Filters = []query.Filter{{Field: "rolling_3_fiscal_week_revenue", Operator: query.FilterGT, Value: 10}}
+			q.Filters = []query.Filter{{Field: "rolling_3_fiscal_week_revenue", Operator: query.FilterGT, Value: "10"}}
 			return q
 		}(),
 		ResultLiteral{"2026-01-19", "40"},

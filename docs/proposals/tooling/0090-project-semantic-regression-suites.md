@@ -124,10 +124,10 @@ bytes per case, 30 seconds per case, and 10 minutes per suite. Configured query
 ceilings can be stricter and are never relaxed. Results are complete or fail;
 truncation cannot turn a failure into a pass.
 
-Precision safety covers request inputs as well as result expectations. The tool
-preserves bounded numeric filter tokens exactly and delegates datatype/range
-admission to the same Resolver path as REST and MCP; it must not silently change
-a request to make it executable. Time expectations beyond the supported nine
+Precision safety covers request inputs as well as result expectations. Filter
+operands use strings or string arrays and delegate datatype/range admission to
+the same Resolver path as REST and MCP; the tool must not silently change a
+request to make it executable. Time expectations beyond the supported nine
 fractional-second digits fail rather than truncate.
 
 Report outputs cannot alias the suite or configuration. Explicit overwrite only

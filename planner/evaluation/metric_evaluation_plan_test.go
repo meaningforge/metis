@@ -60,7 +60,7 @@ func TestBuildMetricEvaluationPlanKeepsDistinctRootRoles(t *testing.T) {
 	resolved := resolveMetricEvaluation(t, metricEvaluationModel, query.SemanticQuery{
 		Model:   "finance",
 		Metrics: []query.MetricRef{{Name: "revenue"}},
-		Filters: []query.Filter{{Field: "revenue", Operator: query.FilterGT, Value: float64(0)}},
+		Filters: []query.Filter{{Field: "revenue", Operator: query.FilterGT, Value: "0"}},
 		OrderBy: []query.OrderBy{{Field: "revenue", Direction: query.SortDesc}},
 	})
 
