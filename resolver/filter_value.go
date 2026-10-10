@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/meaningforge/metis/ossie"
 	"github.com/meaningforge/metis/query"
@@ -16,19 +17,43 @@ import (
 const maxFilterDecimalPrecision = 38
 
 func normalizeFilterValue(filter query.Filter, datatype ossie.DataType) (query.Filter, error) {
+	if !filterOperatorSupportsDatatype(filter.Operator, datatype) {
+		return query.Filter{}, invalidFilterValue(filter, datatype, "filter operator is incompatible with the semantic datatype")
+	}
 	if filter.Operator == query.FilterIsNull || filter.Operator == query.FilterIsNotNull {
 		return filter, nil
 	}
 	value, err := normalizeFilterOperand(filter.Value, datatype, filter.Operator)
 	if err != nil {
-		return query.Filter{}, &serrors.Error{
-			Code:    serrors.ErrInvalidFilterValue,
-			Message: "filter operand is incompatible with the semantic datatype",
-			Details: map[string]any{"field": filter.Field, "datatype": datatype, "operator": filter.Operator},
-		}
+		return query.Filter{}, invalidFilterValue(filter, datatype, "filter operand is incompatible with the semantic datatype")
 	}
 	filter.Value = value
 	return filter, nil
+}
+
+func invalidFilterValue(filter query.Filter, datatype ossie.DataType, message string) error {
+	return &serrors.Error{
+		Code:    serrors.ErrInvalidFilterValue,
+		Message: message,
+		Details: map[string]any{"field": filter.Field, "datatype": datatype, "operator": filter.Operator},
+	}
+}
+
+func filterOperatorSupportsDatatype(operator query.FilterOperator, datatype ossie.DataType) bool {
+	switch datatype {
+	case ossie.DataTypeBoolean, "", ossie.DataTypeOpaque:
+		switch operator {
+		case query.FilterEQ, query.FilterNEQ, query.FilterIN, query.FilterNotIn, query.FilterIsNull, query.FilterIsNotNull:
+			return true
+		default:
+			return false
+		}
+	case ossie.DataTypeString, ossie.DataTypeInteger, ossie.DataTypeDecimal, ossie.DataTypeFloat,
+		ossie.DataTypeDate, ossie.DataTypeTime, ossie.DataTypeDateTime, ossie.DataTypeDateTimeTz:
+		return true
+	default:
+		return false
+	}
 }
 
 func normalizeFilterOperand(value any, datatype ossie.DataType, operator query.FilterOperator) (any, error) {
@@ -61,9 +86,15 @@ func normalizeFilterScalar(value any, datatype ossie.DataType) (any, error) {
 		return nil, fmt.Errorf("non-null operand required")
 	}
 	switch datatype {
-	case ossie.DataTypeString, ossie.DataTypeDate, ossie.DataTypeTime, ossie.DataTypeDateTime, ossie.DataTypeDateTimeTz:
+	case ossie.DataTypeString:
 		if _, ok := value.(string); !ok {
 			return nil, fmt.Errorf("string operand required")
+		}
+		return value, nil
+	case ossie.DataTypeDate, ossie.DataTypeTime, ossie.DataTypeDateTime, ossie.DataTypeDateTimeTz:
+		text, ok := value.(string)
+		if !ok || !validTemporalFilterLiteral(datatype, text) {
+			return nil, fmt.Errorf("valid temporal operand required")
 		}
 		return value, nil
 	case ossie.DataTypeBoolean:
@@ -82,6 +113,28 @@ func normalizeFilterScalar(value any, datatype ossie.DataType) (any, error) {
 	default:
 		return nil, fmt.Errorf("unsupported semantic datatype")
 	}
+}
+
+func validTemporalFilterLiteral(datatype ossie.DataType, text string) bool {
+	var layouts []string
+	switch datatype {
+	case ossie.DataTypeDate:
+		layouts = []string{"2006-01-02"}
+	case ossie.DataTypeTime:
+		layouts = []string{"15:04:05.999999999"}
+	case ossie.DataTypeDateTime:
+		layouts = []string{"2006-01-02T15:04:05.999999999", time.RFC3339Nano}
+	case ossie.DataTypeDateTimeTz:
+		layouts = []string{time.RFC3339Nano}
+	default:
+		return false
+	}
+	for _, layout := range layouts {
+		if _, err := time.Parse(layout, text); err == nil {
+			return true
+		}
+	}
+	return false
 }
 
 func normalizeIntegerOperand(value any) (any, error) {
