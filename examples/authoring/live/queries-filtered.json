@@ -12,7 +12,7 @@
           "kind": "and",
           "children": [
             {"kind": "filter", "filter": {"field": "region", "operator": "in", "value": ["APAC", "EMEA"]}},
-            {"kind": "filter", "filter": {"field": "total_revenue", "operator": "between", "value": [0.25, 20.75]}}
+            {"kind": "filter", "filter": {"field": "total_revenue", "operator": "between", "value": ["0.25", "20.75"]}}
           ]
         }
       }
