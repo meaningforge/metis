@@ -43,6 +43,23 @@ func TestInventoryStrictness(t *testing.T) {
 	}
 }
 
+func TestShippedQueryInventoriesUseThePublicContract(t *testing.T) {
+	for _, path := range []string{
+		"../../../examples/authoring/live/queries.json",
+		"../../../examples/authoring/live/queries-filtered.json",
+	} {
+		t.Run(filepath.Base(path), func(t *testing.T) {
+			inventory, err := LoadInventory(path, "sales")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(inventory.Queries) == 0 {
+				t.Fatal("shipped query inventory is empty")
+			}
+		})
+	}
+}
+
 func TestReportPublicationIsPrivateAndExclusive(t *testing.T) {
 	dir := t.TempDir()
 	input := filepath.Join(dir, "model.yaml")
