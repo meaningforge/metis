@@ -44,7 +44,7 @@ func checkOnlineValidationFailures(t *testing.T, ctx context.Context, binary, wo
 				inventory.Queries[0].Query.Filters = []query.Filter{{Field: "total_revenue", Operator: query.FilterBetween, Value: []string{"0.25", "20.75"}}}
 			case "parameter_datetime":
 				body = []byte(strings.Replace(string(reviewed), "expression: orders.order_time}]", "expression: orders.order_time}]\n            dimension: {}", 1))
-				inventory.Queries[0].Query.Filters = []query.Filter{{Field: "orders.order_time", Operator: query.FilterBetween, Value: []string{"2026-01-01 00:00:00", "2026-01-03 00:00:00"}}}
+				inventory.Queries[0].Query.Filters = []query.Filter{{Field: "orders.order_time", Operator: query.FilterBetween, Value: []string{"2026-01-01T00:00:00", "2026-01-03T00:00:00"}}}
 			case "parameter_example":
 				inventory, err = validation.LoadInventory(filepath.Join(work, "queries-filtered.json"), "sales")
 				if err != nil {
